@@ -8,12 +8,17 @@
       "description": "A lightweight 'is/not' review of something represented by another atproto record",
       "record": {
         "type": "object",
-        "required": ["subject", "adjective", "direction", "updatedAt"],
+        "required": [
+          "subject",
+          "adjective",
+          "direction",
+          "updatedAt"
+        ],
         "properties": {
           "subject": {
             "type": "ref",
             "ref": "com.atproto.repo.strongRef",
-            "description": "An atproto record that describes the thing that is being reviewed."
+            "description": "An atproto record that describes the thing that is being reviewed. Readers of these records can decide if the cid needs to be identical for their purposes, or if a weak ref to the at-uri is enough."
           },
           "adjective": {
             "type": "string",
@@ -24,7 +29,13 @@
           },
           "direction": {
             "type": "integer",
-            "enum": [-2, -1, 0, 1, 2],
+            "enum": [
+              -2,
+              -1,
+              0,
+              1,
+              2
+            ],
             "description": "Whether the subject *is* the adjective (1), *is not* the adjective (-1) or, less commonly, *really* is (2), or *really* isn't (-2). A value of zero is an explicit 'no comment', uncertainty, or lack of opinion."
           },
           "updatedAt": {
