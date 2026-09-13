@@ -63,7 +63,7 @@ The existing rules stand. Additions:
 | event | action |
 |---|---|
 | commit create / update, valid record | upsert the tag; ensure an accounts row exists for the DID |
-| identity with a non-empty handle | upsert accounts `(did, handle, now)` |
+| identity with a non-empty handle | upsert accounts `(did, handle, event time)`: handle is the event's handle, or empty when it is `handle.invalid`; the timestamp is the event's time normalised to UTC |
 | identity with an empty handle | ignore |
 | account `deleted`, sync | unchanged: delete the DID's tags. The accounts row stays |
 

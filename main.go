@@ -72,8 +72,9 @@ func env(key, fallback string) string {
 }
 
 // handleResolver looks up a DID's verified handle. Verification costs a second
-// network round trip per new DID, which is fine at our volume and means we never
-// display a handle the account no longer controls.
+// network round trip per new DID, which is fine at our volume. This only verifies
+// at first sight; later changes arrive via jetstream identity events and are
+// trusted as delivered.
 func handleResolver() func(ctx context.Context, did string) (string, error) {
 	dir := &identity.Directory{
 		Resolver: &identity.DefaultResolver{},

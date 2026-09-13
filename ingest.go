@@ -101,13 +101,15 @@ func (in *ingester) applyBatch(ctx context.Context, events []jetstream.Event, cu
 // batch and have no accounts row yet. A failed lookup yields an empty handle.
 func (in *ingester) resolveNewAccounts(ctx context.Context, events []jetstream.Event) (map[string]string, error) {
 	handles := map[string]string{}
+	seen := map[string]bool{}
 	for _, evt := range events {
 		if evt.Kind != jetstream.KindCommit || evt.Commit.Collection != collection || evt.Commit.Operation == jetstream.OpDelete {
 			continue
 		}
-		if _, seen := handles[evt.DID]; seen {
+		if seen[evt.DID] {
 			continue
 		}
+		seen[evt.DID] = true
 		var exists bool
 		if err := in.db.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM accounts WHERE did = ?)`, evt.DID).Scan(&exists); err != nil {
 			return nil, err
@@ -145,13 +147,18 @@ func (in *ingester) apply(tx *sql.Tx, evt jetstream.Event) error {
 		if evt.Identity.Handle == "" {
 			return nil
 		}
+		handle := evt.Identity.Handle
+		// The relay sends this sentinel when an account no longer verifiably controls its handle.
+		if atmos.Handle(handle).IsInvalidHandle() {
+			handle = ""
+		}
 		updatedAt := time.Now().UTC().Format(atmos.AtprotoDatetimeLayout)
 		if t, err := time.Parse(time.RFC3339Nano, evt.Identity.Time); err == nil {
 			updatedAt = t.UTC().Format(atmos.AtprotoDatetimeLayout)
 		}
 		_, err := tx.Exec(`INSERT INTO accounts (did, handle, updated_at) VALUES (?, ?, ?)
 			ON CONFLICT (did) DO UPDATE SET handle = excluded.handle, updated_at = excluded.updated_at`,
-			evt.DID, evt.Identity.Handle, updatedAt)
+			evt.DID, handle, updatedAt)
 		return err
 	}
 	return nil

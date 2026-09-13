@@ -282,6 +282,7 @@ func TestAccountsResolvedOnFirstSightAndUpdatedByIdentityEvents(t *testing.T) {
 
 	apply(t, in, 1,
 		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("x", int64(1))),
+		commitEvent("did:plc:a", "3k1b", jetstream.OpCreate, tagRecord("x", int64(1))),
 		commitEvent("did:plc:b", "3k1", jetstream.OpCreate, tagRecord("y", int64(1))),
 	)
 	if got := handles(t, in.db); len(got) != 2 || got["did:plc:a"] != "a.example" || got["did:plc:b"] != "" {
@@ -290,11 +291,15 @@ func TestAccountsResolvedOnFirstSightAndUpdatedByIdentityEvents(t *testing.T) {
 
 	apply(t, in, 2, commitEvent("did:plc:a", "3k2", jetstream.OpCreate, tagRecord("z", int64(1))))
 	if calls != 2 {
-		t.Fatalf("resolver calls = %d, want 2 (known DIDs are not re-resolved)", calls)
+		t.Fatalf("resolver calls = %d, want 2 (known DIDs are not re-resolved, including within a batch)", calls)
 	}
 
-	apply(t, in, 3, identityEvent("did:plc:b", "bee.example"), identityEvent("did:plc:a", ""))
-	if got := handles(t, in.db); got["did:plc:b"] != "bee.example" || got["did:plc:a"] != "a.example" {
+	apply(t, in, 3,
+		identityEvent("did:plc:b", "bee.example"),
+		identityEvent("did:plc:a", ""),
+		identityEvent("did:plc:c", "cee.example"),
+	)
+	if got := handles(t, in.db); got["did:plc:b"] != "bee.example" || got["did:plc:a"] != "a.example" || got["did:plc:c"] != "cee.example" {
 		t.Fatalf("accounts after identity events = %v", got)
 	}
 
@@ -304,5 +309,10 @@ func TestAccountsResolvedOnFirstSightAndUpdatedByIdentityEvents(t *testing.T) {
 	}
 	if want := "2026-09-13T12:00:00.500Z"; updatedAt != want {
 		t.Fatalf("updated_at = %q, want %q", updatedAt, want)
+	}
+
+	apply(t, in, 4, identityEvent("did:plc:b", "handle.invalid"))
+	if got := handles(t, in.db); got["did:plc:b"] != "" {
+		t.Fatalf("did:plc:b handle after handle.invalid = %q, want empty", got["did:plc:b"])
 	}
 }
