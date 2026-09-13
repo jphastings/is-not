@@ -209,9 +209,22 @@ func TestFoldStoresSubjectFields(t *testing.T) {
 		t.Fatalf("subject = %q %q %q", title, typ, identifiers)
 	}
 
+	updateRecord := tagRecord("x", int64(1))
+	subject := updateRecord["subject"].(map[string]any)
+	subject["title"] = "Another Post"
+	subject["type"] = "movie"
+	subject["identifiers"] = []any{map[string]any{"key": "tmdbId", "value": "2"}}
+	apply(t, in, 3, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate, updateRecord))
+	if err := in.db.QueryRow(`SELECT subject_title, subject_type, subject_identifiers FROM tags WHERE did = ? AND rkey = ?`, "did:plc:a", "3k1").Scan(&title, &typ, &identifiers); err != nil {
+		t.Fatal(err)
+	}
+	if title != "Another Post" || typ != "movie" || identifiers != `[{"key":"tmdbId","value":"2"}]` {
+		t.Fatalf("updated subject = %q %q %q", title, typ, identifiers)
+	}
+
 	record := tagRecord("y", int64(1))
 	delete(record["subject"].(map[string]any), "identifiers")
-	apply(t, in, 2, commitEvent("did:plc:a", "3k2", jetstream.OpCreate, record))
+	apply(t, in, 4, commitEvent("did:plc:a", "3k2", jetstream.OpCreate, record))
 	if err := in.db.QueryRow(`SELECT subject_identifiers FROM tags WHERE rkey = '3k2'`).Scan(&identifiers); err != nil {
 		t.Fatal(err)
 	}
