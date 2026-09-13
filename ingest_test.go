@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log/slog"
 	"path/filepath"
 	"testing"
@@ -23,7 +24,10 @@ func newTestIngester(t *testing.T) *ingester {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &ingester{db: db, cat: cat, log: slog.New(slog.DiscardHandler)}
+	return &ingester{
+		db: db, cat: cat, log: slog.New(slog.DiscardHandler),
+		resolveHandle: func(context.Context, string) (string, error) { return "", nil },
+	}
 }
 
 func tagRecord(adjective string, direction any) map[string]any {
@@ -240,5 +244,57 @@ func TestFoldRejectsSubjectWithoutTitle(t *testing.T) {
 	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, record))
 	if got := allRows(t, in.db); len(got) != 0 {
 		t.Fatalf("rows = %+v, want none", got)
+	}
+}
+
+func identityEvent(did, handle string) jetstream.Event {
+	return jetstream.Event{DID: did, Kind: jetstream.KindIdentity, Identity: &jetstream.Identity{DID: did, Handle: handle, Time: "2026-09-13T12:00:00.000Z"}}
+}
+
+func handles(t *testing.T, db *sql.DB) map[string]string {
+	t.Helper()
+	rs, err := db.Query(`SELECT did, handle FROM accounts`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rs.Close()
+	out := map[string]string{}
+	for rs.Next() {
+		var did, handle string
+		if err := rs.Scan(&did, &handle); err != nil {
+			t.Fatal(err)
+		}
+		out[did] = handle
+	}
+	return out
+}
+
+func TestAccountsResolvedOnFirstSightAndUpdatedByIdentityEvents(t *testing.T) {
+	in := newTestIngester(t)
+	calls := 0
+	in.resolveHandle = func(_ context.Context, did string) (string, error) {
+		calls++
+		if did == "did:plc:b" {
+			return "", errors.New("resolver down")
+		}
+		return "a.example", nil
+	}
+
+	apply(t, in, 1,
+		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("x", int64(1))),
+		commitEvent("did:plc:b", "3k1", jetstream.OpCreate, tagRecord("y", int64(1))),
+	)
+	if got := handles(t, in.db); len(got) != 2 || got["did:plc:a"] != "a.example" || got["did:plc:b"] != "" {
+		t.Fatalf("accounts after first batch = %v", got)
+	}
+
+	apply(t, in, 2, commitEvent("did:plc:a", "3k2", jetstream.OpCreate, tagRecord("z", int64(1))))
+	if calls != 2 {
+		t.Fatalf("resolver calls = %d, want 2 (known DIDs are not re-resolved)", calls)
+	}
+
+	apply(t, in, 3, identityEvent("did:plc:b", "bee.example"), identityEvent("did:plc:a", ""))
+	if got := handles(t, in.db); got["did:plc:b"] != "bee.example" || got["did:plc:a"] != "a.example" {
+		t.Fatalf("accounts after identity events = %v", got)
 	}
 }

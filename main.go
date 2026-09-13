@@ -8,8 +8,11 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/bluesky-social/jetstream"
+	"github.com/jcalabro/atmos"
+	"github.com/jcalabro/atmos/identity"
 )
 
 func main() {
@@ -57,7 +60,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 	defer client.Close()
 	log.Info("following jetstream", "host", host, "collection", collection, "cursor", cursor)
 
-	in := &ingester{db: db, cat: cat, log: log}
+	in := &ingester{db: db, cat: cat, log: log, resolveHandle: handleResolver()}
 	return in.run(ctx, client)
 }
 
@@ -66,4 +69,24 @@ func env(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// handleResolver looks up a DID's verified handle. Verification costs a second
+// network round trip per new DID, which is fine at our volume and means we never
+// display a handle the account no longer controls.
+func handleResolver() func(ctx context.Context, did string) (string, error) {
+	dir := &identity.Directory{
+		Resolver: &identity.DefaultResolver{},
+		Cache:    identity.NewLRUCache(10_000, time.Hour),
+	}
+	return func(ctx context.Context, did string) (string, error) {
+		id, err := dir.LookupDID(ctx, atmos.DID(did))
+		if err != nil {
+			return "", err
+		}
+		if id.Handle == atmos.HandleInvalid {
+			return "", nil
+		}
+		return string(id.Handle), nil
+	}
 }

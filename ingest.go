@@ -45,9 +45,10 @@ func loadCatalog() (*lexicon.Catalog, error) {
 }
 
 type ingester struct {
-	db  *sql.DB
-	cat *lexicon.Catalog
-	log *slog.Logger
+	db            *sql.DB
+	cat           *lexicon.Catalog
+	log           *slog.Logger
+	resolveHandle func(ctx context.Context, did string) (string, error)
 }
 
 func (in *ingester) run(ctx context.Context, client *jetstream.Client) error {
@@ -67,11 +68,22 @@ func (in *ingester) run(ctx context.Context, client *jetstream.Client) error {
 }
 
 func (in *ingester) applyBatch(ctx context.Context, events []jetstream.Event, cursor uint64) error {
+	// Resolve before the transaction so network time never holds the write lock.
+	newAccounts, err := in.resolveNewAccounts(ctx, events)
+	if err != nil {
+		return err
+	}
 	tx, err := in.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
+	now := time.Now().UTC().Format(atmos.AtprotoDatetimeLayout)
+	for did, handle := range newAccounts {
+		if _, err := tx.Exec(`INSERT INTO accounts (did, handle, updated_at) VALUES (?, ?, ?) ON CONFLICT (did) DO NOTHING`, did, handle, now); err != nil {
+			return err
+		}
+	}
 	for _, evt := range events {
 		if err := in.apply(tx, evt); err != nil {
 			return err
@@ -83,6 +95,36 @@ func (in *ingester) applyBatch(ctx context.Context, events []jetstream.Event, cu
 		}
 	}
 	return tx.Commit()
+}
+
+// resolveNewAccounts returns handles for DIDs that create or update a tag in this
+// batch and have no accounts row yet. A failed lookup yields an empty handle.
+func (in *ingester) resolveNewAccounts(ctx context.Context, events []jetstream.Event) (map[string]string, error) {
+	handles := map[string]string{}
+	for _, evt := range events {
+		if evt.Kind != jetstream.KindCommit || evt.Commit.Collection != collection || evt.Commit.Operation == jetstream.OpDelete {
+			continue
+		}
+		if _, seen := handles[evt.DID]; seen {
+			continue
+		}
+		var exists bool
+		if err := in.db.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM accounts WHERE did = ?)`, evt.DID).Scan(&exists); err != nil {
+			return nil, err
+		}
+		if exists {
+			continue
+		}
+		resolveCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		handle, err := in.resolveHandle(resolveCtx, evt.DID)
+		cancel()
+		if err != nil {
+			in.log.Warn("handle resolution failed", "did", evt.DID, "err", err)
+			handle = ""
+		}
+		handles[evt.DID] = handle
+	}
+	return handles, nil
 }
 
 func (in *ingester) apply(tx *sql.Tx, evt jetstream.Event) error {
@@ -98,6 +140,14 @@ func (in *ingester) apply(tx *sql.Tx, evt jetstream.Event) error {
 	case jetstream.KindSync:
 		// Replacement records follow as their own commits, so drop the stale view.
 		_, err := tx.Exec(`DELETE FROM tags WHERE did = ?`, evt.DID)
+		return err
+	case jetstream.KindIdentity:
+		if evt.Identity.Handle == "" {
+			return nil
+		}
+		_, err := tx.Exec(`INSERT INTO accounts (did, handle, updated_at) VALUES (?, ?, ?)
+			ON CONFLICT (did) DO UPDATE SET handle = excluded.handle, updated_at = excluded.updated_at`,
+			evt.DID, evt.Identity.Handle, evt.Identity.Time)
 		return err
 	}
 	return nil
