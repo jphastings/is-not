@@ -1,9 +1,84 @@
 package main
 
 import (
+	"context"
+	"database/sql"
+	"log/slog"
 	"path/filepath"
 	"testing"
+
+	"github.com/bluesky-social/jetstream"
 )
+
+const validCID = "bafyreihffx5a2e7k5uwrmmd2szqjc5akl2tqjnpshq6pdinjhyi5s4rlnq"
+
+func newTestIngester(t *testing.T) *ingester {
+	t.Helper()
+	db, err := openDB(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Close() })
+	cat, err := loadCatalog()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &ingester{db: db, cat: cat, log: slog.New(slog.DiscardHandler)}
+}
+
+func tagRecord(adjective string, direction any) map[string]any {
+	return map[string]any{
+		"subject":   map[string]any{"uri": "at://did:plc:subject/app.bsky.feed.post/3abc", "cid": validCID},
+		"adjective": adjective,
+		"direction": direction,
+		"updatedAt": "2026-09-13T12:00:00.000Z",
+	}
+}
+
+func commitEvent(did, rkey string, op jetstream.Operation, record map[string]any) jetstream.Event {
+	return jetstream.Event{DID: did, Kind: jetstream.KindCommit, Commit: &jetstream.Commit{
+		Operation: op, Collection: collection, Rkey: rkey, Record: record,
+	}}
+}
+
+type row struct {
+	did, rkey, adjective string
+	direction            int64
+}
+
+func allRows(t *testing.T, db *sql.DB) []row {
+	t.Helper()
+	rs, err := db.Query(`SELECT did, rkey, adjective, direction FROM tags ORDER BY did, rkey`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rs.Close()
+	var out []row
+	for rs.Next() {
+		var r row
+		if err := rs.Scan(&r.did, &r.rkey, &r.adjective, &r.direction); err != nil {
+			t.Fatal(err)
+		}
+		out = append(out, r)
+	}
+	return out
+}
+
+func savedCursor(t *testing.T, db *sql.DB) uint64 {
+	t.Helper()
+	var seq uint64
+	if err := db.QueryRow(`SELECT seq FROM cursor WHERE id = 1`).Scan(&seq); err != nil {
+		t.Fatal(err)
+	}
+	return seq
+}
+
+func apply(t *testing.T, in *ingester, cursor uint64, events ...jetstream.Event) {
+	t.Helper()
+	if err := in.applyBatch(context.Background(), events, cursor); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestOpenDBMigratesOnceAndIsRepeatable(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "test.db")
@@ -23,5 +98,69 @@ func TestOpenDBMigratesOnceAndIsRepeatable(t *testing.T) {
 			t.Fatal(err)
 		}
 		db.Close()
+	}
+}
+
+func TestFoldCreateUpdateDelete(t *testing.T) {
+	in := newTestIngester(t)
+
+	apply(t, in, 10, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("good", float64(1))))
+	if got := allRows(t, in.db); len(got) != 1 || got[0] != (row{"did:plc:a", "3k1", "good", 1}) {
+		t.Fatalf("after create: %+v", got)
+	}
+
+	apply(t, in, 11, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate, tagRecord("bad", int64(-1))))
+	if got := allRows(t, in.db); len(got) != 1 || got[0] != (row{"did:plc:a", "3k1", "bad", -1}) {
+		t.Fatalf("after update: %+v", got)
+	}
+
+	apply(t, in, 12, commitEvent("did:plc:a", "3k1", jetstream.OpDelete, nil))
+	if got := allRows(t, in.db); len(got) != 0 {
+		t.Fatalf("after delete: %+v", got)
+	}
+	if c := savedCursor(t, in.db); c != 12 {
+		t.Fatalf("cursor = %d, want 12", c)
+	}
+}
+
+func TestFoldSkipsInvalidRecordButAdvancesCursor(t *testing.T) {
+	in := newTestIngester(t)
+	apply(t, in, 5,
+		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("ok", int64(3))),
+		commitEvent("did:plc:a", "3k2", jetstream.OpCreate, tagRecord("seventeen chars!!", int64(1))),
+		commitEvent("did:plc:a", "3k3", jetstream.OpCreate, tagRecord("fine", int64(2))),
+	)
+	if got := allRows(t, in.db); len(got) != 1 || got[0].rkey != "3k3" {
+		t.Fatalf("rows = %+v, want only 3k3", got)
+	}
+	if c := savedCursor(t, in.db); c != 5 {
+		t.Fatalf("cursor = %d, want 5", c)
+	}
+}
+
+func TestFoldPurgesOnAccountDeletionAndSync(t *testing.T) {
+	in := newTestIngester(t)
+	apply(t, in, 1,
+		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("x", int64(1))),
+		commitEvent("did:plc:b", "3k1", jetstream.OpCreate, tagRecord("y", int64(1))),
+		commitEvent("did:plc:c", "3k1", jetstream.OpCreate, tagRecord("z", int64(1))),
+	)
+	apply(t, in, 2,
+		jetstream.Event{DID: "did:plc:a", Kind: jetstream.KindAccount, Account: &jetstream.Account{DID: "did:plc:a", Active: false, Status: "deleted"}},
+		jetstream.Event{DID: "did:plc:b", Kind: jetstream.KindAccount, Account: &jetstream.Account{DID: "did:plc:b", Active: false, Status: "deactivated"}},
+		jetstream.Event{DID: "did:plc:c", Kind: jetstream.KindSync, Sync: &jetstream.Sync{DID: "did:plc:c"}},
+	)
+	got := allRows(t, in.db)
+	if len(got) != 1 || got[0].did != "did:plc:b" {
+		t.Fatalf("rows = %+v, want only did:plc:b", got)
+	}
+}
+
+func TestFoldEmptyBatchKeepsCursor(t *testing.T) {
+	in := newTestIngester(t)
+	apply(t, in, 7, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("x", int64(1))))
+	apply(t, in, 0)
+	if c := savedCursor(t, in.db); c != 7 {
+		t.Fatalf("cursor = %d, want 7", c)
 	}
 }
