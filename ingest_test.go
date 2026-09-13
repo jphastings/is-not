@@ -126,23 +126,20 @@ func TestFoldCreateUpdateDelete(t *testing.T) {
 func TestFoldInvalidRecordDeletesExistingRowButAdvancesCursor(t *testing.T) {
 	in := newTestIngester(t)
 	apply(t, in, 5,
-		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("ok", int64(3))),
+		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("ok", int64(1))),
 		commitEvent("did:plc:a", "3k2", jetstream.OpCreate, tagRecord("seventeen chars!!", int64(1))),
 		commitEvent("did:plc:a", "3k3", jetstream.OpCreate, tagRecord("fine", int64(2))),
 	)
-	if got := allRows(t, in.db); len(got) != 1 || got[0].rkey != "3k3" {
-		t.Fatalf("rows = %+v, want only 3k3", got)
+	if got := allRows(t, in.db); len(got) != 2 || got[0].rkey != "3k1" || got[1].rkey != "3k3" {
+		t.Fatalf("rows = %+v, want 3k1 and 3k3", got)
 	}
 	if c := savedCursor(t, in.db); c != 5 {
 		t.Fatalf("cursor = %d, want 5", c)
 	}
 
 	apply(t, in, 6, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate, tagRecord("seventeen chars!!", int64(1))))
-	got := allRows(t, in.db)
-	for _, r := range got {
-		if r.rkey == "3k1" {
-			t.Fatalf("rows = %+v, want 3k1 deleted after invalid update", got)
-		}
+	if got := allRows(t, in.db); len(got) != 1 || got[0].rkey != "3k3" {
+		t.Fatalf("rows = %+v, want only 3k3 after invalid update deletes 3k1", got)
 	}
 	if c := savedCursor(t, in.db); c != 6 {
 		t.Fatalf("cursor = %d, want 6", c)
