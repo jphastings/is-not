@@ -145,9 +145,13 @@ func (in *ingester) apply(tx *sql.Tx, evt jetstream.Event) error {
 		if evt.Identity.Handle == "" {
 			return nil
 		}
+		updatedAt := time.Now().UTC().Format(atmos.AtprotoDatetimeLayout)
+		if t, err := time.Parse(time.RFC3339Nano, evt.Identity.Time); err == nil {
+			updatedAt = t.UTC().Format(atmos.AtprotoDatetimeLayout)
+		}
 		_, err := tx.Exec(`INSERT INTO accounts (did, handle, updated_at) VALUES (?, ?, ?)
 			ON CONFLICT (did) DO UPDATE SET handle = excluded.handle, updated_at = excluded.updated_at`,
-			evt.DID, evt.Identity.Handle, evt.Identity.Time)
+			evt.DID, evt.Identity.Handle, updatedAt)
 		return err
 	}
 	return nil

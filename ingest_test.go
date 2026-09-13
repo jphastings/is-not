@@ -248,7 +248,7 @@ func TestFoldRejectsSubjectWithoutTitle(t *testing.T) {
 }
 
 func identityEvent(did, handle string) jetstream.Event {
-	return jetstream.Event{DID: did, Kind: jetstream.KindIdentity, Identity: &jetstream.Identity{DID: did, Handle: handle, Time: "2026-09-13T12:00:00.000Z"}}
+	return jetstream.Event{DID: did, Kind: jetstream.KindIdentity, Identity: &jetstream.Identity{DID: did, Handle: handle, Time: "2026-09-13T13:00:00.5+01:00"}}
 }
 
 func handles(t *testing.T, db *sql.DB) map[string]string {
@@ -296,5 +296,13 @@ func TestAccountsResolvedOnFirstSightAndUpdatedByIdentityEvents(t *testing.T) {
 	apply(t, in, 3, identityEvent("did:plc:b", "bee.example"), identityEvent("did:plc:a", ""))
 	if got := handles(t, in.db); got["did:plc:b"] != "bee.example" || got["did:plc:a"] != "a.example" {
 		t.Fatalf("accounts after identity events = %v", got)
+	}
+
+	var updatedAt string
+	if err := in.db.QueryRow(`SELECT updated_at FROM accounts WHERE did = 'did:plc:b'`).Scan(&updatedAt); err != nil {
+		t.Fatal(err)
+	}
+	if want := "2026-09-13T12:00:00.500Z"; updatedAt != want {
+		t.Fatalf("updated_at = %q, want %q", updatedAt, want)
 	}
 }

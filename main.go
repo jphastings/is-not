@@ -85,7 +85,7 @@ func handleResolver() func(ctx context.Context, did string) (string, error) {
 			return "", err
 		}
 		if id.Handle == atmos.HandleInvalid {
-			return "", nil
+			return "", errors.New("declared handle failed verification")
 		}
 		return string(id.Handle), nil
 	}
