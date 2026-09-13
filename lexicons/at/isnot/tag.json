@@ -8,17 +8,12 @@
       "description": "A lightweight 'is/not' review of something represented by another atproto record",
       "record": {
         "type": "object",
-        "required": [
-          "subject",
-          "adjective",
-          "direction",
-          "updatedAt"
-        ],
+        "required": ["subject", "adjective", "direction", "updatedAt"],
         "properties": {
           "subject": {
             "type": "ref",
-            "ref": "com.atproto.repo.strongRef",
-            "description": "An atproto record that describes the thing that is being reviewed. Readers of these records can decide if the cid needs to be identical for their purposes, or if a weak ref to the at-uri is enough."
+            "ref": "#subject",
+            "description": "The thing being tagged, described well enough to display without fetching the referenced record. Readers can decide whether the cid must match for their purposes, or whether the at-uri alone is enough."
           },
           "adjective": {
             "type": "string",
@@ -29,13 +24,7 @@
           },
           "direction": {
             "type": "integer",
-            "enum": [
-              -2,
-              -1,
-              0,
-              1,
-              2
-            ],
+            "enum": [-2, -1, 0, 1, 2],
             "description": "Whether the subject *is* the adjective (1), *is not* the adjective (-1) or, less commonly, *really* is (2), or *really* isn't (-2). A value of zero is an explicit 'no comment', uncertainty, or lack of opinion."
           },
           "updatedAt": {
@@ -43,6 +32,49 @@
             "format": "datetime"
           }
         }
+      }
+    },
+    "subject": {
+      "type": "object",
+      "required": ["uri", "cid", "title", "type"],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "at-uri",
+          "description": "The atproto record that represents the thing being tagged."
+        },
+        "cid": {
+          "type": "string",
+          "format": "cid",
+          "description": "The uri's cid when this tag was last updated."
+        },
+        "title": {
+          "type": "string",
+          "minGraphemes": 1,
+          "maxGraphemes": 256,
+          "maxLength": 2560,
+          "description": "The name of the thing being tagged, usually copied from a field on the subject record."
+        },
+        "type": {
+          "type": "string",
+          "maxLength": 64,
+          "knownValues": ["movie", "tv-series", "tv-episode", "book", "album", "post"],
+          "description": "The kind of thing the subject is. Open set; add values as lenses support them."
+        },
+        "identifiers": {
+          "type": "array",
+          "maxLength": 32,
+          "items": { "type": "ref", "ref": "#identifier" },
+          "description": "External identifiers for the subject, such as imdbId or isbn13."
+        }
+      }
+    },
+    "identifier": {
+      "type": "object",
+      "required": ["key", "value"],
+      "properties": {
+        "key": { "type": "string", "maxLength": 64 },
+        "value": { "type": "string", "maxLength": 512 }
       }
     }
   }

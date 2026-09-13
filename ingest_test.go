@@ -28,7 +28,13 @@ func newTestIngester(t *testing.T) *ingester {
 
 func tagRecord(adjective string, direction any) map[string]any {
 	return map[string]any{
-		"subject":   map[string]any{"uri": "at://did:plc:subject/app.bsky.feed.post/3abc", "cid": validCID},
+		"subject": map[string]any{
+			"uri":         "at://did:plc:subject/app.bsky.feed.post/3abc",
+			"cid":         validCID,
+			"title":       "A Post",
+			"type":        "post",
+			"identifiers": []any{map[string]any{"key": "imdbId", "value": "tt1"}},
+		},
 		"adjective": adjective,
 		"direction": direction,
 		"updatedAt": "2026-09-13T12:00:00.000Z",
@@ -94,7 +100,10 @@ func TestOpenDBMigratesOnceAndIsRepeatable(t *testing.T) {
 		if n != 1 {
 			t.Fatalf("schema_version rows = %d, want 1", n)
 		}
-		if _, err := db.Exec(`SELECT did, rkey, subject_uri, subject_cid, adjective, direction, updated_at FROM tags`); err != nil {
+		if _, err := db.Exec(`SELECT did, rkey, subject_uri, subject_cid, subject_title, subject_type, subject_identifiers, adjective, direction, updated_at FROM tags`); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Exec(`SELECT did, handle, updated_at FROM accounts`); err != nil {
 			t.Fatal(err)
 		}
 		db.Close()
@@ -185,5 +194,38 @@ func TestFoldEmptyBatchKeepsCursor(t *testing.T) {
 	apply(t, in, 0)
 	if c := savedCursor(t, in.db); c != 7 {
 		t.Fatalf("cursor = %d, want 7", c)
+	}
+}
+
+func TestFoldStoresSubjectFields(t *testing.T) {
+	in := newTestIngester(t)
+	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("x", int64(1))))
+
+	var title, typ, identifiers string
+	if err := in.db.QueryRow(`SELECT subject_title, subject_type, subject_identifiers FROM tags WHERE did = ? AND rkey = ?`, "did:plc:a", "3k1").Scan(&title, &typ, &identifiers); err != nil {
+		t.Fatal(err)
+	}
+	if title != "A Post" || typ != "post" || identifiers != `[{"key":"imdbId","value":"tt1"}]` {
+		t.Fatalf("subject = %q %q %q", title, typ, identifiers)
+	}
+
+	record := tagRecord("y", int64(1))
+	delete(record["subject"].(map[string]any), "identifiers")
+	apply(t, in, 2, commitEvent("did:plc:a", "3k2", jetstream.OpCreate, record))
+	if err := in.db.QueryRow(`SELECT subject_identifiers FROM tags WHERE rkey = '3k2'`).Scan(&identifiers); err != nil {
+		t.Fatal(err)
+	}
+	if identifiers != "[]" {
+		t.Fatalf("identifiers without any = %q, want []", identifiers)
+	}
+}
+
+func TestFoldRejectsSubjectWithoutTitle(t *testing.T) {
+	in := newTestIngester(t)
+	record := tagRecord("x", int64(1))
+	delete(record["subject"].(map[string]any), "title")
+	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, record))
+	if got := allRows(t, in.db); len(got) != 0 {
+		t.Fatalf("rows = %+v, want none", got)
 	}
 }

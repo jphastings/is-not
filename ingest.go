@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	"encoding/json"
 	"errors"
 	"io/fs"
 	"log/slog"
@@ -117,16 +118,28 @@ func (in *ingester) applyCommit(tx *sql.Tx, did string, c *jetstream.Commit) err
 		return err
 	}
 	subject := c.Record["subject"].(map[string]any)
+	identifiers := "[]"
+	if ids, ok := subject["identifiers"]; ok && ids != nil {
+		b, err := json.Marshal(ids)
+		if err != nil {
+			return err
+		}
+		identifiers = string(b)
+	}
 	_, err = tx.Exec(`
-		INSERT INTO tags (did, rkey, subject_uri, subject_cid, adjective, direction, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO tags (did, rkey, subject_uri, subject_cid, subject_title, subject_type, subject_identifiers, adjective, direction, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (did, rkey) DO UPDATE SET
-			subject_uri = excluded.subject_uri,
-			subject_cid = excluded.subject_cid,
-			adjective   = excluded.adjective,
-			direction   = excluded.direction,
-			updated_at  = excluded.updated_at`,
-		did, c.Rkey, subject["uri"], subject["cid"], c.Record["adjective"], c.Record["direction"], updatedAt)
+			subject_uri         = excluded.subject_uri,
+			subject_cid         = excluded.subject_cid,
+			subject_title       = excluded.subject_title,
+			subject_type        = excluded.subject_type,
+			subject_identifiers = excluded.subject_identifiers,
+			adjective           = excluded.adjective,
+			direction           = excluded.direction,
+			updated_at          = excluded.updated_at`,
+		did, c.Rkey, subject["uri"], subject["cid"], subject["title"], subject["type"], identifiers,
+		c.Record["adjective"], c.Record["direction"], updatedAt)
 	return err
 }
 
