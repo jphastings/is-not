@@ -1,10 +1,11 @@
 ---
 # ISNOT-xz5s
 title: Set up CLAUDE.md
-status: todo
+status: completed
 type: task
+priority: normal
 created_at: 2026-09-13T13:48:06Z
-updated_at: 2026-09-13T13:48:06Z
+updated_at: 2026-09-13T14:07:42Z
 ---
 
 Create a project CLAUDE.md.
