@@ -67,8 +67,9 @@ The existing rules stand. Additions:
 | identity with an empty handle | ignore |
 | account `deleted`, sync | unchanged: delete the DID's tags. The accounts row stays |
 
-Ensuring an accounts row: before opening the batch transaction, collect the DIDs of valid
-commits in the batch that have no accounts row yet, and resolve each one's handle with an
+Ensuring an accounts row: before opening the batch transaction, collect the DIDs of create or
+update commits in the batch that have no accounts row yet (validation happens later, inside
+the transaction; an accounts row for a DID whose record turns out invalid is harmless), and resolve each one's handle with an
 atmos identity `Directory` (default resolver, in-memory cache, handle verification on). A
 lookup that fails or returns `atmos.HandleInvalid` logs a warning and stores an empty handle.
 Resolution happens outside the transaction so network time never holds the write lock.
