@@ -16,7 +16,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	if err := run(ctx, log); err != nil {
+	if err := run(ctx, log); err != nil && !errors.Is(err, context.Canceled) {
 		log.Error("exiting", "err", err)
 		os.Exit(1)
 	}
@@ -40,14 +40,13 @@ func run(ctx context.Context, log *slog.Logger) error {
 	}
 
 	opts := []jetstream.Option{jetstream.WithCollection(collection), jetstream.WithLogger(log)}
-	if cursor > 0 {
-		opts = append(opts, jetstream.WithLiveCursor(cursor))
-	}
 	if key := os.Getenv("JETSTREAM_API_KEY"); key != "" {
-		opts = append(opts, jetstream.WithAPIKey(key))
-		if cursor == 0 {
-			opts = append(opts, jetstream.WithAfterSeq(0))
-		}
+		// With a key we always resume via archive replay: cursor 0 replays from the
+		// start, a non-zero cursor resumes from it even if it's older than the live
+		// tail's lookback window.
+		opts = append(opts, jetstream.WithAPIKey(key), jetstream.WithAfterSeq(cursor))
+	} else if cursor > 0 {
+		opts = append(opts, jetstream.WithLiveCursor(cursor))
 	}
 
 	host := env("JETSTREAM_HOST", "jetstream.us-east.bsky.network")

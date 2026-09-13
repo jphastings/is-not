@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -43,12 +43,17 @@ func migrate(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	sort.Strings(files)
+	versions := make(map[string]int, len(files))
 	for _, file := range files {
 		version, err := strconv.Atoi(strings.SplitN(path.Base(file), "_", 2)[0])
 		if err != nil {
 			return fmt.Errorf("migration %s: name must start with a number: %w", file, err)
 		}
+		versions[file] = version
+	}
+	slices.SortFunc(files, func(a, b string) int { return versions[a] - versions[b] })
+	for _, file := range files {
+		version := versions[file]
 		if version <= current {
 			continue
 		}

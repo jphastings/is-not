@@ -8,8 +8,10 @@ import (
 	"io/fs"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/bluesky-social/jetstream"
+	"github.com/jcalabro/atmos"
 	"github.com/jcalabro/atmos/lexicon"
 	"github.com/jcalabro/atmos/lexval"
 )
@@ -56,7 +58,7 @@ func (in *ingester) run(ctx context.Context, client *jetstream.Client) error {
 			in.log.Warn("stream error", "err", err)
 			continue
 		}
-		if err := in.applyBatch(ctx, batch.Events(), batch.LastCursor()); err != nil {
+		if err := in.applyBatch(context.WithoutCancel(ctx), batch.Events(), batch.LastCursor()); err != nil {
 			return err
 		}
 	}
@@ -75,7 +77,7 @@ func (in *ingester) applyBatch(ctx context.Context, events []jetstream.Event, cu
 		}
 	}
 	if cursor > 0 {
-		if _, err := tx.Exec(`INSERT INTO cursor (id, seq) VALUES (1, ?) ON CONFLICT (id) DO UPDATE SET seq = excluded.seq`, cursor); err != nil {
+		if _, err := tx.Exec(`INSERT INTO cursor (id, seq) VALUES (1, ?) ON CONFLICT (id) DO UPDATE SET seq = MAX(seq, excluded.seq)`, cursor); err != nil {
 			return err
 		}
 	}
@@ -108,12 +110,14 @@ func (in *ingester) applyCommit(tx *sql.Tx, did string, c *jetstream.Commit) err
 		_, err := tx.Exec(`DELETE FROM tags WHERE did = ? AND rkey = ?`, did, c.Rkey)
 		return err
 	}
-	if err := lexval.ValidateRecord(in.cat, collection, c.Record); err != nil {
-		in.log.Warn("skipping invalid record", "did", did, "rkey", c.Rkey, "err", err)
-		return nil
+	updatedAt, err := validUpdatedAt(in.cat, c.Record)
+	if err != nil {
+		in.log.Warn("invalid record, deleting any existing row", "did", did, "rkey", c.Rkey, "err", err)
+		_, err := tx.Exec(`DELETE FROM tags WHERE did = ? AND rkey = ?`, did, c.Rkey)
+		return err
 	}
 	subject := c.Record["subject"].(map[string]any)
-	_, err := tx.Exec(`
+	_, err = tx.Exec(`
 		INSERT INTO tags (did, rkey, subject_uri, subject_cid, adjective, direction, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (did, rkey) DO UPDATE SET
@@ -122,6 +126,19 @@ func (in *ingester) applyCommit(tx *sql.Tx, did string, c *jetstream.Commit) err
 			adjective   = excluded.adjective,
 			direction   = excluded.direction,
 			updated_at  = excluded.updated_at`,
-		did, c.Rkey, subject["uri"], subject["cid"], c.Record["adjective"], c.Record["direction"], c.Record["updatedAt"])
+		did, c.Rkey, subject["uri"], subject["cid"], c.Record["adjective"], c.Record["direction"], updatedAt)
 	return err
+}
+
+// validUpdatedAt validates the record against the lexicon, then normalises
+// updatedAt to fixed-width UTC so TEXT ordering in the tags table is chronological.
+func validUpdatedAt(cat *lexicon.Catalog, record map[string]any) (string, error) {
+	if err := lexval.ValidateRecord(cat, collection, record); err != nil {
+		return "", err
+	}
+	t, err := time.Parse(time.RFC3339Nano, record["updatedAt"].(string))
+	if err != nil {
+		return "", err
+	}
+	return t.UTC().Format(atmos.AtprotoDatetimeLayout), nil
 }

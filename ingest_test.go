@@ -123,7 +123,7 @@ func TestFoldCreateUpdateDelete(t *testing.T) {
 	}
 }
 
-func TestFoldSkipsInvalidRecordButAdvancesCursor(t *testing.T) {
+func TestFoldInvalidRecordDeletesExistingRowButAdvancesCursor(t *testing.T) {
 	in := newTestIngester(t)
 	apply(t, in, 5,
 		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("ok", int64(3))),
@@ -135,6 +135,32 @@ func TestFoldSkipsInvalidRecordButAdvancesCursor(t *testing.T) {
 	}
 	if c := savedCursor(t, in.db); c != 5 {
 		t.Fatalf("cursor = %d, want 5", c)
+	}
+
+	apply(t, in, 6, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate, tagRecord("seventeen chars!!", int64(1))))
+	got := allRows(t, in.db)
+	for _, r := range got {
+		if r.rkey == "3k1" {
+			t.Fatalf("rows = %+v, want 3k1 deleted after invalid update", got)
+		}
+	}
+	if c := savedCursor(t, in.db); c != 6 {
+		t.Fatalf("cursor = %d, want 6", c)
+	}
+}
+
+func TestFoldNormalisesUpdatedAtToUTC(t *testing.T) {
+	in := newTestIngester(t)
+	record := tagRecord("ok", int64(1))
+	record["updatedAt"] = "2026-09-13T13:00:00.5+01:00"
+	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, record))
+
+	var updatedAt string
+	if err := in.db.QueryRow(`SELECT updated_at FROM tags WHERE did = ? AND rkey = ?`, "did:plc:a", "3k1").Scan(&updatedAt); err != nil {
+		t.Fatal(err)
+	}
+	if want := "2026-09-13T12:00:00.500Z"; updatedAt != want {
+		t.Fatalf("updated_at = %q, want %q", updatedAt, want)
 	}
 }
 
