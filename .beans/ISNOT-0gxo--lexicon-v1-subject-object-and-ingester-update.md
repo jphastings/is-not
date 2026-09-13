@@ -1,10 +1,11 @@
 ---
 # ISNOT-0gxo
 title: Lexicon v1 subject object and ingester update
-status: in-progress
+status: completed
 type: feature
+priority: normal
 created_at: 2026-09-13T16:23:18Z
-updated_at: 2026-09-13T16:23:18Z
+updated_at: 2026-09-13T16:53:08Z
 parent: ISNOT-kgev
 ---
 
