@@ -1,0 +1,38 @@
+{
+  "lexicon": 1,
+  "id": "at.isnot.tag",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A lightweight 'is/not' review of something represented by another atproto record",
+      "record": {
+        "type": "object",
+        "required": ["subject", "adjective", "direction", "updatedAt"],
+        "properties": {
+          "subject": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef",
+            "description": "An atproto record that describes the thing that is being reviewed."
+          },
+          "adjective": {
+            "type": "string",
+            "minGraphemes": 1,
+            "maxGraphemes": 16,
+            "maxLength": 160,
+            "description": "An adjective, in any language, that the subject either is, or is not."
+          },
+          "direction": {
+            "type": "integer",
+            "enum": [-2, -1, 0, 1, 2],
+            "description": "Whether the subject *is* the adjective (1), *is not* the adjective (-1) or, less commonly, *really* is (2), or *really* isn't (-2). A value of zero is an explicit 'no comment', uncertainty, or lack of opinion."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}
