@@ -61,7 +61,27 @@ func run(ctx context.Context, log *slog.Logger) error {
 	log.Info("following jetstream", "host", host, "collection", collection, "cursor", cursor)
 
 	in := &ingester{db: db, cat: cat, log: log, resolveHandle: handleResolver()}
-	return in.run(ctx, client)
+
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	errs := make(chan error, 2)
+	go func() {
+		errs <- in.run(runCtx, client)
+		cancel()
+	}()
+	go func() {
+		errs <- serve(runCtx, ":"+env("PORT", "8080"), healthHandler(), log)
+		cancel()
+	}()
+
+	var first error
+	for range 2 {
+		if err := <-errs; err != nil && first == nil {
+			first = err
+		}
+	}
+	return first
 }
 
 func env(key, fallback string) string {
