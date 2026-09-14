@@ -1,18 +1,18 @@
 # is/not ingester design
 
 The first piece of the isnot.at appview: a Go service that watches jetstream v2 for
-`at.isnot.tag` records and folds them into a SQLite database. XRPC endpoints, the
+`at.isnot.review` records and folds them into a SQLite database. XRPC endpoints, the
 SvelteKit site, and the shared container are separate specs.
 
 ## Lexicon
 
-`lexicons/at/isnot/tag.json` defines the `at.isnot.tag` record (path mirrors the NSID):
+`lexicons/at/isnot/review.json` defines the `at.isnot.review` record (path mirrors the NSID):
 
 | field | type | constraints |
 |---|---|---|
-| subject | ref `com.atproto.repo.strongRef` | required |
-| adjective | string | required, 1–16 graphemes, max 160 bytes |
-| direction | integer | required, enum -2, -1, 0, 1, 2 |
+| subject | ref `#subject` | required |
+| tags | array of `#tag` (adjective, direction) | required, 1–32 items |
+| createdAt | string | required, format datetime |
 | updatedAt | string | required, format datetime |
 
 Record key is a TID.
@@ -21,7 +21,7 @@ Record key is a TID.
 
 - Go module `github.com/jphastings/is-not`, code at the repo root. SvelteKit lands later in `web/`.
 - Jetstream: `github.com/bluesky-social/jetstream` (official v2 client). Subscribe with
-  `WithCollection("at.isnot.tag")`. If `JETSTREAM_API_KEY` is set, always resume via
+  `WithCollection("at.isnot.review")`. If `JETSTREAM_API_KEY` is set, always resume via
   archive replay with `WithAfterSeq(cursor)` (0 on first run replays the whole archive;
   a non-zero cursor resumes from it even past the live lookback window). Without a key,
   resume with `WithLiveCursor(cursor)` when a cursor is persisted, otherwise start from
@@ -40,7 +40,7 @@ Record key is a TID.
 ## Layout
 
 ```
-lexicons/at/isnot/tag.json
+lexicons/at/isnot/review.json
 migrations/001_init.sql
 main.go        env config, open db, migrate, run ingest, stop on SIGINT/SIGTERM
 db.go          open (WAL), migrate, upsert/delete/purge/cursor
@@ -62,9 +62,9 @@ Delivery is at-least-once and eventually consistent, so folding must be idempote
 | sync | delete every row for the DID; replacement commits follow |
 | identity | ignore |
 
-A record that fails validation, including a record whose `updatedAt` fails to parse, is
-treated as invalid: any existing row for that `(did, rkey)` is deleted, so the table only
-ever holds currently-valid tags.
+A record that fails validation, including a record whose `createdAt` or `updatedAt` fails
+to parse, is treated as invalid: any existing row for that `(did, rkey)` is deleted, so the
+table only ever holds currently-valid reviews.
 
 Each batch is applied in a single transaction that ends by writing `batch.LastCursor()`
 with `seq = MAX(seq, excluded.seq)`, so a crash never leaves the cursor ahead of the data
@@ -74,24 +74,33 @@ and iteration continues; an error matching `jetstream.ErrFatal` exits non-zero.
 ## Schema
 
 ```sql
-CREATE TABLE tags (
+CREATE TABLE reviews (
   did         TEXT NOT NULL,
   rkey        TEXT NOT NULL,
   subject_uri TEXT NOT NULL,
   subject_cid TEXT NOT NULL,
-  adjective   TEXT NOT NULL,
-  direction   INTEGER NOT NULL CHECK (direction BETWEEN -2 AND 2),
+  created_at  TEXT NOT NULL,
   updated_at  TEXT NOT NULL,
   PRIMARY KEY (did, rkey)
 );
-CREATE INDEX tags_subject ON tags (subject_uri);
-CREATE INDEX tags_adjective ON tags (adjective);
+CREATE INDEX reviews_subject ON reviews (subject_uri);
+CREATE TABLE review_tags (
+  did       TEXT NOT NULL,
+  rkey      TEXT NOT NULL,
+  adjective TEXT NOT NULL,
+  direction INTEGER NOT NULL CHECK (direction BETWEEN -2 AND 2),
+  PRIMARY KEY (did, rkey, adjective),
+  FOREIGN KEY (did, rkey) REFERENCES reviews (did, rkey) ON DELETE CASCADE
+);
+CREATE INDEX review_tags_adjective ON review_tags (adjective);
 CREATE TABLE cursor (id INTEGER PRIMARY KEY CHECK (id = 1), seq INTEGER NOT NULL);
 ```
 
-`updated_at` is stored normalised to UTC in the fixed-width layout
+`created_at` and `updated_at` are stored normalised to UTC in the fixed-width layout
 `2006-01-02T15:04:05.000Z` (`atmos.AtprotoDatetimeLayout`), so TEXT ordering is
-chronological.
+chronological. `review_tags` is replaced wholesale on each upsert (insert with `INSERT OR
+REPLACE`, so a repeated adjective in one record keeps the last entry) and cascades away
+when the review is deleted.
 
 ## Configuration
 

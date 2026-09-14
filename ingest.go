@@ -16,7 +16,7 @@ import (
 	"github.com/jcalabro/atmos/lexval"
 )
 
-const collection = "at.isnot.tag"
+const collection = "at.isnot.review"
 
 //go:embed lexicons
 var lexiconFS embed.FS
@@ -136,11 +136,11 @@ func (in *ingester) apply(tx *sql.Tx, evt jetstream.Event) error {
 		if evt.Account.Active || evt.Account.Status != "deleted" {
 			return nil
 		}
-		_, err := tx.Exec(`DELETE FROM tags WHERE did = ?`, evt.DID)
+		_, err := tx.Exec(`DELETE FROM reviews WHERE did = ?`, evt.DID)
 		return err
 	case jetstream.KindSync:
 		// Replacement records follow as their own commits, so drop the stale view.
-		_, err := tx.Exec(`DELETE FROM tags WHERE did = ?`, evt.DID)
+		_, err := tx.Exec(`DELETE FROM reviews WHERE did = ?`, evt.DID)
 		return err
 	case jetstream.KindIdentity:
 		if evt.Identity.Handle == "" {
@@ -168,39 +168,47 @@ func (in *ingester) applyCommit(tx *sql.Tx, did string, c *jetstream.Commit) err
 		return nil
 	}
 	if c.Operation == jetstream.OpDelete {
-		_, err := tx.Exec(`DELETE FROM tags WHERE did = ? AND rkey = ?`, did, c.Rkey)
+		_, err := tx.Exec(`DELETE FROM reviews WHERE did = ? AND rkey = ?`, did, c.Rkey)
 		return err
 	}
-	updatedAt, err := validUpdatedAt(in.cat, c.Record)
+	createdAt, updatedAt, err := validTimestamps(in.cat, c.Record)
 	if err != nil {
 		in.log.Warn("invalid record, deleting any existing row", "did", did, "rkey", c.Rkey, "err", err)
-		_, err := tx.Exec(`DELETE FROM tags WHERE did = ? AND rkey = ?`, did, c.Rkey)
+		_, err := tx.Exec(`DELETE FROM reviews WHERE did = ? AND rkey = ?`, did, c.Rkey)
 		return err
 	}
 	subject := c.Record["subject"].(map[string]any)
 	_, err = tx.Exec(`
-		INSERT INTO tags (did, rkey, subject_uri, subject_cid, subject_title, subject_type, adjective, direction, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO reviews (did, rkey, subject_uri, subject_cid, subject_title, subject_type, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (did, rkey) DO UPDATE SET
 			subject_uri   = excluded.subject_uri,
 			subject_cid   = excluded.subject_cid,
 			subject_title = excluded.subject_title,
 			subject_type  = excluded.subject_type,
-			adjective     = excluded.adjective,
-			direction     = excluded.direction,
+			created_at    = excluded.created_at,
 			updated_at    = excluded.updated_at`,
-		did, c.Rkey, subject["uri"], subject["cid"], subject["title"], subject["type"],
-		c.Record["adjective"], c.Record["direction"], updatedAt)
+		did, c.Rkey, subject["uri"], subject["cid"], subject["title"], subject["type"], createdAt, updatedAt)
 	if err != nil {
 		return err
 	}
-	if _, err := tx.Exec(`DELETE FROM tag_identifiers WHERE did = ? AND rkey = ?`, did, c.Rkey); err != nil {
+	if _, err := tx.Exec(`DELETE FROM review_tags WHERE did = ? AND rkey = ?`, did, c.Rkey); err != nil {
+		return err
+	}
+	for _, t := range c.Record["tags"].([]any) {
+		m := t.(map[string]any)
+		if _, err := tx.Exec(`INSERT OR REPLACE INTO review_tags (did, rkey, adjective, direction) VALUES (?, ?, ?, ?)`,
+			did, c.Rkey, m["adjective"], m["direction"]); err != nil {
+			return err
+		}
+	}
+	if _, err := tx.Exec(`DELETE FROM review_identifiers WHERE did = ? AND rkey = ?`, did, c.Rkey); err != nil {
 		return err
 	}
 	if ids, ok := subject["identifiers"].([]any); ok {
 		for _, id := range ids {
 			m := id.(map[string]any)
-			if _, err := tx.Exec(`INSERT OR IGNORE INTO tag_identifiers (did, rkey, key, value) VALUES (?, ?, ?, ?)`,
+			if _, err := tx.Exec(`INSERT OR IGNORE INTO review_identifiers (did, rkey, key, value) VALUES (?, ?, ?, ?)`,
 				did, c.Rkey, m["key"], m["value"]); err != nil {
 				return err
 			}
@@ -209,13 +217,24 @@ func (in *ingester) applyCommit(tx *sql.Tx, did string, c *jetstream.Commit) err
 	return nil
 }
 
-// validUpdatedAt validates the record against the lexicon, then normalises
-// updatedAt to fixed-width UTC so TEXT ordering in the tags table is chronological.
-func validUpdatedAt(cat *lexicon.Catalog, record map[string]any) (string, error) {
+// validTimestamps validates the record against the lexicon, then normalises
+// createdAt and updatedAt to fixed-width UTC so TEXT ordering in the reviews
+// table is chronological.
+func validTimestamps(cat *lexicon.Catalog, record map[string]any) (createdAt, updatedAt string, err error) {
 	if err := lexval.ValidateRecord(cat, collection, record); err != nil {
-		return "", err
+		return "", "", err
 	}
-	t, err := time.Parse(time.RFC3339Nano, record["updatedAt"].(string))
+	if createdAt, err = normaliseDatetime(record["createdAt"]); err != nil {
+		return "", "", err
+	}
+	if updatedAt, err = normaliseDatetime(record["updatedAt"]); err != nil {
+		return "", "", err
+	}
+	return createdAt, updatedAt, nil
+}
+
+func normaliseDatetime(v any) (string, error) {
+	t, err := time.Parse(time.RFC3339Nano, v.(string))
 	if err != nil {
 		return "", err
 	}

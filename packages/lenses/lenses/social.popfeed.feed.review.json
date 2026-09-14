@@ -2,7 +2,7 @@
   "id": "at.isnot.lens.social-popfeed-feed-review",
   "description": "A popfeed review names the creative work it reviews; the tag subject is that work.",
   "source": "social.popfeed.feed.review",
-  "target": "at.isnot.tag#subject",
+  "target": "at.isnot.review#subject",
   "extensions": {
     "at.isnot": { "identifiers": "identifiers" }
   },

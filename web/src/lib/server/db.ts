@@ -6,9 +6,10 @@ export type { Tag } from '$lib/tags';
 export { directionPhrase } from '$lib/tags';
 
 const QUERY = `
-	SELECT t.did, COALESCE(a.handle, '') AS handle, t.subject_title AS title, t.direction, t.adjective
-	FROM tags t
-	LEFT JOIN accounts a ON a.did = t.did
+	SELECT r.did, COALESCE(a.handle, '') AS handle, r.subject_title AS title, t.direction, t.adjective
+	FROM review_tags t
+	JOIN reviews r ON r.did = t.did AND r.rkey = t.rkey
+	LEFT JOIN accounts a ON a.did = r.did
 	WHERE t.direction != 0
 	ORDER BY random()
 	LIMIT ?

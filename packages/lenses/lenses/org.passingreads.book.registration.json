@@ -2,6 +2,6 @@
   "id": "at.isnot.lens.org-passingreads-book-registration",
   "description": "A Passing Reads registration records a physical book being passed on; the tag subject is that book.",
   "source": "org.passingreads.book.registration",
-  "target": "at.isnot.tag#subject",
+  "target": "at.isnot.review#subject",
   "steps": [{ "add_field": { "name": "type", "kind": "string", "fallback": "book" } }]
 }

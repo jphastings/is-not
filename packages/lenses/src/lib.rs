@@ -1,4 +1,4 @@
-//! at.isnot lenses: turns an atproto record into an `at.isnot.tag` subject.
+//! at.isnot lenses: turns an atproto record into an `at.isnot.review` subject.
 //! Built as a wasm cdylib with a plain buffer ABI; see the package README.
 
 use std::collections::HashMap;

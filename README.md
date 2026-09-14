@@ -1,6 +1,6 @@
 # is/not
 
-An [atproto](https://atproto.com) appview for `at.isnot.tag` records: lightweight "X is
+An [atproto](https://atproto.com) appview for `at.isnot.review` records: lightweight "X is
 adjective" / "X is not adjective" tags that anyone can attach to any atproto record.
 Lives at isnot.at, with its API at api.isnot.at.
 
@@ -8,9 +8,9 @@ Lives at isnot.at, with its API at api.isnot.at.
 
 Two processes share one container and one SQLite file:
 
-- **API (Go, this repo's root):** follows jetstream v2 for `at.isnot.tag` records and folds
-  them into SQLite (`tags`, `tag_identifiers`, `accounts`, `cursor`). XRPC endpoints on
-  their own port will front the same database. Writes the database.
+- **API (Go, this repo's root):** follows jetstream v2 for `at.isnot.review` records and folds
+  them into SQLite (`reviews`, `review_tags`, `review_identifiers`, `accounts`, `cursor`).
+  XRPC endpoints on their own port will front the same database. Writes the database.
 - **Site (SvelteKit, `web/`):** server-renders from the same SQLite file, opened read-only
   with Node's built-in `node:sqlite`, and calls the API for dynamic bits. Today it is the
   homepage only; sign-in with atproto OAuth (several accounts at once), the `/tag` page and
@@ -82,5 +82,6 @@ Go test suites.
 
 ## Lexicon
 
-`lexicons/at/isnot/tag.json`. A tag is a subject (uri, cid, title, type, identifiers), an
-adjective of up to 16 graphemes, a direction from -2 to 2, and an update time.
+`lexicons/at/isnot/review.json`. A review is a subject (uri, cid, title, type, identifiers)
+plus one or more tags (an adjective of up to 16 graphemes, and a direction from -2 to 2),
+a createdAt and an updatedAt.

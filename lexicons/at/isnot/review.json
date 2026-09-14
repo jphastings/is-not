@@ -1,17 +1,17 @@
 {
   "lexicon": 1,
-  "id": "at.isnot.tag",
+  "id": "at.isnot.review",
   "defs": {
     "main": {
       "type": "record",
       "key": "tid",
-      "description": "A lightweight 'is/not' review of another record on the AT Protocol",
+      "description": "A person's review of one thing: which adjectives it is, and is not. One record per subject per repo; update it rather than creating another.",
       "record": {
         "type": "object",
         "required": [
           "subject",
-          "adjective",
-          "direction",
+          "tags",
+          "createdAt",
           "updatedAt"
         ],
         "properties": {
@@ -20,23 +20,19 @@
             "ref": "#subject",
             "description": "The thing being tagged, described well enough to display without fetching the referenced record. Readers can decide whether the cid must match for their purposes, or whether the at-uri alone is enough."
           },
-          "adjective": {
-            "type": "string",
-            "minGraphemes": 1,
-            "maxGraphemes": 16,
-            "maxLength": 160,
-            "description": "An adjective, in any language, that the subject either is, or is not."
+          "tags": {
+            "type": "array",
+            "minLength": 1,
+            "maxLength": 32,
+            "items": {
+              "type": "ref",
+              "ref": "#tag"
+            },
+            "description": "The adjectives this review applies to the subject. An adjective should appear at most once; readers keep the last entry when it repeats."
           },
-          "direction": {
-            "type": "integer",
-            "enum": [
-              -2,
-              -1,
-              0,
-              1,
-              2
-            ],
-            "description": "Whether the subject *is* the adjective (1), *is not* the adjective (-1) or, less commonly, *really* is (2), or *really* isn't (-2). A value of zero is an explicit 'no comment', uncertainty, or lack of opinion."
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
           },
           "updatedAt": {
             "type": "string",
@@ -118,6 +114,33 @@
         "value": {
           "type": "string",
           "maxLength": 512
+        }
+      }
+    },
+    "tag": {
+      "type": "object",
+      "required": [
+        "direction",
+        "adjective"
+      ],
+      "properties": {
+        "direction": {
+          "type": "integer",
+          "enum": [
+            -2,
+            -1,
+            0,
+            1,
+            2
+          ],
+          "description": "Whether the subject *is* the adjective (1), *is not* the adjective (-1) or, less commonly, *really* is (2), or *really* isn't (-2). A value of zero is an explicit 'no comment', uncertainty, or lack of opinion."
+        },
+        "adjective": {
+          "type": "string",
+          "minGraphemes": 1,
+          "maxGraphemes": 16,
+          "maxLength": 160,
+          "description": "An adjective, in any language, that the subject either is, or is not."
         }
       }
     }

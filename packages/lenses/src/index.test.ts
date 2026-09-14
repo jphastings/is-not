@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { buildTag, fetchRecord, loadLenses } from './index.ts';
+import { buildReview, fetchRecord, loadLenses } from './index.ts';
 
 const testdata = new URL('../testdata/', import.meta.url).pathname;
 
@@ -69,18 +69,17 @@ describe('fetchRecord', () => {
   });
 });
 
-describe('buildTag', () => {
-  it('produces a complete at.isnot.tag record', async () => {
-    const { record, supported } = await buildTag(
-      lenses,
-      { uri, direction: 1, adjective: 'good' },
-      stubFetch,
-    );
+describe('buildReview', () => {
+  it('produces a complete at.isnot.review record', async () => {
+    const tags = [
+      { direction: 1 as const, adjective: 'good' },
+      { direction: -1 as const, adjective: 'long' },
+    ];
+    const { record, supported } = await buildReview(lenses, { uri, tags }, stubFetch);
     expect(supported).toBe(false);
     expect(record).toMatchObject({
-      $type: 'at.isnot.tag',
-      adjective: 'good',
-      direction: 1,
+      $type: 'at.isnot.review',
+      tags,
       subject: {
         uri,
         cid,
@@ -89,6 +88,7 @@ describe('buildTag', () => {
         identifiers: [{ key: 'externalId', value: '42' }],
       },
     });
-    expect(record.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    expect(record.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    expect(record.createdAt).toBe(record.updatedAt);
   });
 });

@@ -1,17 +1,16 @@
 # @is-not/lenses
 
-Turns an atproto record into an `at.isnot.tag` subject. The mapping for each supported
+Turns an atproto record into an `at.isnot.review` subject. The mapping for each supported
 collection is a [panproto](https://panproto.dev) lens document under `lenses/`, compiled
 with the engine into one WebAssembly module that runs in browsers, Node and Go.
 
 ```ts
-import { buildTag, loadLenses } from '@is-not/lenses';
+import { buildReview, loadLenses } from '@is-not/lenses';
 
 const lenses = await loadLenses();
-const { record, supported } = await buildTag(lenses, {
+const { record, supported } = await buildReview(lenses, {
   uri: 'at://did:plc:ephkzpinhaqcabtkugtbzrwu/social.popfeed.feed.review/3lsdno2qnoc2g',
-  direction: 1,
-  adjective: 'thrilling',
+  tags: [{ direction: 1, adjective: 'thrilling' }],
 });
 ```
 

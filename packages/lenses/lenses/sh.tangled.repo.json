@@ -2,7 +2,7 @@
   "id": "at.isnot.lens.sh-tangled-repo",
   "description": "A Tangled repo record is a git repository; the tag subject is that repository.",
   "source": "sh.tangled.repo",
-  "target": "at.isnot.tag#subject",
+  "target": "at.isnot.review#subject",
   "extensions": { "at.isnot": { "title": ["$rkey"] } },
   "steps": [
     { "rename_field": { "old": "name", "new": "title" } },

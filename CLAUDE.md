@@ -1,6 +1,6 @@
 # is/not
 
-atproto appview for `at.isnot.tag` records. Go API at the root, SvelteKit site in `web/`, lenses in `packages/lenses`.
+atproto appview for `at.isnot.review` records. Go API at the root, SvelteKit site in `web/`, lenses in `packages/lenses`.
 
 ## Where things are
 

@@ -2,7 +2,7 @@
   "id": "at.isnot.lens.games-gamesgamesgamesgames-game",
   "description": "A gamesgamesgamesgames game record describes a video game; the tag subject is that game.",
   "source": "games.gamesgamesgamesgames.game",
-  "target": "at.isnot.tag#subject",
+  "target": "at.isnot.review#subject",
   "extensions": { "at.isnot": { "identifiers": "externalIds" } },
   "steps": [
     { "rename_field": { "old": "name", "new": "title" } },

@@ -8,11 +8,12 @@ export type Subject = {
 };
 export type Resolution = { supported: boolean; subject: Subject } | { error: string };
 export type Direction = -2 | -1 | 0 | 1 | 2;
-export type TagRecord = {
-  $type: 'at.isnot.tag';
+export type Tag = { direction: Direction; adjective: string };
+export type ReviewRecord = {
+  $type: 'at.isnot.review';
   subject: Subject;
-  adjective: string;
-  direction: Direction;
+  tags: Tag[];
+  createdAt: string;
   updatedAt: string;
 };
 
@@ -118,23 +119,24 @@ async function pdsFor(did: string, fetchImpl: typeof fetch): Promise<string> {
   return pds.serviceEndpoint;
 }
 
-/** Fetch the subject record and assemble a complete at.isnot.tag record. */
-export async function buildTag(
+/** Fetch the subject record and assemble a complete at.isnot.review record. */
+export async function buildReview(
   lenses: Lenses,
-  input: { uri: string; direction: Direction; adjective: string },
+  input: { uri: string; tags: Tag[] },
   fetchImpl: typeof fetch = fetch,
-): Promise<{ record: TagRecord; supported: boolean }> {
+): Promise<{ record: ReviewRecord; supported: boolean }> {
   const { cid, record } = await fetchRecord(input.uri, fetchImpl);
   const resolution = lenses.resolveSubject({ uri: input.uri, cid, record });
   if ('error' in resolution) throw new Error(resolution.error);
+  const now = new Date().toISOString();
   return {
     supported: resolution.supported,
     record: {
-      $type: 'at.isnot.tag',
+      $type: 'at.isnot.review',
       subject: resolution.subject,
-      adjective: input.adjective,
-      direction: input.direction,
-      updatedAt: new Date().toISOString(),
+      tags: input.tags,
+      createdAt: now,
+      updatedAt: now,
     },
   };
 }

@@ -1,7 +1,7 @@
 # Creating a lens
 
 A lens teaches `@is-not/lenses` how to turn one atproto record collection into an
-`at.isnot.tag#subject`. This walks through adding support for a new collection end to
+`at.isnot.review#subject`. This walks through adding support for a new collection end to
 end, using a hypothetical `com.example.book` lexicon as the worked example: records with
 a `title`, a `kind` of `novel` or `comic`, and an `ids` object of identifiers. The whole
 change ships in one commit or PR. Paths below are relative to `packages/lenses/` unless
@@ -62,7 +62,7 @@ type mapping (here, `kind: "novel"`, since it's the one that gets rewritten).
 ## 3. Write the lens document
 
 Add `lenses/<nsid>.json`. Its `id` is `at.isnot.lens.<nsid-with-dashes>`, `source` is the
-NSID, `target` is always `at.isnot.tag#subject`. `steps` may only use `rename_field`,
+NSID, `target` is always `at.isnot.review#subject`. `steps` may only use `rename_field`,
 `remove_field` (not on arrays — panproto can't remove fields from array items, bean
 ISNOT-qvqp), `apply_expr` and `add_field`. Most lenses need two steps: rename the field
 holding the work's kind to `type`, then an `apply_expr` if-chain mapping source-specific
@@ -75,7 +75,7 @@ values onto the shared vocabulary, passing anything else through:
   "id": "at.isnot.lens.com-example-book",
   "description": "A com.example.book record names a book; the tag subject is that book.",
   "source": "com.example.book",
-  "target": "at.isnot.tag#subject",
+  "target": "at.isnot.review#subject",
   "extensions": { "at.isnot": { "identifiers": "ids" } },
   "steps": [
     { "rename_field": { "old": "kind", "new": "type" } },
@@ -218,6 +218,6 @@ that skip the Rust toolchain.
 - [ ] `packages/lenses/lexicons/<nsid-as-path>.json` — the vendored source lexicon, verbatim
 - [ ] `SOURCES` entry in `packages/lenses/src/lib.rs`
 - [ ] `packages/lenses/testdata/<nsid>/*.json` — fixture(s), with hand-written `expected`
-- [ ] Add any new `type` value to `knownValues` in `lexicons/at/isnot/tag.json`
+- [ ] Add any new `type` value to `knownValues` in `lexicons/at/isnot/review.json`
 - [ ] A changeset under `.changeset/`
 - [ ] **Not** `packages/lenses/dist/` — it's git-ignored and built by CI; never commit it

@@ -2,7 +2,7 @@
   "id": "at.isnot.lens.buzz-bookhive-book",
   "description": "A BookHive book record is a book on someone's shelf; the tag subject is that book.",
   "source": "buzz.bookhive.book",
-  "target": "at.isnot.tag#subject",
+  "target": "at.isnot.review#subject",
   "extensions": { "at.isnot": { "identifiers": "identifiers" } },
   "steps": [{ "add_field": { "name": "type", "kind": "string", "fallback": "book" } }]
 }

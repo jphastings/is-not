@@ -2,7 +2,7 @@
   "id": "at.isnot.lens.site-standard-publication",
   "description": "A standard.site publication is a site/blog someone publishes; the tag subject is that publication.",
   "source": "site.standard.publication",
-  "target": "at.isnot.tag#subject",
+  "target": "at.isnot.review#subject",
   "steps": [
     { "rename_field": { "old": "name", "new": "title" } },
     { "add_field": { "name": "type", "kind": "string", "fallback": "publication" } }

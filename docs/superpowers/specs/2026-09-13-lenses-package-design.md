@@ -1,7 +1,7 @@
 # Lenses package design
 
 Bean ISNOT-sq4b. One artifact, built from panproto lens documents, that turns an atproto
-record into an `at.isnot.tag` subject. It runs in the browser, in Node and in the Go API
+record into an `at.isnot.review` subject. It runs in the browser, in Node and in the Go API
 without any native toolchain at use sites.
 
 ## Why wasm
@@ -35,7 +35,7 @@ test and pack, changesets for versioning.
 ## Lens documents
 
 A lens document is panproto JSON: `id`, `source` (the record NSID), `target`
-`"at.isnot.tag#subject"`, and `steps`. Steps used today: `rename_field`, `remove_field`,
+`"at.isnot.review#subject"`, and `steps`. Steps used today: `rename_field`, `remove_field`,
 `apply_expr`. Two engine limitations shape the conventions:
 
 - Fields typed as a `ref` to another def are dropped by the engine's get. Identifiers are
@@ -52,7 +52,7 @@ and rewrite values with an if-chain: `tv_show → tv-show`, `tv_season → tv-se
 `tv_episode → tv-episode`, `book_series → book-series`, `video_game → video-game`,
 `track → music-track`; everything else passes through. Identifiers via the extensions block.
 
-The `at.isnot.tag` lexicon's `type` knownValues become: movie, tv-show, tv-season,
+The `at.isnot.review` lexicon's `type` knownValues become: movie, tv-show, tv-season,
 tv-episode, book, book-series, album, music-track, video-game, post, publication, app,
 web-page, web-stream, code-repo (the last five arrived with the second batch of lenses).
 
@@ -89,7 +89,7 @@ the uri if none match — `supported` stays `true`.
 Error: `{"error": "<message>"}` for malformed input or a lens that fails to apply. panproto's
 parser checks structure only, not the source lexicon's constraints, so `enum` and `required`
 violations in the source record are not errors — `type` on the supported path is therefore
-not guaranteed to be a knownValue of `at.isnot.tag`.
+not guaranteed to be a knownValue of `at.isnot.review`.
 
 Finalizer rules, applied to both paths: title is trimmed and truncated to 256 graphemes
 (unicode-segmentation) and 2560 bytes; type is truncated to 64 bytes; identifiers are sorted
@@ -109,8 +109,8 @@ ESM, Node 20+ and browsers. Exports:
 - `fetchRecord(uri, fetchImpl = fetch): Promise<{cid, record}>` resolves did:plc via
   plc.directory and did:web via `/.well-known/did.json`, finds the `#atproto_pds` service,
   calls `com.atproto.repo.getRecord`.
-- `buildTag(lenses, {uri, direction, adjective}, fetchImpl?)`: fetches, resolves, and returns
-  `{record: <at.isnot.tag record with updatedAt now>, supported: boolean}`. Throws on error.
+- `buildReview(lenses, {uri, tags}, fetchImpl?)`: fetches, resolves, and returns
+  `{record: <at.isnot.review record with createdAt and updatedAt now>, supported: boolean}`. Throws on error.
 
 Built with `vp pack` (dts on). The wasm is copied into `dist/` by the build script and listed
 in `files`.

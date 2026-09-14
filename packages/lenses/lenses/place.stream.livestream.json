@@ -2,6 +2,6 @@
   "id": "at.isnot.lens.place-stream-livestream",
   "description": "A Streamplace livestream; the tag subject is that stream.",
   "source": "place.stream.livestream",
-  "target": "at.isnot.tag#subject",
+  "target": "at.isnot.review#subject",
   "steps": [{ "add_field": { "name": "type", "kind": "string", "fallback": "web-stream" } }]
 }

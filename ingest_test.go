@@ -12,6 +12,8 @@ import (
 )
 
 const validCID = "bafyreihffx5a2e7k5uwrmmd2szqjc5akl2tqjnpshq6pdinjhyi5s4rlnq"
+const defaultCreatedAt = "2026-09-13T11:00:00.000Z"
+const defaultUpdatedAt = "2026-09-13T12:00:00.000Z"
 
 func newTestIngester(t *testing.T) *ingester {
 	t.Helper()
@@ -30,7 +32,20 @@ func newTestIngester(t *testing.T) *ingester {
 	}
 }
 
-func tagRecord(adjective string, direction any) map[string]any {
+type tagPair struct {
+	adjective string
+	direction any
+}
+
+func oneTag(adjective string, direction any) []tagPair {
+	return []tagPair{{adjective, direction}}
+}
+
+func reviewRecord(tags []tagPair, createdAt, updatedAt string) map[string]any {
+	tagList := make([]any, len(tags))
+	for i, tg := range tags {
+		tagList[i] = map[string]any{"adjective": tg.adjective, "direction": tg.direction}
+	}
 	return map[string]any{
 		"subject": map[string]any{
 			"uri":         "at://did:plc:subject/app.bsky.feed.post/3abc",
@@ -39,9 +54,9 @@ func tagRecord(adjective string, direction any) map[string]any {
 			"type":        "post",
 			"identifiers": []any{map[string]any{"key": "imdbId", "value": "tt1"}},
 		},
-		"adjective": adjective,
-		"direction": direction,
-		"updatedAt": "2026-09-13T12:00:00.000Z",
+		"tags":      tagList,
+		"createdAt": createdAt,
+		"updatedAt": updatedAt,
 	}
 }
 
@@ -51,25 +66,44 @@ func commitEvent(did, rkey string, op jetstream.Operation, record map[string]any
 	}}
 }
 
-type row struct {
-	did, rkey, adjective string
-	direction            int64
+// A valid review always has at least one tag, so its presence doubles as reviewExists.
+func reviewExists(t *testing.T, db *sql.DB, did, rkey string) bool {
+	return len(reviewTags(t, db, did, rkey)) > 0
 }
 
-func allRows(t *testing.T, db *sql.DB) []row {
+func reviewDIDs(t *testing.T, db *sql.DB) []string {
 	t.Helper()
-	rs, err := db.Query(`SELECT did, rkey, adjective, direction FROM tags ORDER BY did, rkey`)
+	rs, err := db.Query(`SELECT DISTINCT did FROM reviews ORDER BY did`)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer rs.Close()
-	var out []row
+	var out []string
 	for rs.Next() {
-		var r row
-		if err := rs.Scan(&r.did, &r.rkey, &r.adjective, &r.direction); err != nil {
+		var did string
+		if err := rs.Scan(&did); err != nil {
 			t.Fatal(err)
 		}
-		out = append(out, r)
+		out = append(out, did)
+	}
+	return out
+}
+
+func reviewTags(t *testing.T, db *sql.DB, did, rkey string) map[string]int64 {
+	t.Helper()
+	rs, err := db.Query(`SELECT adjective, direction FROM review_tags WHERE did = ? AND rkey = ?`, did, rkey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rs.Close()
+	out := map[string]int64{}
+	for rs.Next() {
+		var adjective string
+		var direction int64
+		if err := rs.Scan(&adjective, &direction); err != nil {
+			t.Fatal(err)
+		}
+		out[adjective] = direction
 	}
 	return out
 }
@@ -104,13 +138,16 @@ func TestOpenDBMigratesOnceAndIsRepeatable(t *testing.T) {
 		if n != 1 {
 			t.Fatalf("schema_version rows = %d, want 1", n)
 		}
-		if _, err := db.Exec(`SELECT did, rkey, subject_uri, subject_cid, subject_title, subject_type, adjective, direction, updated_at FROM tags`); err != nil {
+		if _, err := db.Exec(`SELECT did, rkey, subject_uri, subject_cid, subject_title, subject_type, created_at, updated_at FROM reviews`); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := db.Exec(`SELECT did, handle, updated_at FROM accounts`); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := db.Exec(`SELECT did, rkey, key, value FROM tag_identifiers`); err != nil {
+		if _, err := db.Exec(`SELECT did, rkey, adjective, direction FROM review_tags`); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Exec(`SELECT did, rkey, key, value FROM review_identifiers`); err != nil {
 			t.Fatal(err)
 		}
 		db.Close()
@@ -120,57 +157,86 @@ func TestOpenDBMigratesOnceAndIsRepeatable(t *testing.T) {
 func TestFoldCreateUpdateDelete(t *testing.T) {
 	in := newTestIngester(t)
 
-	apply(t, in, 10, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("good", float64(1))))
-	if got := allRows(t, in.db); len(got) != 1 || got[0] != (row{"did:plc:a", "3k1", "good", 1}) {
-		t.Fatalf("after create: %+v", got)
+	apply(t, in, 10, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewRecord(oneTag("good", float64(1)), defaultCreatedAt, defaultUpdatedAt)))
+	if !reviewExists(t, in.db, "did:plc:a", "3k1") {
+		t.Fatal("review missing after create")
+	}
+	if got := reviewTags(t, in.db, "did:plc:a", "3k1"); len(got) != 1 || got["good"] != 1 {
+		t.Fatalf("tags after create = %v", got)
 	}
 
-	apply(t, in, 11, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate, tagRecord("bad", int64(-1))))
-	if got := allRows(t, in.db); len(got) != 1 || got[0] != (row{"did:plc:a", "3k1", "bad", -1}) {
-		t.Fatalf("after update: %+v", got)
+	apply(t, in, 11, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate, reviewRecord(oneTag("bad", int64(-1)), defaultCreatedAt, defaultUpdatedAt)))
+	if got := reviewTags(t, in.db, "did:plc:a", "3k1"); len(got) != 1 || got["bad"] != -1 {
+		t.Fatalf("tags after update = %v", got)
 	}
 
 	apply(t, in, 12, commitEvent("did:plc:a", "3k1", jetstream.OpDelete, nil))
-	if got := allRows(t, in.db); len(got) != 0 {
-		t.Fatalf("after delete: %+v", got)
+	if reviewExists(t, in.db, "did:plc:a", "3k1") {
+		t.Fatal("review still present after delete")
 	}
 	if c := savedCursor(t, in.db); c != 12 {
 		t.Fatalf("cursor = %d, want 12", c)
 	}
 }
 
+func TestFoldReplacesTagsWholesaleAndKeepsLastOnRepeat(t *testing.T) {
+	in := newTestIngester(t)
+	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate,
+		reviewRecord([]tagPair{{"good", float64(1)}, {"funny", float64(2)}}, defaultCreatedAt, defaultUpdatedAt)))
+	if got := reviewTags(t, in.db, "did:plc:a", "3k1"); len(got) != 2 {
+		t.Fatalf("tags after create = %v, want 2", got)
+	}
+
+	apply(t, in, 2, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate,
+		reviewRecord([]tagPair{{"good", float64(1)}, {"good", int64(-1)}}, defaultCreatedAt, defaultUpdatedAt)))
+	if got := reviewTags(t, in.db, "did:plc:a", "3k1"); len(got) != 1 || got["good"] != -1 {
+		t.Fatalf("tags after update = %v, want only good=-1 (funny gone, repeat keeps last)", got)
+	}
+}
+
+func TestFoldEmptyTagsInvalid(t *testing.T) {
+	in := newTestIngester(t)
+	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewRecord(oneTag("good", float64(1)), defaultCreatedAt, defaultUpdatedAt)))
+	apply(t, in, 2, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate, reviewRecord(nil, defaultCreatedAt, defaultUpdatedAt)))
+	if reviewExists(t, in.db, "did:plc:a", "3k1") {
+		t.Fatal("review with empty tags should be invalid, deleting the existing row")
+	}
+}
+
 func TestFoldInvalidRecordDeletesExistingRowButAdvancesCursor(t *testing.T) {
 	in := newTestIngester(t)
 	apply(t, in, 5,
-		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("ok", int64(1))),
-		commitEvent("did:plc:a", "3k2", jetstream.OpCreate, tagRecord("seventeen chars!!", int64(1))),
-		commitEvent("did:plc:a", "3k3", jetstream.OpCreate, tagRecord("fine", int64(2))),
+		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewRecord(oneTag("ok", int64(1)), defaultCreatedAt, defaultUpdatedAt)),
+		commitEvent("did:plc:a", "3k2", jetstream.OpCreate, reviewRecord(oneTag("seventeen chars!!", int64(1)), defaultCreatedAt, defaultUpdatedAt)),
+		commitEvent("did:plc:a", "3k3", jetstream.OpCreate, reviewRecord(oneTag("fine", int64(2)), defaultCreatedAt, defaultUpdatedAt)),
 	)
-	if got := allRows(t, in.db); len(got) != 2 || got[0].rkey != "3k1" || got[1].rkey != "3k3" {
-		t.Fatalf("rows = %+v, want 3k1 and 3k3", got)
+	if !reviewExists(t, in.db, "did:plc:a", "3k1") || reviewExists(t, in.db, "did:plc:a", "3k2") || !reviewExists(t, in.db, "did:plc:a", "3k3") {
+		t.Fatal("want only 3k1 and 3k3 to exist (3k2's adjective is too long)")
 	}
 	if c := savedCursor(t, in.db); c != 5 {
 		t.Fatalf("cursor = %d, want 5", c)
 	}
 
-	apply(t, in, 6, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate, tagRecord("seventeen chars!!", int64(1))))
-	if got := allRows(t, in.db); len(got) != 1 || got[0].rkey != "3k3" {
-		t.Fatalf("rows = %+v, want only 3k3 after invalid update deletes 3k1", got)
+	apply(t, in, 6, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate, reviewRecord(oneTag("seventeen chars!!", int64(1)), defaultCreatedAt, defaultUpdatedAt)))
+	if reviewExists(t, in.db, "did:plc:a", "3k1") || !reviewExists(t, in.db, "did:plc:a", "3k3") {
+		t.Fatal("want only 3k3 after invalid update deletes 3k1")
 	}
 	if c := savedCursor(t, in.db); c != 6 {
 		t.Fatalf("cursor = %d, want 6", c)
 	}
 }
 
-func TestFoldNormalisesUpdatedAtToUTC(t *testing.T) {
+func TestFoldNormalisesTimestampsToUTC(t *testing.T) {
 	in := newTestIngester(t)
-	record := tagRecord("ok", int64(1))
-	record["updatedAt"] = "2026-09-13T13:00:00.5+01:00"
+	record := reviewRecord(oneTag("ok", int64(1)), "2026-09-13T12:00:00.5+01:00", "2026-09-13T13:00:00.5+01:00")
 	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, record))
 
-	var updatedAt string
-	if err := in.db.QueryRow(`SELECT updated_at FROM tags WHERE did = ? AND rkey = ?`, "did:plc:a", "3k1").Scan(&updatedAt); err != nil {
+	var createdAt, updatedAt string
+	if err := in.db.QueryRow(`SELECT created_at, updated_at FROM reviews WHERE did = ? AND rkey = ?`, "did:plc:a", "3k1").Scan(&createdAt, &updatedAt); err != nil {
 		t.Fatal(err)
+	}
+	if want := "2026-09-13T11:00:00.500Z"; createdAt != want {
+		t.Fatalf("created_at = %q, want %q", createdAt, want)
 	}
 	if want := "2026-09-13T12:00:00.500Z"; updatedAt != want {
 		t.Fatalf("updated_at = %q, want %q", updatedAt, want)
@@ -180,24 +246,23 @@ func TestFoldNormalisesUpdatedAtToUTC(t *testing.T) {
 func TestFoldPurgesOnAccountDeletionAndSync(t *testing.T) {
 	in := newTestIngester(t)
 	apply(t, in, 1,
-		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("x", int64(1))),
-		commitEvent("did:plc:b", "3k1", jetstream.OpCreate, tagRecord("y", int64(1))),
-		commitEvent("did:plc:c", "3k1", jetstream.OpCreate, tagRecord("z", int64(1))),
+		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewRecord(oneTag("x", int64(1)), defaultCreatedAt, defaultUpdatedAt)),
+		commitEvent("did:plc:b", "3k1", jetstream.OpCreate, reviewRecord(oneTag("y", int64(1)), defaultCreatedAt, defaultUpdatedAt)),
+		commitEvent("did:plc:c", "3k1", jetstream.OpCreate, reviewRecord(oneTag("z", int64(1)), defaultCreatedAt, defaultUpdatedAt)),
 	)
 	apply(t, in, 2,
 		jetstream.Event{DID: "did:plc:a", Kind: jetstream.KindAccount, Account: &jetstream.Account{DID: "did:plc:a", Active: false, Status: "deleted"}},
 		jetstream.Event{DID: "did:plc:b", Kind: jetstream.KindAccount, Account: &jetstream.Account{DID: "did:plc:b", Active: false, Status: "deactivated"}},
 		jetstream.Event{DID: "did:plc:c", Kind: jetstream.KindSync, Sync: &jetstream.Sync{DID: "did:plc:c"}},
 	)
-	got := allRows(t, in.db)
-	if len(got) != 1 || got[0].did != "did:plc:b" {
-		t.Fatalf("rows = %+v, want only did:plc:b", got)
+	if got := reviewDIDs(t, in.db); len(got) != 1 || got[0] != "did:plc:b" {
+		t.Fatalf("dids = %v, want only did:plc:b", got)
 	}
 }
 
 func TestFoldEmptyBatchKeepsCursor(t *testing.T) {
 	in := newTestIngester(t)
-	apply(t, in, 7, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("x", int64(1))))
+	apply(t, in, 7, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewRecord(oneTag("x", int64(1)), defaultCreatedAt, defaultUpdatedAt)))
 	apply(t, in, 0)
 	if c := savedCursor(t, in.db); c != 7 {
 		t.Fatalf("cursor = %d, want 7", c)
@@ -206,7 +271,7 @@ func TestFoldEmptyBatchKeepsCursor(t *testing.T) {
 
 func identifiers(t *testing.T, db *sql.DB, did, rkey string) [][2]string {
 	t.Helper()
-	rs, err := db.Query(`SELECT key, value FROM tag_identifiers WHERE did = ? AND rkey = ? ORDER BY key, value`, did, rkey)
+	rs, err := db.Query(`SELECT key, value FROM review_identifiers WHERE did = ? AND rkey = ? ORDER BY key, value`, did, rkey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,10 +289,10 @@ func identifiers(t *testing.T, db *sql.DB, did, rkey string) [][2]string {
 
 func TestFoldStoresSubjectFields(t *testing.T) {
 	in := newTestIngester(t)
-	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("x", int64(1))))
+	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewRecord(oneTag("x", int64(1)), defaultCreatedAt, defaultUpdatedAt)))
 
 	var title, typ string
-	if err := in.db.QueryRow(`SELECT subject_title, subject_type FROM tags WHERE did = ? AND rkey = ?`, "did:plc:a", "3k1").Scan(&title, &typ); err != nil {
+	if err := in.db.QueryRow(`SELECT subject_title, subject_type FROM reviews WHERE did = ? AND rkey = ?`, "did:plc:a", "3k1").Scan(&title, &typ); err != nil {
 		t.Fatal(err)
 	}
 	if title != "A Post" || typ != "post" {
@@ -237,13 +302,13 @@ func TestFoldStoresSubjectFields(t *testing.T) {
 		t.Fatalf("identifiers after create = %v", got)
 	}
 
-	updateRecord := tagRecord("x", int64(1))
+	updateRecord := reviewRecord(oneTag("x", int64(1)), defaultCreatedAt, defaultUpdatedAt)
 	subject := updateRecord["subject"].(map[string]any)
 	subject["title"] = "Another Post"
 	subject["type"] = "movie"
 	subject["identifiers"] = []any{map[string]any{"key": "tmdbId", "value": "2"}}
 	apply(t, in, 3, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate, updateRecord))
-	if err := in.db.QueryRow(`SELECT subject_title, subject_type FROM tags WHERE did = ? AND rkey = ?`, "did:plc:a", "3k1").Scan(&title, &typ); err != nil {
+	if err := in.db.QueryRow(`SELECT subject_title, subject_type FROM reviews WHERE did = ? AND rkey = ?`, "did:plc:a", "3k1").Scan(&title, &typ); err != nil {
 		t.Fatal(err)
 	}
 	if title != "Another Post" || typ != "movie" {
@@ -253,7 +318,7 @@ func TestFoldStoresSubjectFields(t *testing.T) {
 		t.Fatalf("identifiers after update = %v, want only tmdbId (old imdbId gone)", got)
 	}
 
-	record := tagRecord("y", int64(1))
+	record := reviewRecord(oneTag("y", int64(1)), defaultCreatedAt, defaultUpdatedAt)
 	delete(record["subject"].(map[string]any), "identifiers")
 	apply(t, in, 4, commitEvent("did:plc:a", "3k2", jetstream.OpCreate, record))
 	if got := identifiers(t, in.db, "did:plc:a", "3k2"); len(got) != 0 {
@@ -261,21 +326,24 @@ func TestFoldStoresSubjectFields(t *testing.T) {
 	}
 }
 
-func TestFoldDeletesIdentifiersWithTag(t *testing.T) {
+func TestFoldDeletingReviewRemovesTagsAndIdentifiers(t *testing.T) {
 	in := newTestIngester(t)
-	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("x", int64(1))))
+	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewRecord(oneTag("x", int64(1)), defaultCreatedAt, defaultUpdatedAt)))
 	apply(t, in, 2, commitEvent("did:plc:a", "3k1", jetstream.OpDelete, nil))
-	var n int
-	if err := in.db.QueryRow(`SELECT COUNT(*) FROM tag_identifiers`).Scan(&n); err != nil {
+	var tagCount, idCount int
+	if err := in.db.QueryRow(`SELECT COUNT(*) FROM review_tags`).Scan(&tagCount); err != nil {
 		t.Fatal(err)
 	}
-	if n != 0 {
-		t.Fatalf("tag_identifiers count after tag delete = %d, want 0", n)
+	if err := in.db.QueryRow(`SELECT COUNT(*) FROM review_identifiers`).Scan(&idCount); err != nil {
+		t.Fatal(err)
+	}
+	if tagCount != 0 || idCount != 0 {
+		t.Fatalf("review_tags = %d, review_identifiers = %d after delete, want 0, 0", tagCount, idCount)
 	}
 
 	apply(t, in, 3,
-		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("x", int64(1))),
-		commitEvent("did:plc:b", "3k1", jetstream.OpCreate, tagRecord("y", int64(1))),
+		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewRecord(oneTag("x", int64(1)), defaultCreatedAt, defaultUpdatedAt)),
+		commitEvent("did:plc:b", "3k1", jetstream.OpCreate, reviewRecord(oneTag("y", int64(1)), defaultCreatedAt, defaultUpdatedAt)),
 	)
 	apply(t, in, 4, jetstream.Event{DID: "did:plc:a", Kind: jetstream.KindAccount, Account: &jetstream.Account{DID: "did:plc:a", Active: false, Status: "deleted"}})
 	if got := identifiers(t, in.db, "did:plc:a", "3k1"); len(got) != 0 {
@@ -288,11 +356,11 @@ func TestFoldDeletesIdentifiersWithTag(t *testing.T) {
 
 func TestFoldRejectsSubjectWithoutTitle(t *testing.T) {
 	in := newTestIngester(t)
-	record := tagRecord("x", int64(1))
+	record := reviewRecord(oneTag("x", int64(1)), defaultCreatedAt, defaultUpdatedAt)
 	delete(record["subject"].(map[string]any), "title")
 	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, record))
-	if got := allRows(t, in.db); len(got) != 0 {
-		t.Fatalf("rows = %+v, want none", got)
+	if reviewExists(t, in.db, "did:plc:a", "3k1") {
+		t.Fatal("review with no subject title should not be stored")
 	}
 }
 
@@ -330,15 +398,15 @@ func TestAccountsResolvedOnFirstSightAndUpdatedByIdentityEvents(t *testing.T) {
 	}
 
 	apply(t, in, 1,
-		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("x", int64(1))),
-		commitEvent("did:plc:a", "3k1b", jetstream.OpCreate, tagRecord("x", int64(1))),
-		commitEvent("did:plc:b", "3k1", jetstream.OpCreate, tagRecord("y", int64(1))),
+		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewRecord(oneTag("x", int64(1)), defaultCreatedAt, defaultUpdatedAt)),
+		commitEvent("did:plc:a", "3k1b", jetstream.OpCreate, reviewRecord(oneTag("x", int64(1)), defaultCreatedAt, defaultUpdatedAt)),
+		commitEvent("did:plc:b", "3k1", jetstream.OpCreate, reviewRecord(oneTag("y", int64(1)), defaultCreatedAt, defaultUpdatedAt)),
 	)
 	if got := handles(t, in.db); len(got) != 2 || got["did:plc:a"] != "a.example" || got["did:plc:b"] != "" {
 		t.Fatalf("accounts after first batch = %v", got)
 	}
 
-	apply(t, in, 2, commitEvent("did:plc:a", "3k2", jetstream.OpCreate, tagRecord("z", int64(1))))
+	apply(t, in, 2, commitEvent("did:plc:a", "3k2", jetstream.OpCreate, reviewRecord(oneTag("z", int64(1)), defaultCreatedAt, defaultUpdatedAt)))
 	if calls != 2 {
 		t.Fatalf("resolver calls = %d, want 2 (known DIDs are not re-resolved, including within a batch)", calls)
 	}
