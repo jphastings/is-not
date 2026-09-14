@@ -27,6 +27,15 @@ importers:
         specifier: ^0.2.7
         version: 0.2.9(@types/node@26.5.1)(esbuild@0.28.2)(svelte@5.57.0)(tsx@4.23.13)(typescript@6.0.3)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.2)(tsx@4.23.13)(yaml@2.9.1))(yaml@2.9.1)
 
+  packages/sentence:
+    devDependencies:
+      '@types/node':
+        specifier: ^26.5.1
+        version: 26.5.1
+      vite-plus:
+        specifier: ^0.2.7
+        version: 0.2.9(@types/node@26.5.1)(esbuild@0.28.2)(svelte@5.57.0)(tsx@4.23.13)(typescript@6.0.3)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.2)(tsx@4.23.13)(yaml@2.9.1))(yaml@2.9.1)
+
   web:
     devDependencies:
       '@sveltejs/adapter-node':

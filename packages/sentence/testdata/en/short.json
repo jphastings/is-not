@@ -1,0 +1,8 @@
+{
+  "review": {
+    "subject": { "uri": "at://did:plc:x/social.popfeed.feed.review/1", "title": "The Bear" },
+    "tags": [{ "direction": -1, "adjective": "relaxing" }]
+  },
+  "text": "The Bear is not relaxing",
+  "html": "<a href=\"at://did:plc:x/social.popfeed.feed.review/1\">The Bear</a> is not <em>relaxing</em>"
+}

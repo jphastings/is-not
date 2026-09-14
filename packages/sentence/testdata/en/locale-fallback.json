@@ -1,0 +1,9 @@
+{
+  "review": {
+    "subject": { "uri": "at://x/y/1", "title": "It" },
+    "tags": [{ "direction": 1, "adjective": "scary" }],
+    "locale": "xx-YY"
+  },
+  "options": { "locale": "en-GB" },
+  "text": "It is scary"
+}

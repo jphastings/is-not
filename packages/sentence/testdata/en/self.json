@@ -1,0 +1,8 @@
+{
+  "review": {
+    "subject": { "uri": "at://did:plc:x/buzz.bookhive.book/1", "title": "Piranesi" },
+    "tags": [{ "direction": 1, "adjective": "short" }]
+  },
+  "options": { "who": { "handle": "jp.example", "did": "did:plc:jp", "self": true } },
+  "text": "You think Piranesi is short"
+}

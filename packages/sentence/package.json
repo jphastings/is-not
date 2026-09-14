@@ -1,0 +1,35 @@
+{
+  "name": "@is-not/sentence",
+  "version": "0.1.0",
+  "description": "Render an at.isnot.review record as a sentence in a locale, as text, HTML or typed parts",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jphastings/is-not.git",
+    "directory": "packages/sentence"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "vp test --run"
+  },
+  "devDependencies": {
+    "@types/node": "^26.5.1",
+    "vite-plus": "^0.2.7"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

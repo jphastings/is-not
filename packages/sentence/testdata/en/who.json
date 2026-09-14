@@ -1,0 +1,8 @@
+{
+  "review": {
+    "subject": { "uri": "at://did:plc:x/buzz.bookhive.book/1", "title": "Piranesi" },
+    "tags": [{ "direction": 2, "adjective": "strange" }]
+  },
+  "options": { "who": { "handle": "jp.example", "did": "did:plc:jp" } },
+  "text": "@jp.example thinks Piranesi is really strange"
+}

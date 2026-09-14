@@ -1,0 +1,8 @@
+{
+  "review": {
+    "subject": { "uri": "at://x/y/1", "title": "Tom & Jerry <3" },
+    "tags": [{ "direction": 1, "adjective": "\"classic\"" }]
+  },
+  "text": "Tom & Jerry <3 is \"classic\"",
+  "html": "<a href=\"at://x/y/1\">Tom &amp; Jerry &lt;3</a> is <em>&quot;classic&quot;</em>"
+}
