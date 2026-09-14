@@ -11,7 +11,7 @@
     "release": "pnpm -r run build && changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.0",
+    "@changesets/cli": "^3.0.3",
     "railway": "^3.11.0",
     "vite-plus": "^0.2.7"
   },
