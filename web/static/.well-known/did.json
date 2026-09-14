@@ -1,0 +1,24 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/multikey/v1",
+    "https://w3id.org/security/suites/secp256k1-2019/v1"
+  ],
+  "id": "did:web:isnot.at",
+  "alsoKnownAs": ["at://isnot.at"],
+  "verificationMethod": [
+    {
+      "id": "did:web:isnot.at#atproto",
+      "type": "Multikey",
+      "controller": "did:web:isnot.at",
+      "publicKeyMultibase": "zQ3shrnhaqys63ho55T8x1qTW6BL56WUbBWVs6e7qwStND9fn"
+    }
+  ],
+  "service": [
+    {
+      "id": "#atproto_pds",
+      "type": "AtprotoPersonalDataServer",
+      "serviceEndpoint": "https://eurosky.social"
+    }
+  ]
+}

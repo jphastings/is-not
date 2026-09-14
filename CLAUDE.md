@@ -5,8 +5,9 @@ atproto appview for `at.isnot.review` records. Go API at the root, SvelteKit sit
 ## Where things are
 
 - Architecture and how to run: `README.md`. Decisions: `docs/superpowers/specs/`. What is done and what is next: `beans list` (epic ISNOT-kgev). Lens authoring: `docs/creating-a-lens.md`.
-- The repo is `jphastings/is-not` on GitHub. Nothing is deployed or published yet. `.github/workflows/lenses.yml` publishes `@is-not/lenses` with npm trusted publishing (no token; the publisher on npmjs.com names this repo and `lenses.yml` and must allow the `npm publish` action, otherwise the registry answers 403 "OIDC permission denied for this action") once a version PR is merged; until the first release exists `scripts/fetch-lenses.sh` has nothing to fetch, so build the wasm locally.
+- The repo is `jphastings/is-not` on GitHub. The site is live at `isnot.at` and the API at `api.isnot.at`; `@is-not/lenses` is not published yet. `.github/workflows/lenses.yml` publishes `@is-not/lenses` with npm trusted publishing (no token; the publisher on npmjs.com names this repo and `lenses.yml` and must allow the `npm publish` action, otherwise the registry answers 403 "OIDC permission denied for this action") once a version PR is merged; until the first release exists `scripts/fetch-lenses.sh` has nothing to fetch, so build the wasm locally.
 - Deployment: one Railway service from the root `Dockerfile`, declared in `.railway/railway.ts` (see README "Deploying"). Never run `railway config apply` without JP saying so; `railway config plan` is safe. Custom domains cannot be declared in the IaC file: add them in the dashboard and `railway config pull` them in.
+- The project's atproto identity is `did:web:isnot.at`, served from `web/static/.well-known/` (`did.json` and `atproto-did`). The repo lives on `eurosky.social`, and the `#atproto` key in `did.json` is the one that PDS reserved for the DID, so moving PDS or re-reserving a key means editing `did.json` in the same change. `web/static/.well-known/` survives the build because sirv makes an explicit exception for `.well-known` under its no-dotfiles rule.
 
 ## Working here
 
