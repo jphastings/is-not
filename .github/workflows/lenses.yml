@@ -1,6 +1,7 @@
 name: lenses
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths: ['packages/lenses/**', '.changeset/**', 'lens.go', 'lens_test.go', 'go.mod', '.github/workflows/lenses.yml', '**.go', 'go.sum']
@@ -12,6 +13,7 @@ env:
 
 jobs:
   test:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -89,3 +91,27 @@ jobs:
           gh release create "lenses-v${VERSION}" packages/lenses/dist/isnot_lenses.wasm \
             --title "@is-not/lenses ${VERSION}" \
             --notes "Built from packages/lenses at ${GITHUB_SHA}. Download isnot_lenses.wasm for Go builds via scripts/fetch-lenses.sh."
+
+  # Temporary diagnostic (workflow_dispatch only): performs npm's OIDC token
+  # exchange from this workflow file and prints the registry's answer.
+  oidc-check:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - run: |
+          set -u
+          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=npm:registry.npmjs.org" | jq -r .value)
+          python3 - "$TOKEN" <<'PY'
+          import sys, base64, json
+          p = sys.argv[1].split('.')[1]
+          p += '=' * (-len(p) % 4)
+          d = json.loads(base64.urlsafe_b64decode(p))
+          print({k: d.get(k) for k in ['sub', 'repository', 'workflow_ref', 'job_workflow_ref', 'environment']})
+          PY
+          curl -sS -o body.json -w "exchange status: %{http_code}\n" -X POST \
+            -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+            "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/@is-not%2flenses"
+          jq -c 'if type=="object" then del(.token) else . end' body.json 2>/dev/null || cat body.json
