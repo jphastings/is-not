@@ -86,7 +86,7 @@ The resolver is a function field on the ingester so tests inject a stub.
 ## Testing
 
 Extend `ingest_test.go`: a valid record now carries the full subject and the fold test
-asserts title, type and identifiers JSON round-trip; a record missing `title` is invalid; a
+asserts title and type on the tag row and identifiers via the `tag_identifiers` table; a record missing `title` is invalid; a
 new test covers accounts: a commit from an unseen DID creates a row with the stubbed
 handle, a resolver error leaves the handle empty, an identity event with a handle updates
 the row, and a known DID does not trigger resolution again.
