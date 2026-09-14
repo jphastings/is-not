@@ -1404,3 +1404,24 @@ tagged lenses-v<version> carries the wasm for Go builds."
 ```
 
 Note for JP (not a step): the repo needs an `NPM_TOKEN` secret with publish rights on `@is-not`, and the workflow only runs once the repo is on GitHub.
+
+---
+
+### Task 6: Lens authoring guide
+
+**Files:**
+- Create: `docs/creating-a-lens.md`
+
+**Interfaces:**
+- Consumes: the package layout from Tasks 2–3, the release flow from Task 5.
+
+- [ ] **Step 1: Write the guide**
+
+`docs/creating-a-lens.md` explains, for a contributor who has never seen this repo, how to add support for a new atproto collection and ship it as a new `@is-not/lenses` version in one self-contained commit or PR. It must cover, in order: finding and vendoring the source lexicon verbatim under `packages/lenses/lexicons/`; fetching a real record with `getRecord` to use as a fixture; writing `packages/lenses/lenses/<nsid>.json` (the allowed steps, the `apply_expr` if-chain for type mapping, the `extensions["at.isnot"]["identifiers"]` convention and why, the array limitation); adding the `SOURCES` entry in `src/lib.rs`; writing the fixture with the exact expected output; running `cargo test`, `sh build-wasm.sh`, `pnpm exec vp test --run` and `go test ./...`; adding a changeset (`pnpm changeset`, minor bump for a new lens) and what the workflow does with it once merged (version PR, npm publish, `lenses-v<version>` GitHub release); and a checklist of what the commit must contain. Include one complete worked example using a hypothetical `com.example.book` lexicon with `title`, `kind` ∈ {novel, comic} mapped to `book`/`book-series`... no: keep it honest — map `novel → book` and pass `comic` through, and an `ids` object for identifiers. Keep it under 200 lines, no fluff.
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add docs/creating-a-lens.md
+git commit -m "docs: guide for adding a lens and releasing it"
+```
