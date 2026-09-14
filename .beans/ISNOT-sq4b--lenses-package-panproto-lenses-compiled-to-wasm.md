@@ -1,10 +1,11 @@
 ---
 # ISNOT-sq4b
 title: 'Lenses package: panproto lenses compiled to wasm'
-status: todo
+status: completed
 type: feature
+priority: normal
 created_at: 2026-09-13T16:23:18Z
-updated_at: 2026-09-13T16:23:18Z
+updated_at: 2026-09-14T20:26:47Z
 parent: ISNOT-kgev
 ---
 

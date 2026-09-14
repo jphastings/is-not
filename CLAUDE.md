@@ -2,6 +2,11 @@
 
 atproto appview for `at.isnot.tag` records. Go ingester at the root; SvelteKit site will live in `web/`.
 
+## Where things are
+
+- Architecture and how to run: `README.md`. Decisions: `docs/superpowers/specs/`. What is done and what is next: `beans list` (epic ISNOT-kgev). Lens authoring: `docs/creating-a-lens.md`.
+- Nothing is deployed or published yet; the repo is not on GitHub yet, so `.github/workflows/lenses.yml` and `scripts/fetch-lenses.sh` are inert. Build the wasm locally.
+
 ## Working here
 
 - Commit straight to `main` until GitHub PRs are set up.
