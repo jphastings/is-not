@@ -1,0 +1,92 @@
+name: lenses
+
+on:
+  push:
+    branches: [main]
+    paths: ['packages/lenses/**', '.changeset/**', 'lens.go', 'lens_test.go', 'go.mod', '.github/workflows/lenses.yml']
+  pull_request:
+    paths: ['packages/lenses/**', '.changeset/**', 'lens.go', 'lens_test.go', 'go.mod', '.github/workflows/lenses.yml']
+
+env:
+  BINARYEN_VERSION: version_123
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/lenses
+      - name: Install wasm-opt
+        run: |
+          curl -fsSL "https://github.com/WebAssembly/binaryen/releases/download/${BINARYEN_VERSION}/binaryen-${BINARYEN_VERSION}-x86_64-linux.tar.gz" | tar xz
+          echo "$PWD/binaryen-${BINARYEN_VERSION}/bin" >> "$GITHUB_PATH"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @is-not/lenses build
+      - run: pnpm --filter @is-not/lenses test
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go test ./...
+      - uses: actions/upload-artifact@v4
+        with:
+          name: isnot_lenses.wasm
+          path: packages/lenses/dist/isnot_lenses.wasm
+
+  release:
+    if: github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/lenses
+      - name: Install wasm-opt
+        run: |
+          curl -fsSL "https://github.com/WebAssembly/binaryen/releases/download/${BINARYEN_VERSION}/binaryen-${BINARYEN_VERSION}-x86_64-linux.tar.gz" | tar xz
+          echo "$PWD/binaryen-${BINARYEN_VERSION}/bin" >> "$GITHUB_PATH"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @is-not/lenses build
+      - id: changesets
+        uses: changesets/action@v1
+        with:
+          publish: pnpm changeset publish
+          version: pnpm changeset version
+          title: 'chore: version packages'
+          commit: 'chore: version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+      - name: Attach wasm to a GitHub release
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(node -p "require('./packages/lenses/package.json').version")
+          gh release create "lenses-v${VERSION}" packages/lenses/dist/isnot_lenses.wasm \
+            --title "@is-not/lenses ${VERSION}" \
+            --notes "Built from packages/lenses at ${GITHUB_SHA}. Download isnot_lenses.wasm for Go builds via scripts/fetch-lenses.sh."
