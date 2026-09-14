@@ -1,4 +1,4 @@
-module github.com/jphastings/isnot
+module github.com/jphastings/is-not
 
 go 1.26.6
 

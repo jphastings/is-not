@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- `package main` at the repo root; module `github.com/jphastings/isnot`. No new dependencies (atmos `identity` is already in the module graph).
+- `package main` at the repo root; module `github.com/jphastings/is-not`. No new dependencies (atmos `identity` is already in the module graph).
 - Lexicon stays at version 1 and is edited in place; the vendored strongRef lexicon is deleted.
 - `migrations/001_init.sql` is rewritten in place (nothing is deployed). CLAUDE.md gains one line: migrations are append-only from the first deploy onward.
 - Title: 1–256 graphemes, max 2560 bytes. Type: max 64 bytes, knownValues `movie`, `tv-series`, `tv-episode`, `book`, `album`, `post`. Identifiers: optional array, max 32 items, each `{key ≤ 64 bytes, value ≤ 512 bytes}`.

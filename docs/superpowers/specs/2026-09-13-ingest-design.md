@@ -19,7 +19,7 @@ Record key is a TID.
 
 ## Stack
 
-- Go module `github.com/jphastings/isnot`, code at the repo root. SvelteKit lands later in `web/`.
+- Go module `github.com/jphastings/is-not`, code at the repo root. SvelteKit lands later in `web/`.
 - Jetstream: `github.com/bluesky-social/jetstream` (official v2 client). Subscribe with
   `WithCollection("at.isnot.tag")`. If `JETSTREAM_API_KEY` is set, always resume via
   archive replay with `WithAfterSeq(cursor)` (0 on first run replays the whole archive;

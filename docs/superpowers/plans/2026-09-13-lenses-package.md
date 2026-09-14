@@ -665,7 +665,7 @@ ref-typed properties (ISNOT-qvqp)."
   "description": "Turn an atproto record into an at.isnot.tag subject, using panproto lenses compiled to WebAssembly",
   "license": "MIT",
   "type": "module",
-  "repository": { "type": "git", "url": "https://github.com/jphastings/isnot", "directory": "packages/lenses" },
+  "repository": { "type": "git", "url": "https://github.com/jphastings/is-not", "directory": "packages/lenses" },
   "exports": {
     ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
     "./isnot_lenses.wasm": "./dist/isnot_lenses.wasm"
@@ -1250,7 +1250,7 @@ Expected: all PASS (the wasm from Task 2 must exist at `packages/lenses/dist/isn
 set -eu
 cd "$(dirname "$0")/.."
 VERSION=$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' packages/lenses/package.json | head -1)
-URL="https://github.com/jphastings/isnot/releases/download/lenses-v${VERSION}/isnot_lenses.wasm"
+URL="https://github.com/jphastings/is-not/releases/download/lenses-v${VERSION}/isnot_lenses.wasm"
 mkdir -p packages/lenses/dist
 curl -fsSL -o packages/lenses/dist/isnot_lenses.wasm "$URL"
 echo "fetched @is-not/lenses ${VERSION}"

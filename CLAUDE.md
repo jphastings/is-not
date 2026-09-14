@@ -5,7 +5,7 @@ atproto appview for `at.isnot.tag` records. Go API at the root, SvelteKit site i
 ## Where things are
 
 - Architecture and how to run: `README.md`. Decisions: `docs/superpowers/specs/`. What is done and what is next: `beans list` (epic ISNOT-kgev). Lens authoring: `docs/creating-a-lens.md`.
-- The repo is `jphastings/is-not` on GitHub (the Go module path keeps the older `jphastings/isnot` spelling; leave it). Nothing is deployed or published yet: `.github/workflows/lenses.yml` needs an `NPM_TOKEN` secret and no lenses release exists, so `scripts/fetch-lenses.sh` has nothing to fetch. Build the wasm locally.
+- The repo is `jphastings/is-not` on GitHub. Nothing is deployed or published yet: `.github/workflows/lenses.yml` needs an `NPM_TOKEN` secret and no lenses release exists, so `scripts/fetch-lenses.sh` has nothing to fetch. Build the wasm locally.
 - Deployment: one Railway service from the root `Dockerfile`, declared in `.railway/railway.ts` (see README "Deploying"). Never run `railway config apply` without JP saying so; `railway config plan` is safe.
 
 ## Working here
