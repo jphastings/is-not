@@ -3,9 +3,9 @@ name: lenses
 on:
   push:
     branches: [main]
-    paths: ['packages/lenses/**', '.changeset/**', 'lens.go', 'lens_test.go', 'go.mod', '.github/workflows/lenses.yml', '**.go', 'go.sum']
+    paths: ['packages/lenses/**', 'packages/sentence/**', '.changeset/**', 'lens.go', 'lens_test.go', 'go.mod', '.github/workflows/lenses.yml', '**.go', 'go.sum']
   pull_request:
-    paths: ['packages/lenses/**', '.changeset/**', 'lens.go', 'lens_test.go', 'go.mod', '.github/workflows/lenses.yml', '**.go', 'go.sum']
+    paths: ['packages/lenses/**', 'packages/sentence/**', '.changeset/**', 'lens.go', 'lens_test.go', 'go.mod', '.github/workflows/lenses.yml', '**.go', 'go.sum']
 
 env:
   BINARYEN_VERSION: version_130
@@ -33,6 +33,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @is-not/lenses build
       - run: pnpm --filter @is-not/lenses test
+      - run: pnpm --filter @is-not/sentence build
+      - run: pnpm --filter @is-not/sentence test
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -68,6 +70,7 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @is-not/lenses build
+      - run: pnpm --filter @is-not/sentence build
       # Publishes with npm trusted publishing (OIDC via id-token) rather than a
       # token: the publisher for @is-not/lenses on npmjs.com names this repo and
       # this workflow file.

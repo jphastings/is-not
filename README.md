@@ -19,6 +19,8 @@ Two processes share one container and one SQLite file:
   record (a popfeed review, a bookhive book, ...) becomes a tag subject. Compiled with the
   panproto engine into one wasm module used by the browser, Node and the Go API. Published
   to npm as `@is-not/lenses`. See `docs/creating-a-lens.md` to add one.
+- **Sentence (`packages/sentence`):** renders an `at.isnot.review` record as a sentence ("X is
+  adjective"), in English. Published to npm as `@is-not/sentence`.
 
 Design decisions are recorded as specs under `docs/superpowers/specs/`, implementation
 plans under `docs/superpowers/plans/`. Work is tracked with [beans](https://github.com/hmans/beans)

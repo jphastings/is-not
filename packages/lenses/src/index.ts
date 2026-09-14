@@ -15,6 +15,7 @@ export type ReviewRecord = {
   tags: Tag[];
   createdAt: string;
   updatedAt: string;
+  locale?: string;
 };
 
 type Exports = {
@@ -122,7 +123,7 @@ async function pdsFor(did: string, fetchImpl: typeof fetch): Promise<string> {
 /** Fetch the subject record and assemble a complete at.isnot.review record. */
 export async function buildReview(
   lenses: Lenses,
-  input: { uri: string; tags: Tag[] },
+  input: { uri: string; tags: Tag[]; locale?: string },
   fetchImpl: typeof fetch = fetch,
 ): Promise<{ record: ReviewRecord; supported: boolean }> {
   const { cid, record } = await fetchRecord(input.uri, fetchImpl);
@@ -137,6 +138,7 @@ export async function buildReview(
       tags: input.tags,
       createdAt: now,
       updatedAt: now,
+      ...(input.locale ? { locale: input.locale } : {}),
     },
   };
 }

@@ -91,4 +91,13 @@ describe('buildReview', () => {
     expect(record.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     expect(record.createdAt).toBe(record.updatedAt);
   });
+
+  it('includes locale when given, omits it otherwise', async () => {
+    const tags = [{ direction: 1 as const, adjective: 'good' }];
+    const withLocale = await buildReview(lenses, { uri, tags, locale: 'en-GB' }, stubFetch);
+    expect(withLocale.record.locale).toBe('en-GB');
+
+    const withoutLocale = await buildReview(lenses, { uri, tags }, stubFetch);
+    expect('locale' in withoutLocale.record).toBe(false);
+  });
 });
