@@ -104,10 +104,13 @@ func TestOpenDBMigratesOnceAndIsRepeatable(t *testing.T) {
 		if n != 1 {
 			t.Fatalf("schema_version rows = %d, want 1", n)
 		}
-		if _, err := db.Exec(`SELECT did, rkey, subject_uri, subject_cid, subject_title, subject_type, subject_identifiers, adjective, direction, updated_at FROM tags`); err != nil {
+		if _, err := db.Exec(`SELECT did, rkey, subject_uri, subject_cid, subject_title, subject_type, adjective, direction, updated_at FROM tags`); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := db.Exec(`SELECT did, handle, updated_at FROM accounts`); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Exec(`SELECT did, rkey, key, value FROM tag_identifiers`); err != nil {
 			t.Fatal(err)
 		}
 		db.Close()
@@ -201,16 +204,37 @@ func TestFoldEmptyBatchKeepsCursor(t *testing.T) {
 	}
 }
 
+func identifiers(t *testing.T, db *sql.DB, did, rkey string) [][2]string {
+	t.Helper()
+	rs, err := db.Query(`SELECT key, value FROM tag_identifiers WHERE did = ? AND rkey = ? ORDER BY key, value`, did, rkey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rs.Close()
+	var out [][2]string
+	for rs.Next() {
+		var kv [2]string
+		if err := rs.Scan(&kv[0], &kv[1]); err != nil {
+			t.Fatal(err)
+		}
+		out = append(out, kv)
+	}
+	return out
+}
+
 func TestFoldStoresSubjectFields(t *testing.T) {
 	in := newTestIngester(t)
 	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("x", int64(1))))
 
-	var title, typ, identifiers string
-	if err := in.db.QueryRow(`SELECT subject_title, subject_type, subject_identifiers FROM tags WHERE did = ? AND rkey = ?`, "did:plc:a", "3k1").Scan(&title, &typ, &identifiers); err != nil {
+	var title, typ string
+	if err := in.db.QueryRow(`SELECT subject_title, subject_type FROM tags WHERE did = ? AND rkey = ?`, "did:plc:a", "3k1").Scan(&title, &typ); err != nil {
 		t.Fatal(err)
 	}
-	if title != "A Post" || typ != "post" || identifiers != `[{"key":"imdbId","value":"tt1"}]` {
-		t.Fatalf("subject = %q %q %q", title, typ, identifiers)
+	if title != "A Post" || typ != "post" {
+		t.Fatalf("subject = %q %q", title, typ)
+	}
+	if got := identifiers(t, in.db, "did:plc:a", "3k1"); len(got) != 1 || got[0] != [2]string{"imdbId", "tt1"} {
+		t.Fatalf("identifiers after create = %v", got)
 	}
 
 	updateRecord := tagRecord("x", int64(1))
@@ -219,21 +243,46 @@ func TestFoldStoresSubjectFields(t *testing.T) {
 	subject["type"] = "movie"
 	subject["identifiers"] = []any{map[string]any{"key": "tmdbId", "value": "2"}}
 	apply(t, in, 3, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate, updateRecord))
-	if err := in.db.QueryRow(`SELECT subject_title, subject_type, subject_identifiers FROM tags WHERE did = ? AND rkey = ?`, "did:plc:a", "3k1").Scan(&title, &typ, &identifiers); err != nil {
+	if err := in.db.QueryRow(`SELECT subject_title, subject_type FROM tags WHERE did = ? AND rkey = ?`, "did:plc:a", "3k1").Scan(&title, &typ); err != nil {
 		t.Fatal(err)
 	}
-	if title != "Another Post" || typ != "movie" || identifiers != `[{"key":"tmdbId","value":"2"}]` {
-		t.Fatalf("updated subject = %q %q %q", title, typ, identifiers)
+	if title != "Another Post" || typ != "movie" {
+		t.Fatalf("updated subject = %q %q", title, typ)
+	}
+	if got := identifiers(t, in.db, "did:plc:a", "3k1"); len(got) != 1 || got[0] != [2]string{"tmdbId", "2"} {
+		t.Fatalf("identifiers after update = %v, want only tmdbId (old imdbId gone)", got)
 	}
 
 	record := tagRecord("y", int64(1))
 	delete(record["subject"].(map[string]any), "identifiers")
 	apply(t, in, 4, commitEvent("did:plc:a", "3k2", jetstream.OpCreate, record))
-	if err := in.db.QueryRow(`SELECT subject_identifiers FROM tags WHERE rkey = '3k2'`).Scan(&identifiers); err != nil {
+	if got := identifiers(t, in.db, "did:plc:a", "3k2"); len(got) != 0 {
+		t.Fatalf("identifiers without any = %v, want none", got)
+	}
+}
+
+func TestFoldDeletesIdentifiersWithTag(t *testing.T) {
+	in := newTestIngester(t)
+	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("x", int64(1))))
+	apply(t, in, 2, commitEvent("did:plc:a", "3k1", jetstream.OpDelete, nil))
+	var n int
+	if err := in.db.QueryRow(`SELECT COUNT(*) FROM tag_identifiers`).Scan(&n); err != nil {
 		t.Fatal(err)
 	}
-	if identifiers != "[]" {
-		t.Fatalf("identifiers without any = %q, want []", identifiers)
+	if n != 0 {
+		t.Fatalf("tag_identifiers count after tag delete = %d, want 0", n)
+	}
+
+	apply(t, in, 3,
+		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, tagRecord("x", int64(1))),
+		commitEvent("did:plc:b", "3k1", jetstream.OpCreate, tagRecord("y", int64(1))),
+	)
+	apply(t, in, 4, jetstream.Event{DID: "did:plc:a", Kind: jetstream.KindAccount, Account: &jetstream.Account{DID: "did:plc:a", Active: false, Status: "deleted"}})
+	if got := identifiers(t, in.db, "did:plc:a", "3k1"); len(got) != 0 {
+		t.Fatalf("did:plc:a identifiers after account deletion = %v, want none", got)
+	}
+	if got := identifiers(t, in.db, "did:plc:b", "3k1"); len(got) != 1 {
+		t.Fatalf("did:plc:b identifiers after unrelated account deletion = %v, want 1", got)
 	}
 }
 

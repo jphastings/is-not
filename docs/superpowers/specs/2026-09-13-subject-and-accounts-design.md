@@ -37,7 +37,6 @@ CREATE TABLE tags (
   subject_cid         TEXT NOT NULL,
   subject_title       TEXT NOT NULL,
   subject_type        TEXT NOT NULL,
-  subject_identifiers TEXT NOT NULL DEFAULT '[]',
   adjective           TEXT NOT NULL,
   direction           INTEGER NOT NULL CHECK (direction BETWEEN -2 AND 2),
   updated_at          TEXT NOT NULL,
@@ -45,6 +44,15 @@ CREATE TABLE tags (
 );
 CREATE INDEX tags_subject ON tags (subject_uri);
 CREATE INDEX tags_adjective ON tags (adjective);
+CREATE TABLE tag_identifiers (
+  did   TEXT NOT NULL,
+  rkey  TEXT NOT NULL,
+  key   TEXT NOT NULL,
+  value TEXT NOT NULL,
+  PRIMARY KEY (did, rkey, key, value),
+  FOREIGN KEY (did, rkey) REFERENCES tags (did, rkey) ON DELETE CASCADE
+);
+CREATE INDEX tag_identifiers_lookup ON tag_identifiers (key, value);
 CREATE TABLE accounts (
   did        TEXT PRIMARY KEY,
   handle     TEXT NOT NULL DEFAULT '',
@@ -53,8 +61,8 @@ CREATE TABLE accounts (
 CREATE TABLE cursor (id INTEGER PRIMARY KEY CHECK (id = 1), seq INTEGER NOT NULL);
 ```
 
-`subject_identifiers` holds the identifiers array as JSON text, `[]` when absent, in the
-order the record gave. An empty `handle` means unresolved.
+`tag_identifiers` holds one row per identifier and is replaced wholesale on each tag
+upsert; rows cascade away when the tag is deleted. An empty `handle` means unresolved.
 
 ## Fold rules
 

@@ -17,7 +17,7 @@ import (
 var migrationFS embed.FS
 
 func openDB(file string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", "file:"+file+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)")
+	db, err := sql.Open("sqlite", "file:"+file+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(ON)")
 	if err != nil {
 		return nil, err
 	}
