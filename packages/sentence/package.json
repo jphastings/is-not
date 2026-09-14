@@ -1,6 +1,6 @@
 {
   "name": "@is-not/sentence",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Render an at.isnot.review record as a sentence in a locale, as text, HTML or typed parts",
   "license": "MIT",
   "repository": {
