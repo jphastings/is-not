@@ -80,6 +80,15 @@ Needs rustup with the `wasm32-unknown-unknown` target and `wasm-opt` (binaryen).
 fixtures in `packages/lenses/testdata/` are the contract shared by the Rust, TypeScript and
 Go test suites.
 
+## Identity
+
+The project is `did:web:isnot.at`. Its DID document and handle file are static files in
+`web/static/.well-known/`, so deploying the site is what makes the identity resolve. The
+repo lives on `eurosky.social`, and the `#atproto` key in `did.json` is the one that PDS
+reserved for the DID, so moving to another PDS means editing `did.json` to match. Being a
+did:web, the domain is the identity: there are no rotation keys and no recovery if
+`isnot.at` is lost.
+
 ## Lexicon
 
 `lexicons/at/isnot/review.json`. A review is a subject (uri, cid, title, type, identifiers)
