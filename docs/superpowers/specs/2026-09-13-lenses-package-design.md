@@ -53,7 +53,8 @@ and rewrite values with an if-chain: `tv_show → tv-show`, `tv_season → tv-se
 `track → music-track`; everything else passes through. Identifiers via the extensions block.
 
 The `at.isnot.tag` lexicon's `type` knownValues become: movie, tv-show, tv-season,
-tv-episode, book, book-series, album, music-track, video-game, post.
+tv-episode, book, book-series, album, music-track, video-game, post, publication, app,
+web-page, web-stream, code-repo (the last five arrived with the second batch of lenses).
 
 ## Wasm ABI
 
