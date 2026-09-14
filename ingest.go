@@ -178,17 +178,19 @@ func (in *ingester) applyCommit(tx *sql.Tx, did string, c *jetstream.Commit) err
 		return err
 	}
 	subject := c.Record["subject"].(map[string]any)
+	locale, _ := c.Record["locale"].(string)
 	_, err = tx.Exec(`
-		INSERT INTO reviews (did, rkey, subject_uri, subject_cid, subject_title, subject_type, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO reviews (did, rkey, subject_uri, subject_cid, subject_title, subject_type, locale, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (did, rkey) DO UPDATE SET
 			subject_uri   = excluded.subject_uri,
 			subject_cid   = excluded.subject_cid,
 			subject_title = excluded.subject_title,
 			subject_type  = excluded.subject_type,
+			locale        = excluded.locale,
 			created_at    = excluded.created_at,
 			updated_at    = excluded.updated_at`,
-		did, c.Rkey, subject["uri"], subject["cid"], subject["title"], subject["type"], createdAt, updatedAt)
+		did, c.Rkey, subject["uri"], subject["cid"], subject["title"], subject["type"], locale, createdAt, updatedAt)
 	if err != nil {
 		return err
 	}

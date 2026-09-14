@@ -60,6 +60,20 @@ func reviewRecord(tags []tagPair, createdAt, updatedAt string) map[string]any {
 	}
 }
 
+func withLocale(record map[string]any, locale string) map[string]any {
+	record["locale"] = locale
+	return record
+}
+
+func storedLocale(t *testing.T, db *sql.DB, rkey string) string {
+	t.Helper()
+	var locale string
+	if err := db.QueryRow(`SELECT locale FROM reviews WHERE rkey = ?`, rkey).Scan(&locale); err != nil {
+		t.Fatal(err)
+	}
+	return locale
+}
+
 func commitEvent(did, rkey string, op jetstream.Operation, record map[string]any) jetstream.Event {
 	return jetstream.Event{DID: did, Kind: jetstream.KindCommit, Commit: &jetstream.Commit{
 		Operation: op, Collection: collection, Rkey: rkey, Record: record,
@@ -176,6 +190,32 @@ func TestFoldCreateUpdateDelete(t *testing.T) {
 	}
 	if c := savedCursor(t, in.db); c != 12 {
 		t.Fatalf("cursor = %d, want 12", c)
+	}
+}
+
+func TestFoldStoresLocaleAndDefaultsToEmpty(t *testing.T) {
+	in := newTestIngester(t)
+	apply(t, in, 1,
+		commitEvent("did:plc:a", "r1", jetstream.OpCreate, withLocale(reviewRecord(oneTag("good", 1), defaultCreatedAt, defaultUpdatedAt), "en-GB")),
+		commitEvent("did:plc:a", "r2", jetstream.OpCreate, reviewRecord(oneTag("good", 1), defaultCreatedAt, defaultUpdatedAt)),
+	)
+	if got := storedLocale(t, in.db, "r1"); got != "en-GB" {
+		t.Fatalf("locale = %q, want en-GB", got)
+	}
+	if got := storedLocale(t, in.db, "r2"); got != "" {
+		t.Fatalf("locale = %q, want empty", got)
+	}
+	apply(t, in, 2, commitEvent("did:plc:a", "r1", jetstream.OpUpdate, reviewRecord(oneTag("good", 1), defaultCreatedAt, defaultUpdatedAt)))
+	if got := storedLocale(t, in.db, "r1"); got != "" {
+		t.Fatalf("locale after update without one = %q, want empty", got)
+	}
+}
+
+func TestFoldRejectsMalformedLocale(t *testing.T) {
+	in := newTestIngester(t)
+	apply(t, in, 1, commitEvent("did:plc:a", "r1", jetstream.OpCreate, withLocale(reviewRecord(oneTag("good", 1), defaultCreatedAt, defaultUpdatedAt), "not a language tag")))
+	if reviewExists(t, in.db, "did:plc:a", "r1") {
+		t.Fatal("review with a malformed locale was stored")
 	}
 }
 

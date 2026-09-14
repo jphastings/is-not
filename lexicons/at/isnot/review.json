@@ -30,6 +30,11 @@
             },
             "description": "The adjectives this review applies to the subject. An adjective should appear at most once; readers keep the last entry when it repeats."
           },
+          "locale": {
+            "type": "string",
+            "format": "language",
+            "description": "The language the whole review is meant to be read in (BCP 47), not the language of any one adjective. Readers may render the sentence in this locale."
+          },
           "createdAt": {
             "type": "string",
             "format": "datetime"

@@ -5,6 +5,7 @@ CREATE TABLE reviews (
   subject_cid         TEXT NOT NULL,
   subject_title       TEXT NOT NULL,
   subject_type        TEXT NOT NULL,
+  locale              TEXT NOT NULL DEFAULT '',
   created_at          TEXT NOT NULL,
   updated_at          TEXT NOT NULL,
   PRIMARY KEY (did, rkey)

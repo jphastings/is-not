@@ -93,4 +93,4 @@ did:web, the domain is the identity: there are no rotation keys and no recovery 
 
 `lexicons/at/isnot/review.json`. A review is a subject (uri, cid, title, type, identifiers)
 plus one or more tags (an adjective of up to 16 graphemes, and a direction from -2 to 2),
-a createdAt and an updatedAt.
+a createdAt and an updatedAt, and an optional locale.

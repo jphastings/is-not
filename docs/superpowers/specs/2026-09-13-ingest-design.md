@@ -12,6 +12,7 @@ SvelteKit site, and the shared container are separate specs.
 |---|---|---|
 | subject | ref `#subject` | required |
 | tags | array of `#tag` (adjective, direction) | required, 1–32 items |
+| locale | string | optional, format language |
 | createdAt | string | required, format datetime |
 | updatedAt | string | required, format datetime |
 
@@ -79,6 +80,7 @@ CREATE TABLE reviews (
   rkey        TEXT NOT NULL,
   subject_uri TEXT NOT NULL,
   subject_cid TEXT NOT NULL,
+  locale      TEXT NOT NULL DEFAULT '',
   created_at  TEXT NOT NULL,
   updated_at  TEXT NOT NULL,
   PRIMARY KEY (did, rkey)
