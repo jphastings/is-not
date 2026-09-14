@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
 	import { directionPhrase } from '$lib/tags';
+	import { m } from '$lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -16,12 +17,12 @@
 </script>
 
 <svelte:head>
-	<title>is/not</title>
+	<title>{m.site_title()}</title>
 </svelte:head>
 
 <main>
 	{#if data.tags.length === 0}
-		<p class="sentence">Nobody has said anything yet.</p>
+		<p class="sentence">{m.empty_state()}</p>
 	{:else}
 		{#key i}
 			<p class="sentence" transition:fade>
