@@ -1,0 +1,29 @@
+{
+  "input": {
+    "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/network.cosmik.card/3mvaxidgxne2q",
+    "cid": "bafyreifjpaf5ilayutl4pxrxgvsxvdg2dfljb37w6n7uq6ogj34is54ehq",
+    "record": {
+      "url": "https://mmm.page/",
+      "type": "NOTE",
+      "$type": "network.cosmik.card",
+      "content": {
+        "text": "I’ve been a long time supporter; I love the playfulness!",
+        "$type": "network.cosmik.card#noteContent"
+      },
+      "createdAt": "2026-09-11T16:13:14.695Z",
+      "parentCard": {
+        "cid": "bafyreig6srjx2vddc5x75noi5zk6vrl4aqvbxyfgz66ci2qtrffkizr5uq",
+        "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/network.cosmik.card/3mvaxicsjht2a"
+      }
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/network.cosmik.card/3mvaxidgxne2q",
+      "cid": "bafyreifjpaf5ilayutl4pxrxgvsxvdg2dfljb37w6n7uq6ogj34is54ehq",
+      "title": "I’ve been a long time supporter; I love the playfulness!",
+      "type": "post"
+    }
+  }
+}

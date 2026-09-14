@@ -1,0 +1,22 @@
+{
+  "input": {
+    "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/fyi.atstore.listing.review/3muy6h3mwackp",
+    "cid": "bafyreicdypzogiqzukvo3m2goowtgealz5fxvwyyadc64jkw5fjxguk62a",
+    "record": {
+      "text": "A very fun corner of the atmosphere you absolutely must spend some time in!",
+      "$type": "fyi.atstore.listing.review",
+      "rating": 5,
+      "subject": "at://did:plc:kwgllf365cwmxbnxitx4pjdj/fyi.atstore.listing.detail/3mkivhwatns42",
+      "createdAt": "2026-09-08T04:23:51.757Z"
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/fyi.atstore.listing.review/3muy6h3mwackp",
+      "cid": "bafyreicdypzogiqzukvo3m2goowtgealz5fxvwyyadc64jkw5fjxguk62a",
+      "title": "A very fun corner of the atmosphere you absolutely must spend some time in!",
+      "type": "app"
+    }
+  }
+}

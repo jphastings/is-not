@@ -1,0 +1,27 @@
+{
+  "input": {
+    "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/site.standard.document/3mdryr3vsbc2m",
+    "cid": "bafyreic7i3uynjdhngdlm76ybmv22paraiozbcpjfwm75jy4kdwkuodd3e",
+    "record": {
+      "path": "/posts/tumblr-musings/timelapse",
+      "site": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/site.standard.publication/3mdogbputbg2m",
+      "tags": [
+        "from-tumblr"
+      ],
+      "$type": "site.standard.document",
+      "title": "Timelapse video",
+      "publishedAt": "2009-03-31T01:10:00.000Z",
+      "textContent": "{{< vimeo 3938435 >}}\n\nNot perfect, but a fine start I’d say!",
+      "canonicalUrl": "https://www.byjp.me/posts/tumblr-musings/timelapse"
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/site.standard.document/3mdryr3vsbc2m",
+      "cid": "bafyreic7i3uynjdhngdlm76ybmv22paraiozbcpjfwm75jy4kdwkuodd3e",
+      "title": "Timelapse video",
+      "type": "post"
+    }
+  }
+}

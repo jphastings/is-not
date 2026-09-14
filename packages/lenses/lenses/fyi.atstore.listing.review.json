@@ -1,0 +1,10 @@
+{
+  "id": "at.isnot.lens.fyi-atstore-listing-review",
+  "description": "An atstore review is of an app listing; the tag subject is that app, titled by the review text since the record carries no app name.",
+  "source": "fyi.atstore.listing.review",
+  "target": "at.isnot.tag#subject",
+  "steps": [
+    { "rename_field": { "old": "text", "new": "title" } },
+    { "add_field": { "name": "type", "kind": "string", "fallback": "app" } }
+  ]
+}

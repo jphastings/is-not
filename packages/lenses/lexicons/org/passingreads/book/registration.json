@@ -1,0 +1,86 @@
+{
+  "id": "org.passingreads.book.registration",
+  "defs": {
+    "main": {
+      "key": "any",
+      "type": "record",
+      "record": {
+        "type": "object",
+        "required": [
+          "bookId",
+          "title",
+          "authors",
+          "publicationId",
+          "signatures",
+          "occurredAt"
+        ],
+        "properties": {
+          "kept": {
+            "type": "boolean",
+            "description": "Whether the registrant is keeping the book. Absent means true, so records written before this field existed still read as kept. When false the book starts its journey at `location` rather than in the registrant's library."
+          },
+          "cover": {
+            "type": "blob",
+            "accept": [
+              "image/png",
+              "image/jpeg"
+            ],
+            "maxSize": 1000000,
+            "description": "Cover image of the book"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "The title of the book"
+          },
+          "bookId": {
+            "type": "string",
+            "description": "The book's ID (as defined on its QR Code)"
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 512,
+              "minLength": 1
+            },
+            "description": "Authors of this book, in order of credit. An empty array implies a book of anonymous or unknown authorship."
+          },
+          "location": {
+            "refs": [
+              "community.lexicon.location.hthree#main",
+              "org.passingreads.book.event#osmLocation"
+            ],
+            "type": "union",
+            "description": "Where the book is at the moment it is registered."
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "signatures": {
+            "type": "array",
+            "items": {
+              "ref": "org.passingreads.signature.book#main",
+              "type": "ref"
+            },
+            "minLength": 1,
+            "description": "Inline attestations binding this record to the book's keypair."
+          },
+          "aspectRatio": {
+            "ref": "org.passingreads.defs#aspectRatio",
+            "type": "ref",
+            "description": "Aspect ratio of the cover image"
+          },
+          "publicationId": {
+            "type": "string",
+            "description": "The book's Open Library Edition ID"
+          }
+        }
+      },
+      "description": "A book that has been registered on PassingReads"
+    }
+  },
+  "lexicon": 1
+}

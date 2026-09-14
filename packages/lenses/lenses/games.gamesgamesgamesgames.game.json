@@ -1,0 +1,11 @@
+{
+  "id": "at.isnot.lens.games-gamesgamesgamesgames-game",
+  "description": "A gamesgamesgamesgames game record describes a video game; the tag subject is that game.",
+  "source": "games.gamesgamesgamesgames.game",
+  "target": "at.isnot.tag#subject",
+  "extensions": { "at.isnot": { "identifiers": "externalIds" } },
+  "steps": [
+    { "rename_field": { "old": "name", "new": "title" } },
+    { "add_field": { "name": "type", "kind": "string", "fallback": "video-game" } }
+  ]
+}

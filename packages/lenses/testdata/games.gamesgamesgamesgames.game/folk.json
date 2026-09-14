@@ -1,0 +1,196 @@
+{
+  "input": {
+    "uri": "at://did:plc:ijmfftrkmxdxndel5hbxhzn3/games.gamesgamesgamesgames.game/folk",
+    "cid": "bafyreien6lgq24f7nvatj5pjjkjhexqyni6kc5wpb2jrxwnwbboxwqfxki",
+    "record": {
+      "name": "FOLK",
+      "$type": "games.gamesgamesgamesgames.game",
+      "media": [
+        {
+          "blob": {
+            "ref": {
+              "$link": "bafkreibpy7q7efniwdkuunmkvydiukgkosfffqkrao7s6f6pwtwqqbi5eu"
+            },
+            "size": 12284,
+            "$type": "blob",
+            "mimeType": "image/png"
+          },
+          "title": "FOLK",
+          "width": 180,
+          "height": 180,
+          "mediaType": "icon"
+        }
+      ],
+      "modes": [
+        "mmo",
+        "multiplayer",
+        "singlePlayer",
+        "cooperative"
+      ],
+      "genres": [
+        "rpg",
+        "simulator"
+      ],
+      "themes": [
+        "sandbox",
+        "openWorld",
+        "fantasy",
+        "survival",
+        "action"
+      ],
+      "summary": "FOLK is a free-to-play indie sandbox MMORPG. Tame mystical Folk creatures, craft, fight, and build your settlement. Play in browser, Telegram, or mobile.",
+      "keywords": [
+        "mmorpg",
+        "sandbox",
+        "browser game",
+        "indie",
+        "folklore",
+        "creature collection",
+        "crafting",
+        "building",
+        "farming",
+        "multiplayer"
+      ],
+      "releases": [
+        {
+          "platformURI": "at://did:web:gamesgamesgamesgames.games/games.gamesgamesgamesgames.platform/3mgizcmdv2c2l",
+          "releaseDates": [
+            {
+              "region": "worldwide",
+              "status": "fullrelease",
+              "releasedAt": "2024",
+              "releasedAtFormat": "YYYY"
+            }
+          ]
+        },
+        {
+          "platformURI": "at://did:web:gamesgamesgamesgames.games/games.gamesgamesgamesgames.platform/3mgizcldzjc2l",
+          "releaseDates": [
+            {
+              "region": "worldwide",
+              "status": "fullrelease",
+              "releasedAt": "2024",
+              "releasedAtFormat": "YYYY"
+            }
+          ]
+        },
+        {
+          "platformURI": "at://did:web:gamesgamesgamesgames.games/games.gamesgamesgamesgames.platform/3mgizckotrs2l",
+          "releaseDates": [
+            {
+              "region": "worldwide",
+              "status": "fullrelease",
+              "releasedAt": "2024",
+              "releasedAtFormat": "YYYY"
+            }
+          ]
+        },
+        {
+          "platformURI": "at://did:web:gamesgamesgamesgames.games/games.gamesgamesgamesgames.platform/3mgizckvlm22l",
+          "releaseDates": [
+            {
+              "region": "worldwide",
+              "status": "fullrelease",
+              "releasedAt": "2024",
+              "releasedAtFormat": "YYYY"
+            }
+          ]
+        },
+        {
+          "platformURI": "at://did:web:gamesgamesgamesgames.games/games.gamesgamesgamesgames.platform/3mgizckjms22l",
+          "releaseDates": [
+            {
+              "region": "worldwide",
+              "status": "fullrelease",
+              "releasedAt": "2024",
+              "releasedAtFormat": "YYYY"
+            }
+          ]
+        },
+        {
+          "platform": "Telegram",
+          "releaseDates": [
+            {
+              "region": "worldwide",
+              "status": "fullrelease",
+              "releasedAt": "2024",
+              "releasedAtFormat": "YYYY"
+            }
+          ]
+        }
+      ],
+      "websites": [
+        {
+          "url": "https://folk.lol",
+          "type": "official"
+        },
+        {
+          "url": "https://www.instagram.com/folklolgame",
+          "type": "instagram"
+        },
+        {
+          "url": "https://bsky.app/profile/folk.lol",
+          "type": "bluesky"
+        },
+        {
+          "url": "https://twitter.com/folklolgame",
+          "type": "twitter"
+        },
+        {
+          "url": "https://folksoftware.itch.io/folk",
+          "type": "itchIo"
+        },
+        {
+          "url": "https://t.me/folklolgame",
+          "type": "other"
+        }
+      ],
+      "createdAt": "2026-08-18T12:48:12.593Z",
+      "description": "FOLK is a free-to-play indie sandbox MMORPG. Explore a living, persistent world and tame mystical Folk creatures drawn from folklore around the world; craft, fight, and build your settlement alongside the community. Play in the browser, on Telegram, on Android or on desktop. In active development since 2023.",
+      "externalIds": {
+        "itchIo": {
+          "game": "folk",
+          "developer": "folksoftware"
+        }
+      },
+      "publishedAt": "2026-08-18T12:48:12.593Z",
+      "applicationType": "game",
+      "alternativeNames": [
+        {
+          "name": "folk.lol",
+          "comment": "The domain the game is played on."
+        }
+      ],
+      "languageSupports": [
+        {
+          "language": "en",
+          "interface": true
+        },
+        {
+          "language": "ru",
+          "interface": true
+        },
+        {
+          "language": "es",
+          "interface": true
+        },
+        {
+          "language": "it",
+          "interface": true
+        }
+      ],
+      "playerPerspectives": [
+        "topDown"
+      ]
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:ijmfftrkmxdxndel5hbxhzn3/games.gamesgamesgamesgames.game/folk",
+      "cid": "bafyreien6lgq24f7nvatj5pjjkjhexqyni6kc5wpb2jrxwnwbboxwqfxki",
+      "title": "FOLK",
+      "type": "video-game"
+    }
+  }
+}

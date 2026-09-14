@@ -1,0 +1,30 @@
+{
+  "input": {
+    "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/sh.tangled.repo/web-rpg-actor",
+    "cid": "bafyreicdwrac54j5lvizm3avvayoqx57m6s2n6fihbbhqrvxd5mmur5tca",
+    "record": {
+      "knot": "knot1.tangled.sh",
+      "$type": "sh.tangled.repo",
+      "labels": [
+        "at://did:plc:wshs7t2adsemcrrd4snkeqli/sh.tangled.label.definition/assignee",
+        "at://did:plc:wshs7t2adsemcrrd4snkeqli/sh.tangled.label.definition/documentation",
+        "at://did:plc:wshs7t2adsemcrrd4snkeqli/sh.tangled.label.definition/duplicate",
+        "at://did:plc:wshs7t2adsemcrrd4snkeqli/sh.tangled.label.definition/good-first-issue",
+        "at://did:plc:wshs7t2adsemcrrd4snkeqli/sh.tangled.label.definition/wontfix"
+      ],
+      "repoDid": "did:plc:324pblihh2yoenbuskeesepw",
+      "website": "https://byjp.tngl.io/web-rpg-actor",
+      "createdAt": "2026-05-27T18:43:10Z",
+      "description": "CSS & optional JS for showing your rpg.actor on your own site"
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/sh.tangled.repo/web-rpg-actor",
+      "cid": "bafyreicdwrac54j5lvizm3avvayoqx57m6s2n6fihbbhqrvxd5mmur5tca",
+      "title": "web-rpg-actor",
+      "type": "code-repo"
+    }
+  }
+}

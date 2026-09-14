@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -79,7 +80,7 @@ func TestResolveSubjectTypedAndCollections(t *testing.T) {
 		t.Fatalf("want a collection error for an untyped record with a bad uri, got %v", err)
 	}
 	cols, err := l.supportedCollections(ctx)
-	if err != nil || len(cols) != 1 || cols[0] != "social.popfeed.feed.review" {
+	if err != nil || !slices.Contains(cols, "social.popfeed.feed.review") {
 		t.Fatalf("collections = %v, %v", cols, err)
 	}
 }

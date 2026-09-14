@@ -1,0 +1,53 @@
+{
+  "input": {
+    "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/org.passingreads.book.registration/4ahdqwch6j1we614jx3bh36m0t",
+    "cid": "bafyreibzbczi4k4dh25mvvadp6i6l2q5xnn7b6mrwppicn4lalkakir7mi",
+    "record": {
+      "kept": false,
+      "$type": "org.passingreads.book.registration",
+      "cover": {
+        "ref": {
+          "$link": "bafkreiadua65pg5g6a7mjqg45v6ljzfpb76vvx7uf2brt2w264uje3vonq"
+        },
+        "size": 31613,
+        "$type": "blob",
+        "mimeType": "image/jpeg"
+      },
+      "title": "Le chat chapeauté",
+      "bookId": "4ahdqwch6j1we614jx3bh36m0t",
+      "authors": [
+        "Dr. Seuss"
+      ],
+      "location": {
+        "name": "Barclay Street",
+        "$type": "community.lexicon.location.hthree",
+        "value": "8d28de8d888a97f"
+      },
+      "occurredAt": "2026-09-13T14:04:24.555Z",
+      "signatures": [
+        {
+          "cid": "bafyreicuenksklit5mqmzjpxsrgd7sd7cfdw7iwcrt7n6q22uv32m5zwbe",
+          "key": "did:key:z6MkiCNPqKGCXm96GF6PRR14fw6BKy3tSXQFGXy28hgGPJWZ",
+          "$type": "org.passingreads.signature.book",
+          "signature": {
+            "$bytes": "v8osAvkNwn5HZuu4X71YlthVc1S+AWaMBSE8oX14IW61M2RfwVg85ICxNdcs/8YSggVby9JYREA5A+OLvZCtCg"
+          }
+        }
+      ],
+      "aspectRatio": {
+        "width": 306,
+        "height": 500
+      },
+      "publicationId": "OL23107818M"
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/org.passingreads.book.registration/4ahdqwch6j1we614jx3bh36m0t",
+      "cid": "bafyreibzbczi4k4dh25mvvadp6i6l2q5xnn7b6mrwppicn4lalkakir7mi",
+      "title": "Le chat chapeauté",
+      "type": "book"
+    }
+  }
+}

@@ -84,7 +84,12 @@
             "album",
             "music-track",
             "video-game",
-            "post"
+            "post",
+            "publication",
+            "app",
+            "web-page",
+            "web-stream",
+            "code-repo"
           ],
           "description": "The kind of thing the subject is. Open set; add values as lenses support them."
         },

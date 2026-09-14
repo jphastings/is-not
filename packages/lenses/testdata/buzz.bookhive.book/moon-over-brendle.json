@@ -1,0 +1,45 @@
+{
+  "input": {
+    "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/buzz.bookhive.book/3mmodauih2s6w",
+    "cid": "bafyreid2jgowfxzdnnsyz5ui7pjlgheorjs7sh6udummcl4mmhgsp5xery",
+    "record": {
+      "$type": "buzz.bookhive.book",
+      "cover": {
+        "ref": {
+          "$link": "bafkreigd2m6ppg4taiok5rg4qoff2me3oikggjqoj256d7b4l436s72ctq"
+        },
+        "size": 24353,
+        "$type": "blob",
+        "mimeType": "image/jpeg"
+      },
+      "owned": true,
+      "title": "Moon Over Brendle",
+      "hiveId": "bk_p4q217T0qJu0kIQT68SU",
+      "status": "buzz.bookhive.defs#wantToRead",
+      "authors": "Jeff Noon",
+      "createdAt": "2026-05-25T11:01:41.180Z",
+      "hiveBookUri": "at://did:plc:enu2j5xjlqsjaylv3du4myh4/buzz.bookhive.catalogBook/bk_p4q217T0qJu0kIQT68SU",
+      "identifiers": {
+        "hiveId": "bk_p4q217T0qJu0kIQT68SU",
+        "isbn10": "1836730306",
+        "isbn13": "9781836730309",
+        "goodreadsId": "240114751"
+      }
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/buzz.bookhive.book/3mmodauih2s6w",
+      "cid": "bafyreid2jgowfxzdnnsyz5ui7pjlgheorjs7sh6udummcl4mmhgsp5xery",
+      "title": "Moon Over Brendle",
+      "type": "book",
+      "identifiers": [
+        { "key": "goodreadsId", "value": "240114751" },
+        { "key": "hiveId", "value": "bk_p4q217T0qJu0kIQT68SU" },
+        { "key": "isbn10", "value": "1836730306" },
+        { "key": "isbn13", "value": "9781836730309" }
+      ]
+    }
+  }
+}

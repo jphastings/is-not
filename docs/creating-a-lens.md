@@ -64,9 +64,9 @@ type mapping (here, `kind: "novel"`, since it's the one that gets rewritten).
 Add `lenses/<nsid>.json`. Its `id` is `at.isnot.lens.<nsid-with-dashes>`, `source` is the
 NSID, `target` is always `at.isnot.tag#subject`. `steps` may only use `rename_field`,
 `remove_field` (not on arrays — panproto can't remove fields from array items, bean
-ISNOT-qvqp) and `apply_expr`. Most lenses need two steps: rename the field holding the
-work's kind to `type`, then an `apply_expr` if-chain mapping source-specific values onto
-the shared vocabulary, passing anything else through:
+ISNOT-qvqp), `apply_expr` and `add_field`. Most lenses need two steps: rename the field
+holding the work's kind to `type`, then an `apply_expr` if-chain mapping source-specific
+values onto the shared vocabulary, passing anything else through:
 
 `lenses/com.example.book.json`:
 
@@ -97,9 +97,23 @@ every value that needs rewriting; end with `else type` so unmapped values pass t
 structure only — `enum` and `required` violations in the source lexicon flow through
 uncaught. Don't rely on a lens only ever seeing values the lexicon allows.
 
+**Collections with one fixed kind.** When every record is the same kind of thing (a Bluesky
+post, a Tangled repo) there is nothing to rename or map; add the constant instead:
+`{ "add_field": { "name": "type", "kind": "string", "fallback": "post" } }`. See
+`lenses/app.bsky.feed.post.json`.
+
 **Missing titles.** A lens whose view has no `title` (an optional field left unset) doesn't
-error: the subject falls back to name-like fields on the source record (`title`, `name`,
+error: the subject falls back to the paths in `extensions["at.isnot"]["title"]` if the lens
+has them (below), then name-like fields on the source record (`title`, `name`,
 `displayName`, `text`), then the record's uri.
+
+**The `extensions["at.isnot"]["title"]` convention.** A title nested inside a ref- or
+union-typed property can't be hoisted by a lens step (same limitation as identifiers,
+below), and some collections keep the name in the record key rather than the record.
+`"title"` lists dotted paths on the **source** record, tried in order when the view has no
+`title`; the reserved path `"$rkey"` means the uri's record key. `lenses/network.cosmik.card.json`
+uses `["content.metadata.title", "content.url", "content.text"]`; `lenses/sh.tangled.repo.json`
+uses `["$rkey"]` behind an optional `name`.
 
 **The `extensions["at.isnot"]["identifiers"]` convention.** panproto's lens `get` drops
 ref-typed properties from its output (bean ISNOT-qvqp), so an identifiers object — nearly

@@ -1,0 +1,31 @@
+{
+  "input": {
+    "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/network.cosmik.card/3mvit5z2nqc2w",
+    "cid": "bafyreieuophzhm5uirvsfmqz2b4aik5yuzr72wh4yn75nzc6rn3ixiefba",
+    "record": {
+      "type": "URL",
+      "$type": "network.cosmik.card",
+      "content": {
+        "url": "https://getair.space/",
+        "$type": "network.cosmik.card#urlContent",
+        "metadata": {
+          "type": "link",
+          "$type": "network.cosmik.card#urlMetadata",
+          "title": "airspace",
+          "imageUrl": "https://getair.space/og.png",
+          "description": "The database you already have."
+        }
+      },
+      "createdAt": "2026-09-14T19:17:09.755Z"
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/network.cosmik.card/3mvit5z2nqc2w",
+      "cid": "bafyreieuophzhm5uirvsfmqz2b4aik5yuzr72wh4yn75nzc6rn3ixiefba",
+      "title": "airspace",
+      "type": "web-page"
+    }
+  }
+}

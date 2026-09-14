@@ -1,0 +1,27 @@
+{
+  "input": {
+    "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/site.standard.publication/blento.self",
+    "cid": "bafyreigtlmihjff3ilwp3b4qbvb66hj4yahs64wzwwkwl6l7wjqabc3nxm",
+    "record": {
+      "url": "https://blento.app/byjp.me",
+      "name": "JP",
+      "$type": "site.standard.publication",
+      "description": "Making things, dancing & thinking for fun. Poly, miriscient, software engineer & general geek. Do say hi!\n\n(Based in London, UK)\n\nhttps://www.byjp.me",
+      "preferences": {
+        "editedOn": 1,
+        "baseColor": "stone",
+        "accentColor": "orange",
+        "hideProfileSection": false
+      }
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/site.standard.publication/blento.self",
+      "cid": "bafyreigtlmihjff3ilwp3b4qbvb66hj4yahs64wzwwkwl6l7wjqabc3nxm",
+      "title": "JP",
+      "type": "publication"
+    }
+  }
+}

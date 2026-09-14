@@ -1,0 +1,587 @@
+{
+  "input": {
+    "uri": "at://did:web:gamesgamesgamesgames.games/games.gamesgamesgamesgames.game/3moh3bdc57c2x",
+    "cid": "bafyreidprjeq6jqjrxv7nq7gt62btriodhmelr6heptj6j7tm7y64br2nm",
+    "record": {
+      "name": "Graveyard Cabin",
+      "$type": "games.gamesgamesgamesgames.game",
+      "media": [
+        {
+          "blob": {
+            "$type": "blob",
+            "ref": {
+              "$link": "bafkreiaauulu32lzt3zl5fjechcxqo7m3yb3bwidabvcueetsk7orh3prq"
+            },
+            "mimeType": "image/jpeg",
+            "size": 13400
+          },
+          "width": 600,
+          "height": 900,
+          "mediaType": "cover",
+          "igdbImageId": "coc9gv"
+        },
+        {
+          "blob": {
+            "$type": "blob",
+            "ref": {
+              "$link": "bafkreiedjoli6a4qadodv76n3rbhedgujvoswjnkfk6xglxjzipqji5lve"
+            },
+            "mimeType": "image/jpeg",
+            "size": 91299
+          },
+          "width": 1280,
+          "height": 720,
+          "mediaType": "artwork",
+          "igdbImageId": "ar63h8"
+        },
+        {
+          "blob": {
+            "$type": "blob",
+            "ref": {
+              "$link": "bafkreiafrpb56ay5jrm2txo52vyu3htpnqd4twfrnz5n6bmpfmrypizi7u"
+            },
+            "mimeType": "image/jpeg",
+            "size": 105454
+          },
+          "width": 3840,
+          "height": 1240,
+          "mediaType": "artwork",
+          "igdbImageId": "ar63h7"
+        }
+      ],
+      "modes": [
+        "singlePlayer"
+      ],
+      "genres": [
+        "puzzle",
+        "simulator",
+        "adventure",
+        "indie"
+      ],
+      "themes": [
+        "horror"
+      ],
+      "summary": "An FMV anomaly horror game. You are a night guard at a desolate graveyard. Monitor the cameras, spot the unnatural, and survive.",
+      "keywords": [
+        "steam achievements"
+      ],
+      "releases": [
+        {
+          "platformURI": "at://did:web:gamesgamesgamesgames.games/games.gamesgamesgamesgames.platform/3mgizckotrs2l",
+          "releaseDates": [
+            {
+              "region": "worldwide",
+              "status": "fullrelease",
+              "releasedAt": "TBD",
+              "releasedAtFormat": "TBD"
+            }
+          ]
+        },
+        {
+          "platformURI": "at://did:web:gamesgamesgamesgames.games/games.gamesgamesgamesgames.platform/3mgizckvlm22l",
+          "releaseDates": [
+            {
+              "region": "worldwide",
+              "status": "fullrelease",
+              "releasedAt": "TBD",
+              "releasedAtFormat": "TBD"
+            }
+          ]
+        }
+      ],
+      "websites": [
+        {
+          "url": "https://store.steampowered.com/app/4659660",
+          "type": "steam"
+        },
+        {
+          "url": "https://x.com/GraveYardCabin_",
+          "type": "twitter"
+        },
+        {
+          "url": "https://www.youtube.com/@CrewInteractive",
+          "type": "youtube"
+        },
+        {
+          "url": "https://www.instagram.com/crewinteractiveofficial",
+          "type": "instagram"
+        }
+      ],
+      "createdAt": "2026-06-17T00:38:38.235Z",
+      "description": "An Interactive FMV Anomaly Experience: Watch the Tapes, Watch Your Back.\n \nGraveyard Cabin is a psychological FMV anomaly horror game where observation is your only weapon.\n\nWork the night shift inside an isolated graveyard security cabin and monitor a network of black-and-white surveillance cameras. Detect anomalies, report supernatural activity, and survive until morning.\n\nSpot the Anomalies\nMemorize every corner of the graveyard and carefully monitor the live camera feeds.\nIf a gravestone moves, a figure appears, or something changes unexpectedly, report it before it’s too late.\n\nBut be careful...\nToo many false reports will anger the entities hunting you.\nYou only have 3 chances.\n\nIf You Hear Crying, Hide\nNot every anomaly should be observed.\nIf you hear the crying of a little girl, immediately shut down the cameras and stay silent in the dark until the sound disappears.\nLooking too long may attract something you cannot escape.\n\nThe Cabin Is Not Safe\nThe danger is not limited to the cameras.\nWhile monitoring the graveyard, supernatural entities can appear inside the cabin itself. Check the internal cabin camera frequently and stay alert to movement beside you… or directly behind you.\nThe observer can quickly become the victim.\n\nDefend Yourself\nIf an entity breaches the cabin, you must react instantly.\nUse the Cross against hostile creatures.\nUse the Amulet to banish the Dead Woman.\n\nChoose the wrong item or hesitate for even a second and your shift will end permanently. \n \nFeatures\nPsychological FMV horror experience\n\nAnomaly detection gameplay\n\nMultiple supernatural entities\n\nSurveillance camera monitoring mechanics\n\nAudio-based survival mechanics\n\nDefensive item system\n\nIncreasing tension and paranoia\n\nImmersive graveyard atmosphere\n\nCan you survive until morning, or will the graveyard claim its newest resident?",
+      "externalIds": {
+        "igdb": "406928",
+        "steam": "4659660"
+      },
+      "applicationType": "game",
+      "languageSupports": [
+        {
+          "audio": false,
+          "language": "English",
+          "interface": true,
+          "subtitles": false
+        },
+        {
+          "audio": false,
+          "language": "French",
+          "interface": true,
+          "subtitles": false
+        },
+        {
+          "audio": false,
+          "language": "German",
+          "interface": true,
+          "subtitles": false
+        },
+        {
+          "audio": false,
+          "language": "Spanish (Spain)",
+          "interface": true,
+          "subtitles": false
+        },
+        {
+          "audio": false,
+          "language": "Chinese (Simplified)",
+          "interface": true,
+          "subtitles": false
+        },
+        {
+          "audio": false,
+          "language": "Japanese",
+          "interface": true,
+          "subtitles": false
+        },
+        {
+          "audio": false,
+          "language": "Korean",
+          "interface": true,
+          "subtitles": false
+        },
+        {
+          "audio": false,
+          "language": "Russian",
+          "interface": true,
+          "subtitles": false
+        },
+        {
+          "audio": false,
+          "language": "Turkish",
+          "interface": true,
+          "subtitles": false
+        },
+        {
+          "audio": false,
+          "language": "Polish",
+          "interface": true,
+          "subtitles": false
+        },
+        {
+          "audio": false,
+          "language": "Portuguese (Brazil)",
+          "interface": true,
+          "subtitles": false
+        },
+        {
+          "audio": false,
+          "language": "Spanish - Spain",
+          "interface": true,
+          "subtitles": true
+        },
+        {
+          "audio": false,
+          "language": "Simplified Chinese",
+          "interface": true,
+          "subtitles": true
+        },
+        {
+          "audio": false,
+          "language": "Portuguese - Brazil",
+          "interface": true,
+          "subtitles": true
+        }
+      ],
+      "platformFeatures": [
+        {
+          "features": [
+            "singlePlayer",
+            "achievements",
+            "controllerSupportFull",
+            "moddingSupport"
+          ],
+          "platform": "steam"
+        }
+      ],
+      "descriptionFacets": [
+        {
+          "index": {
+            "byteEnd": 72,
+            "byteStart": 0
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#bold"
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 72,
+            "byteStart": 0
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#italic"
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 72,
+            "byteStart": 0
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#heading",
+              "level": 2
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 74,
+            "byteStart": 73
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#bold"
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 74,
+            "byteStart": 73
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#italic"
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 74,
+            "byteStart": 73
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#heading",
+              "level": 2
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 91,
+            "byteStart": 75
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#bold"
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 396,
+            "byteStart": 378
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#bold"
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 396,
+            "byteStart": 378
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#heading",
+              "level": 2
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 720,
+            "byteStart": 696
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#bold"
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 720,
+            "byteStart": 696
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#heading",
+              "level": 2
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 970,
+            "byteStart": 949
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#bold"
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 970,
+            "byteStart": 949
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#heading",
+              "level": 2
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 1262,
+            "byteStart": 1256
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#bold"
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 1271,
+            "byteStart": 1263
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#bold"
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 1271,
+            "byteStart": 1256
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#heading",
+              "level": 2
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 1514,
+            "byteStart": 1506
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#bold"
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 1514,
+            "byteStart": 1506
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#heading",
+              "level": 2
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 1551,
+            "byteStart": 1515
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#listItem",
+              "depth": 0,
+              "ordered": false
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 1579,
+            "byteStart": 1552
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#listItem",
+              "depth": 0,
+              "ordered": false
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 1611,
+            "byteStart": 1580
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#listItem",
+              "depth": 0,
+              "ordered": false
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 1653,
+            "byteStart": 1612
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#listItem",
+              "depth": 0,
+              "ordered": false
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 1685,
+            "byteStart": 1654
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#listItem",
+              "depth": 0,
+              "ordered": false
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 1708,
+            "byteStart": 1686
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#listItem",
+              "depth": 0,
+              "ordered": false
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 1741,
+            "byteStart": 1709
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#listItem",
+              "depth": 0,
+              "ordered": false
+            }
+          ]
+        },
+        {
+          "index": {
+            "byteEnd": 1773,
+            "byteStart": 1742
+          },
+          "features": [
+            {
+              "$type": "games.gamesgamesgamesgames.richtext.facet#listItem",
+              "depth": 0,
+              "ordered": false
+            }
+          ]
+        }
+      ],
+      "playerPerspectives": [
+        "firstPerson"
+      ],
+      "systemRequirements": [
+        {
+          "minimum": {
+            "os": "Windows 10+ 64-bit",
+            "memory": "4 GB RAM",
+            "directx": "Version 11",
+            "storage": "2 GB available space",
+            "graphics": "Intel UHD 630 / NVIDIA GeForce GTX 750 / AMD Radeon RX 550 or equivalent",
+            "processor": "Intel Core i3-6100 / AMD Ryzen 3 1200"
+          },
+          "platform": "windows",
+          "recommended": {
+            "os": "Windows 10+ x64",
+            "memory": "8 GB RAM",
+            "directx": "Version 11",
+            "storage": "2 GB available space",
+            "graphics": "NVIDIA GeForce GTX 1050 / AMD Radeon RX 560 or better",
+            "processor": "Intel Core i5-8400 / AMD Ryzen 5 2600"
+          }
+        },
+        {
+          "minimum": {
+            "os": "macOS Ventura or newer",
+            "memory": "4 GB RAM",
+            "storage": "1 GB available space",
+            "graphics": "integrated graphics",
+            "processor": "Intel Core i5 veya Apple M1"
+          },
+          "platform": "mac",
+          "recommended": {
+            "os": "macOS Sonoma or newer",
+            "memory": "8 GB RAM",
+            "storage": "1 GB available space",
+            "graphics": "Apple M1/M2 graphics or equivalent",
+            "processor": "Intel Core i7 or Apple M2"
+          }
+        }
+      ]
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:web:gamesgamesgamesgames.games/games.gamesgamesgamesgames.game/3moh3bdc57c2x",
+      "cid": "bafyreidprjeq6jqjrxv7nq7gt62btriodhmelr6heptj6j7tm7y64br2nm",
+      "title": "Graveyard Cabin",
+      "type": "video-game",
+      "identifiers": [
+        {
+          "key": "igdb",
+          "value": "406928"
+        },
+        {
+          "key": "steam",
+          "value": "4659660"
+        }
+      ]
+    }
+  }
+}

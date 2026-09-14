@@ -1,0 +1,9 @@
+{
+  "id": "at.isnot.lens.site-standard-document",
+  "description": "A standard.site document is a published post or article; the tag subject is that post.",
+  "source": "site.standard.document",
+  "target": "at.isnot.tag#subject",
+  "steps": [
+    { "add_field": { "name": "type", "kind": "string", "fallback": "post" } }
+  ]
+}

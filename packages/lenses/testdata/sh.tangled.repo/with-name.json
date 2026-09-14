@@ -1,0 +1,31 @@
+{
+  "input": {
+    "uri": "at://did:plc:gu2k2ujbt2wsf2gyiis5iwvr/sh.tangled.repo/isanta",
+    "cid": "bafyreihqigk27rjm4xtco6y7m2wvmerusl5ubzh447gl4uwxgqab755j5y",
+    "record": {
+      "knot": "knot1.tangled.sh",
+      "name": "Isanta",
+      "$type": "sh.tangled.repo",
+      "labels": [
+        "at://did:plc:wshs7t2adsemcrrd4snkeqli/sh.tangled.label.definition/wontfix",
+        "at://did:plc:wshs7t2adsemcrrd4snkeqli/sh.tangled.label.definition/good-first-issue",
+        "at://did:plc:wshs7t2adsemcrrd4snkeqli/sh.tangled.label.definition/duplicate",
+        "at://did:plc:wshs7t2adsemcrrd4snkeqli/sh.tangled.label.definition/documentation",
+        "at://did:plc:wshs7t2adsemcrrd4snkeqli/sh.tangled.label.definition/assignee"
+      ],
+      "repoDid": "did:plc:457huseku3xxrgj6ggno2asj",
+      "spindle": "spindle.tangled.sh",
+      "createdAt": "2026-09-14T22:14:43+03:00",
+      "description": "Host program "
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:gu2k2ujbt2wsf2gyiis5iwvr/sh.tangled.repo/isanta",
+      "cid": "bafyreihqigk27rjm4xtco6y7m2wvmerusl5ubzh447gl4uwxgqab755j5y",
+      "title": "Isanta",
+      "type": "code-repo"
+    }
+  }
+}

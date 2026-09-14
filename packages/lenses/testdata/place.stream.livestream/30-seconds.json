@@ -1,0 +1,33 @@
+{
+  "input": {
+    "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/place.stream.livestream/3mssfya6asf2p",
+    "cid": "bafyreidji6x5ud3zlysgitncp3tnkrvisw3rr7hzyqvok2c2ovfojulyki",
+    "record": {
+      "url": "https://stream.place/did:plc:ephkzpinhaqcabtkugtbzrwu",
+      "tags": ["calm"],
+      "$type": "place.stream.livestream",
+      "agent": "@streamplace/components/0.11.27 (web, Firefox)",
+      "thumb": {
+        "ref": { "$link": "bafkreietxkmxmuqecf3mlwgldghrpz2ifp2qcysxoqjndiopmq3kcwassa" },
+        "size": 18115,
+        "$type": "blob",
+        "mimeType": "image/jpeg"
+      },
+      "title": "30 seconds",
+      "activity": { "$type": "place.stream.defs#activityLabel", "label": "art" },
+      "createdAt": "2026-08-11T10:32:20Z",
+      "lastSeenAt": "2026-08-31T02:44:18.693Z",
+      "idleTimeoutSeconds": 300,
+      "notificationSettings": { "pushNotification": true }
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/place.stream.livestream/3mssfya6asf2p",
+      "cid": "bafyreidji6x5ud3zlysgitncp3tnkrvisw3rr7hzyqvok2c2ovfojulyki",
+      "title": "30 seconds",
+      "type": "web-stream"
+    }
+  }
+}

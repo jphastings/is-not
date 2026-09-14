@@ -1,0 +1,10 @@
+{
+  "id": "at.isnot.lens.app-bsky-feed-post",
+  "description": "A Bluesky post; the tag subject is the post itself, titled by its text",
+  "source": "app.bsky.feed.post",
+  "target": "at.isnot.tag#subject",
+  "steps": [
+    { "rename_field": { "old": "text", "new": "title" } },
+    { "add_field": { "name": "type", "kind": "string", "fallback": "post" } }
+  ]
+}

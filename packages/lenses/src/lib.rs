@@ -18,11 +18,63 @@ struct LensSource {
 
 /// Every supported collection. Adding a lens means adding its document and
 /// source lexicon under the package and one entry here.
-const SOURCES: &[LensSource] = &[LensSource {
-    nsid: "social.popfeed.feed.review",
-    document: include_str!("../lenses/social.popfeed.feed.review.json"),
-    lexicon: include_str!("../lexicons/social/popfeed/feed/review.json"),
-}];
+const SOURCES: &[LensSource] = &[
+    LensSource {
+        nsid: "social.popfeed.feed.review",
+        document: include_str!("../lenses/social.popfeed.feed.review.json"),
+        lexicon: include_str!("../lexicons/social/popfeed/feed/review.json"),
+    },
+    LensSource {
+        nsid: "games.gamesgamesgamesgames.game",
+        document: include_str!("../lenses/games.gamesgamesgamesgames.game.json"),
+        lexicon: include_str!("../lexicons/games/gamesgamesgamesgames/game.json"),
+    },
+    LensSource {
+        nsid: "org.passingreads.book.registration",
+        document: include_str!("../lenses/org.passingreads.book.registration.json"),
+        lexicon: include_str!("../lexicons/org/passingreads/book/registration.json"),
+    },
+    LensSource {
+        nsid: "buzz.bookhive.book",
+        document: include_str!("../lenses/buzz.bookhive.book.json"),
+        lexicon: include_str!("../lexicons/buzz/bookhive/book.json"),
+    },
+    LensSource {
+        nsid: "fyi.atstore.listing.review",
+        document: include_str!("../lenses/fyi.atstore.listing.review.json"),
+        lexicon: include_str!("../lexicons/fyi/atstore/listing/review.json"),
+    },
+    LensSource {
+        nsid: "app.bsky.feed.post",
+        document: include_str!("../lenses/app.bsky.feed.post.json"),
+        lexicon: include_str!("../lexicons/app/bsky/feed/post.json"),
+    },
+    LensSource {
+        nsid: "site.standard.document",
+        document: include_str!("../lenses/site.standard.document.json"),
+        lexicon: include_str!("../lexicons/site/standard/document.json"),
+    },
+    LensSource {
+        nsid: "site.standard.publication",
+        document: include_str!("../lenses/site.standard.publication.json"),
+        lexicon: include_str!("../lexicons/site/standard/publication.json"),
+    },
+    LensSource {
+        nsid: "network.cosmik.card",
+        document: include_str!("../lenses/network.cosmik.card.json"),
+        lexicon: include_str!("../lexicons/network/cosmik/card.json"),
+    },
+    LensSource {
+        nsid: "place.stream.livestream",
+        document: include_str!("../lenses/place.stream.livestream.json"),
+        lexicon: include_str!("../lexicons/place/stream/livestream.json"),
+    },
+    LensSource {
+        nsid: "sh.tangled.repo",
+        document: include_str!("../lenses/sh.tangled.repo.json"),
+        lexicon: include_str!("../lexicons/sh/tangled/repo.json"),
+    },
+];
 
 struct Prepared {
     schema: Schema,
@@ -31,6 +83,10 @@ struct Prepared {
     // lens names its identifiers object in `extensions["at.isnot"]["identifiers"]`
     // and we read it straight from the source record.
     identifiers_field: Option<String>,
+    // Titles nested inside ref/union-typed properties are out of a lens's reach for the
+    // same reason, so `extensions["at.isnot"]["title"]` lists dotted paths on the source
+    // record to try when the view has no title; `$rkey` means the uri's record key.
+    title_paths: Vec<String>,
 }
 
 fn prepare(src: &LensSource) -> Result<Prepared, String> {
@@ -44,12 +100,19 @@ fn prepare(src: &LensSource) -> Result<Prepared, String> {
         .and_then(|v| v.get("identifiers"))
         .and_then(Value::as_str)
         .map(str::to_owned);
+    let title_paths = doc
+        .extensions
+        .get("at.isnot")
+        .and_then(|v| v.get("title"))
+        .and_then(Value::as_array)
+        .map(|a| a.iter().filter_map(Value::as_str).map(str::to_owned).collect())
+        .unwrap_or_default();
     let compiled = panproto_lens_dsl::compile(&doc, &format!("{}:body", src.nsid), &|_| None)
         .map_err(|e| fail("lens", e.to_string()))?;
     let lens = compiled
         .instantiate(&schema, &atproto::protocol())
         .map_err(|e| fail("lens", e.to_string()))?;
-    Ok(Prepared { schema, lens, identifiers_field })
+    Ok(Prepared { schema, lens, identifiers_field, title_paths })
 }
 
 fn registry() -> Result<&'static HashMap<&'static str, Prepared>, String> {
@@ -82,7 +145,7 @@ fn resolve_inner(input: &str) -> Result<Value, String> {
         .ok_or("cannot determine the record's collection")?;
     let (supported, title, kind, identifiers) = match registry()?.get(nsid) {
         Some(prepared) => {
-            let (t, k, i) = apply_lens(prepared, nsid, record)?;
+            let (t, k, i) = apply_lens(prepared, uri, nsid, record)?;
             (true, t, k, i)
         }
         None => {
@@ -103,7 +166,7 @@ fn collection_of(uri: &str) -> Option<&str> {
 
 type Fields = (String, String, Vec<(String, String)>);
 
-fn apply_lens(p: &Prepared, nsid: &str, record: &Map<String, Value>) -> Result<Fields, String> {
+fn apply_lens(p: &Prepared, uri: &str, nsid: &str, record: &Map<String, Value>) -> Result<Fields, String> {
     let body = format!("{nsid}:body");
     let instance = panproto_inst::parse_json(&p.schema, &body, &Value::Object(record.clone()))
         .map_err(|e| format!("record does not match {nsid}: {e}"))?;
@@ -116,6 +179,7 @@ fn apply_lens(p: &Prepared, nsid: &str, record: &Map<String, Value>) -> Result<F
         .get("title")
         .and_then(Value::as_str)
         .map(str::to_owned)
+        .or_else(|| p.title_paths.iter().find_map(|path| title_at(uri, record, path)))
         .or_else(|| title_candidate(record))
         .unwrap_or_default();
     let kind = view.get("type").and_then(Value::as_str).unwrap_or("").to_owned();
@@ -127,6 +191,17 @@ fn apply_lens(p: &Prepared, nsid: &str, record: &Map<String, Value>) -> Result<F
         .map(string_entries)
         .unwrap_or_default();
     Ok((title, kind, identifiers))
+}
+
+fn title_at(uri: &str, record: &Map<String, Value>, path: &str) -> Option<String> {
+    if path == "$rkey" {
+        return uri.rsplit('/').next().map(str::to_owned);
+    }
+    let mut cur = Some(&Value::Object(record.clone()));
+    for key in path.split('.') {
+        cur = cur.and_then(|v| v.get(key));
+    }
+    cur.and_then(Value::as_str).map(str::to_owned)
 }
 
 fn string_entries(m: &Map<String, Value>) -> Vec<(String, String)> {
@@ -255,8 +330,9 @@ mod tests {
     }
 
     #[test]
-    fn supported_collections_lists_popfeed() {
-        assert_eq!(collections(), vec!["social.popfeed.feed.review"]);
+    fn supported_collections_lists_every_source() {
+        assert!(collections().contains(&"social.popfeed.feed.review"));
+        assert_eq!(collections().len(), SOURCES.len());
     }
 
     #[test]

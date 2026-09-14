@@ -1,0 +1,33 @@
+{
+  "input": {
+    "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/app.bsky.feed.post/3mvg5nfiosk2p",
+    "cid": "bafyreibqdexs6qtx3eqs2qeglbna73ehrooeqbhdkn5u62zmoizrgj3ot4",
+    "record": {
+      "text": "This looks awesome, but I am absolutely broken that things are being advertised as being ready in 2030 now. That’s so far in the future — the 1980s was just 20 years ago!",
+      "$type": "app.bsky.feed.post",
+      "langs": [
+        "en"
+      ],
+      "reply": {
+        "root": {
+          "cid": "bafyreibi6hbcws7b5p327omzviawutke2j3mtchv572m37oupnefptgxvy",
+          "uri": "at://did:plc:cbkjy5n7bk3ax2wplmtjofq2/app.bsky.feed.post/3mvg2753i3c2k"
+        },
+        "parent": {
+          "cid": "bafyreibi6hbcws7b5p327omzviawutke2j3mtchv572m37oupnefptgxvy",
+          "uri": "at://did:plc:cbkjy5n7bk3ax2wplmtjofq2/app.bsky.feed.post/3mvg2753i3c2k"
+        }
+      },
+      "createdAt": "2026-09-13T17:46:46.027Z"
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/app.bsky.feed.post/3mvg5nfiosk2p",
+      "cid": "bafyreibqdexs6qtx3eqs2qeglbna73ehrooeqbhdkn5u62zmoizrgj3ot4",
+      "title": "This looks awesome, but I am absolutely broken that things are being advertised as being ready in 2030 now. That’s so far in the future — the 1980s was just 20 years ago!",
+      "type": "post"
+    }
+  }
+}
