@@ -1,0 +1,103 @@
+@import '@fontsource-variable/baloo-2';
+@import '@fontsource-variable/atkinson-hyperlegible-next';
+
+:root {
+  --paper: oklch(97% 0.02 95);
+  --ink: oklch(22% 0.03 140);
+  --ink-soft: oklch(45% 0.03 140);
+  --moss: oklch(52% 0.11 145);
+  --moss-deep: oklch(38% 0.1 145);
+  --moss-tint: oklch(92% 0.05 145);
+
+  --font-display: 'Baloo 2 Variable', 'Arial Rounded MT Bold', ui-rounded, system-ui, sans-serif;
+  --font-body: 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif;
+
+  /* fluid modular scale, ratio 1.25 at 320px growing to 1.333 at 1280px */
+  --step--1: clamp(0.8rem, 0.78rem + 0.1vw, 0.9rem);
+  --step-0: clamp(1rem, 0.95rem + 0.25vw, 1.2rem);
+  --step-1: clamp(1.25rem, 1.15rem + 0.5vw, 1.6rem);
+  --step-2: clamp(1.56rem, 1.4rem + 0.8vw, 2.13rem);
+  --step-3: clamp(1.95rem, 1.7rem + 1.3vw, 2.84rem);
+  --step-4: clamp(2.44rem, 2rem + 2.2vw, 3.79rem);
+  --step-5: clamp(3.05rem, 2.3rem + 3.8vw, 5.06rem);
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2.5rem;
+  --space-7: 4rem;
+  --space-8: 6.5rem;
+
+  --radius-pill: 999px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 180ms;
+  --dur-slow: 600ms;
+
+  color-scheme: light;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--moss);
+  color: var(--paper);
+  font: inherit;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--step-1);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+.pill:hover {
+  background: var(--moss-deep);
+}
+.pill:active {
+  transform: translateY(1px);
+}
+
+:focus-visible {
+  outline: 3px solid var(--moss);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+  }
+}
