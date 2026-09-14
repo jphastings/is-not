@@ -124,7 +124,7 @@ memory reads alias the module's memory. `lens_test.go` runs every `testdata` fix
 
 The wasm is not committed. `scripts/fetch-lenses.sh` reads the version from
 `packages/lenses/package.json` and downloads
-`https://github.com/jphastings/isnot/releases/download/lenses-v<version>/isnot_lenses.wasm`
+`https://github.com/jphastings/is-not/releases/download/lenses-v<version>/isnot_lenses.wasm`
 into `dist/`. Local development can instead build it with the package's build script. Go
 CI and the API Dockerfile run the fetch script before `go build`.
 

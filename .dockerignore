@@ -1,0 +1,16 @@
+.git
+.beans
+.github
+.railway
+.superpowers
+docs
+node_modules
+**/node_modules
+packages/lenses/target
+packages/lenses/dist
+web/build
+web/.svelte-kit
+*.db
+*.db-wal
+*.db-shm
+/isnot

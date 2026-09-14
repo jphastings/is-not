@@ -1,14 +1,16 @@
 #!/bin/sh
 # Builds dist/isnot_lenses.wasm. Uses rustup's toolchain explicitly because
-# Homebrew's cargo can shadow it and lacks the wasm32 target.
+# Homebrew's cargo can shadow it and lacks the wasm32 target. RUST_TOOLCHAIN
+# picks the rustup toolchain (the Docker rust image has no "stable" alias).
 set -eu
 cd "$(dirname "$0")"
+TOOLCHAIN="${RUST_TOOLCHAIN:-stable}"
 if command -v rustup >/dev/null 2>&1; then
-  RUSTC="$(rustup which rustc --toolchain stable)"
+  RUSTC="$(rustup which rustc --toolchain "$TOOLCHAIN")"
   export RUSTC
   PATH="$(dirname "$RUSTC"):$PATH"
   export PATH
-  CARGO="rustup run stable cargo"
+  CARGO="rustup run $TOOLCHAIN cargo"
 else
   CARGO=cargo
 fi

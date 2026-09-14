@@ -11,9 +11,10 @@ Two processes share one container and one SQLite file:
 - **API (Go, this repo's root):** follows jetstream v2 for `at.isnot.tag` records and folds
   them into SQLite (`tags`, `tag_identifiers`, `accounts`, `cursor`). XRPC endpoints on
   their own port will front the same database. Writes the database.
-- **Site (SvelteKit, `web/`, not yet built):** server-renders from the same SQLite file,
-  opened read-only, and calls the API for dynamic bits. Signs people in with atproto OAuth
-  (several accounts at once) and writes tags to their PDS; the API sees them via jetstream.
+- **Site (SvelteKit, `web/`):** server-renders from the same SQLite file, opened read-only
+  with Node's built-in `node:sqlite`, and calls the API for dynamic bits. Today it is the
+  homepage only; sign-in with atproto OAuth (several accounts at once), the `/tag` page and
+  profiles are tracked in beans.
 - **Lenses (`packages/lenses`):** panproto lens documents describing how a third-party
   record (a popfeed review, a bookhive book, ...) becomes a tag subject. Compiled with the
   panproto engine into one wasm module used by the browser, Node and the Go API. Published
@@ -36,6 +37,36 @@ DATABASE_PATH=isnot.db go run .
 | `DATABASE_PATH` | `isnot.db` | SQLite file (WAL mode) |
 | `JETSTREAM_HOST` | `jetstream.us-east.bsky.network` | jetstream v2 instance |
 | `JETSTREAM_API_KEY` | unset | enables metered archive replay so the cursor can resume from any point |
+
+## Running the site
+
+```sh
+pnpm install
+pnpm --filter web dev                 # reads ../isnot.db by default; DATABASE_PATH overrides
+pnpm --filter web build && WEB_PORT=3000 node web/build
+```
+
+The built site reads `WEB_PORT`, `WEB_HOST` and `WEB_ORIGIN` (adapter-node with the `WEB_`
+prefix) so it can share a container with the API, which owns `PORT`.
+
+## Deploying
+
+One Railway service runs both processes from the root `Dockerfile` (`scripts/start.sh` is the
+entrypoint) with a volume mounted at `/data` for the SQLite file. The project is declared in
+`.railway/railway.ts` ([Railway infrastructure as code](https://docs.railway.com/infrastructure-as-code));
+`railway` in the root devDependencies provides its types.
+
+```sh
+docker build -t isnot . && docker run --rm -p 8080:8080 -p 3000:3000 -v isnot-data:/data isnot
+railway link                          # once: pick or create the Railway project
+railway config plan                   # preview; apply when it matches expectations
+railway config apply
+```
+
+After the first apply: set `JETSTREAM_API_KEY` in the Railway service variables if archive
+replay is wanted (the config preserves whatever value is there), and point `isnot.at` and
+`api.isnot.at` at the CNAME targets Railway shows for the custom domains. Deploys follow
+pushes to `main` on `jphastings/is-not`.
 
 ## Working on the lenses package
 
