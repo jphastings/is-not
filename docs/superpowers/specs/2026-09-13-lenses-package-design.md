@@ -81,8 +81,14 @@ present string among `title`, `name`, `displayName`, `text`; type `""`; identifi
 top-level string field whose name ends in `Id` or `ID`, plus `isbn`, `isbn10`, `isbn13`,
 `asin`, `doi`. If no title candidate exists, title is the uri.
 
-Error: `{"error": "<message>"}` for malformed input, a record the source lexicon rejects, or
-a lens that fails to apply.
+Supported NSID with a view that has no `title` (an optional field left unset): same
+title-candidate fallback as the unsupported path, over the untransformed source record, then
+the uri if none match — `supported` stays `true`.
+
+Error: `{"error": "<message>"}` for malformed input or a lens that fails to apply. panproto's
+parser checks structure only, not the source lexicon's constraints, so `enum` and `required`
+violations in the source record are not errors — `type` on the supported path is therefore
+not guaranteed to be a knownValue of `at.isnot.tag`.
 
 Finalizer rules, applied to both paths: title is trimmed and truncated to 256 graphemes
 (unicode-segmentation) and 2560 bytes; type is truncated to 64 bytes; identifiers are sorted

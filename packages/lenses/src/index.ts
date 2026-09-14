@@ -48,14 +48,16 @@ export class Lenses {
 
 export type WasmSource = BufferSource | WebAssembly.Module | Response | Promise<Response> | URL;
 
-// Built output sits next to the wasm in dist/; the source tree keeps it one level up.
-const WASM_URL = new URL(import.meta.url.includes('/src/') ? '../dist/isnot_lenses.wasm' : './isnot_lenses.wasm', import.meta.url);
+// Must resolve statically (no ternary) so bundlers recognise it and copy the asset next to
+// dist/index.js. Running from src (e.g. the test suite) passes an explicit source instead.
+const WASM_URL = new URL('./isnot_lenses.wasm', import.meta.url);
 
 /** Instantiate the lenses. With no argument, loads the wasm shipped in this package. */
 export async function loadLenses(source?: WasmSource): Promise<Lenses> {
   const src = source ?? WASM_URL;
+  const isNode = typeof process !== 'undefined' && !!process.versions?.node;
   let bytes: BufferSource | WebAssembly.Module;
-  if (src instanceof URL && src.protocol === 'file:') {
+  if (src instanceof URL && src.protocol === 'file:' && isNode) {
     const [{ readFile }, { fileURLToPath }] = await Promise.all([import('node:fs/promises'), import('node:url')]);
     bytes = await readFile(fileURLToPath(src));
   } else if (src instanceof URL || src instanceof Response || src instanceof Promise) {
@@ -82,7 +84,8 @@ export async function fetchRecord(uri: string, fetchImpl: typeof fetch = fetch):
   url.searchParams.set('rkey', rkey);
   const res = await fetchImpl(url);
   if (!res.ok) throw new Error(`getRecord failed for ${uri}: ${res.status}`);
-  const body = (await res.json()) as { cid: string; value: unknown };
+  const body = (await res.json()) as { cid?: unknown; value: unknown };
+  if (typeof body.cid !== 'string') throw new Error(`getRecord returned no cid for ${uri}`);
   return { cid: body.cid, record: body.value };
 }
 

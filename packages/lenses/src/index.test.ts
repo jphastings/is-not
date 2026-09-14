@@ -13,7 +13,7 @@ function fixtures(dir: string): [string, { input: unknown; expected: unknown }][
   });
 }
 
-const lenses = await loadLenses();
+const lenses = await loadLenses(new URL('../dist/isnot_lenses.wasm', import.meta.url));
 
 describe('resolveSubject', () => {
   for (const [name, { input, expected }] of fixtures(testdata)) {

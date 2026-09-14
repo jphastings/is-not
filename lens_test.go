@@ -72,8 +72,11 @@ func TestResolveSubjectTypedAndCollections(t *testing.T) {
 	if res.Supported || res.Subject.Title != "A Thing" || len(res.Subject.Identifiers) != 1 || res.Subject.Identifiers[0] != (identifier{"externalId", "42"}) {
 		t.Fatalf("resolution = %+v", res)
 	}
-	if _, err := l.resolveSubject(ctx, "not a uri", validCID, nil); err == nil {
-		t.Fatal("want an error for a bad uri")
+	if _, err := l.resolveSubject(ctx, "not a uri", validCID, nil); err == nil || !strings.Contains(err.Error(), "record") {
+		t.Fatalf("want a record error for a nil record, got %v", err)
+	}
+	if _, err := l.resolveSubject(ctx, "not a uri", validCID, map[string]any{"name": "A Thing"}); err == nil || !strings.Contains(err.Error(), "collection") {
+		t.Fatalf("want a collection error for an untyped record with a bad uri, got %v", err)
 	}
 	cols, err := l.supportedCollections(ctx)
 	if err != nil || len(cols) != 1 || cols[0] != "social.popfeed.feed.review" {

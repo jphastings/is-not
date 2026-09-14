@@ -95,8 +95,10 @@ fn resolve_inner(input: &str) -> Result<Value, String> {
 
 fn collection_of(uri: &str) -> Option<&str> {
     let mut parts = uri.strip_prefix("at://")?.split('/');
-    parts.next()?;
-    parts.next().filter(|c| !c.is_empty())
+    parts.next()?; // authority
+    let collection = parts.next().filter(|c| !c.is_empty())?;
+    parts.next().filter(|rkey| !rkey.is_empty())?;
+    Some(collection)
 }
 
 type Fields = (String, String, Vec<(String, String)>);
@@ -107,11 +109,15 @@ fn apply_lens(p: &Prepared, nsid: &str, record: &Map<String, Value>) -> Result<F
         .map_err(|e| format!("record does not match {nsid}: {e}"))?;
     let (view, _complement) = panproto_lens::get(&p.lens, &instance).map_err(|e| format!("lens failed for {nsid}: {e}"))?;
     let view = panproto_inst::to_json(&p.lens.tgt_schema, &view);
+    // A view with no title is legal (e.g. popfeed's title is optional): fall back to the same
+    // name-like fields `guess` uses, over the untransformed source record. `finalize` falls back
+    // to the uri if that also comes up empty.
     let title = view
         .get("title")
         .and_then(Value::as_str)
-        .ok_or_else(|| format!("lens for {nsid} produced no title"))?
-        .to_owned();
+        .map(str::to_owned)
+        .or_else(|| title_candidate(record))
+        .unwrap_or_default();
     let kind = view.get("type").and_then(Value::as_str).unwrap_or("").to_owned();
     let identifiers = p
         .identifiers_field
@@ -130,12 +136,12 @@ fn string_entries(m: &Map<String, Value>) -> Vec<(String, String)> {
 const TITLE_FIELDS: &[&str] = &["title", "name", "displayName", "text"];
 const IDENTIFIER_FIELDS: &[&str] = &["isbn", "isbn10", "isbn13", "asin", "doi"];
 
+fn title_candidate(record: &Map<String, Value>) -> Option<String> {
+    TITLE_FIELDS.iter().find_map(|f| record.get(*f).and_then(Value::as_str)).map(str::to_owned)
+}
+
 fn guess(uri: &str, record: &Map<String, Value>) -> Fields {
-    let title = TITLE_FIELDS
-        .iter()
-        .find_map(|f| record.get(*f).and_then(Value::as_str))
-        .unwrap_or(uri)
-        .to_owned();
+    let title = title_candidate(record).unwrap_or_else(|| uri.to_owned());
     let identifiers = record
         .iter()
         .filter(|(k, _)| k.ends_with("Id") || k.ends_with("ID") || IDENTIFIER_FIELDS.contains(&k.as_str()))

@@ -1,0 +1,24 @@
+{
+  "input": {
+    "uri": "at://did:plc:example/social.popfeed.feed.review/3notitle",
+    "cid": "bafyreibzsi5ubmnp4dx744kye6ulejwmpdhhnmem2vnaocgqm2fybvzyqa",
+    "record": {
+      "$type": "social.popfeed.feed.review",
+      "text": "A quietly devastating watch.",
+      "creativeWorkType": "movie",
+      "identifiers": { "tmdbId": "1" },
+      "rating": 8,
+      "createdAt": "2025-06-24T08:09:31.431Z"
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:example/social.popfeed.feed.review/3notitle",
+      "cid": "bafyreibzsi5ubmnp4dx744kye6ulejwmpdhhnmem2vnaocgqm2fybvzyqa",
+      "title": "A quietly devastating watch.",
+      "type": "movie",
+      "identifiers": [{ "key": "tmdbId", "value": "1" }]
+    }
+  }
+}

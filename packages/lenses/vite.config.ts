@@ -6,7 +6,7 @@ export default defineConfig({
     format: ['esm'],
     dts: true,
     platform: 'neutral',
-    external: ['node:fs/promises', 'node:url'],
+    deps: { neverBundle: ['node:fs/promises', 'node:url'] },
     clean: false,
   },
   test: {

@@ -85,6 +85,16 @@ func (l *lenses) supportedCollections(ctx context.Context) ([]string, error) {
 	return cols, json.Unmarshal(out, &cols)
 }
 
+// reinstantiate replaces the module after a trapped call. The Rust crate builds with
+// panic=abort, so a trap leaves the wasm heap in an undefined state and the singleton must not
+// serve another call against it.
+func (l *lenses) reinstantiate(ctx context.Context) {
+	_ = l.mod.Close(ctx)
+	if mod, err := l.runtime.Instantiate(ctx, lensesWasm); err == nil {
+		l.mod = mod
+	}
+}
+
 // call runs an exported function over the buffer ABI and returns a copy of its result.
 func (l *lenses) call(ctx context.Context, fn string, input []byte) ([]byte, error) {
 	l.mu.Lock()
@@ -94,6 +104,7 @@ func (l *lenses) call(ctx context.Context, fn string, input []byte) ([]byte, err
 	if input != nil {
 		p, err := l.mod.ExportedFunction("alloc").Call(ctx, uint64(len(input)))
 		if err != nil {
+			l.reinstantiate(ctx)
 			return nil, err
 		}
 		if !mem.Write(uint32(p[0]), input) {
@@ -104,6 +115,7 @@ func (l *lenses) call(ctx context.Context, fn string, input []byte) ([]byte, err
 	}
 	res, err := l.mod.ExportedFunction(fn).Call(ctx, args...)
 	if err != nil {
+		l.reinstantiate(ctx)
 		return nil, fmt.Errorf("lenses %s: %w", fn, err)
 	}
 	ptr := uint32(res[0])
@@ -119,5 +131,9 @@ func (l *lenses) call(ctx context.Context, fn string, input []byte) ([]byte, err
 	// wazero returns a view into module memory, which dealloc may reuse; copy first.
 	out := append([]byte(nil), view...)
 	_, err = l.mod.ExportedFunction("dealloc").Call(ctx, uint64(ptr), uint64(4+n))
-	return out, err
+	if err != nil {
+		l.reinstantiate(ctx)
+		return nil, err
+	}
+	return out, nil
 }

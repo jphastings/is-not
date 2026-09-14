@@ -57,7 +57,7 @@ curl "https://<pds>/xrpc/com.atproto.repo.getRecord?repo=<did>&collection=com.ex
 (`fetchRecord` in `src/index.ts` does the same DID→PDS resolution and call, if it's
 easier to run from a script.) You need the record's `uri`, `cid` and `value` — these
 become a fixture in step 5. Prefer a record that exercises a non-default branch of any
-type mapping (here, `kind: "comic"`, since `novel` is the one that gets rewritten).
+type mapping (here, `kind: "novel"`, since it's the one that gets rewritten).
 
 ## 3. Write the lens document
 
@@ -93,6 +93,14 @@ the shared vocabulary, passing anything else through:
 `novel` becomes `book`; `comic` is untouched. Extend the `if … then … else if …` chain for
 every value that needs rewriting; end with `else type` so unmapped values pass through.
 
+**The source lexicon isn't enforced at runtime.** panproto's parser checks the record's
+structure only — `enum` and `required` violations in the source lexicon flow through
+uncaught. Don't rely on a lens only ever seeing values the lexicon allows.
+
+**Missing titles.** A lens whose view has no `title` (an optional field left unset) doesn't
+error: the subject falls back to name-like fields on the source record (`title`, `name`,
+`displayName`, `text`), then the record's uri.
+
 **The `extensions["at.isnot"]["identifiers"]` convention.** panproto's lens `get` drops
 ref-typed properties from its output (bean ISNOT-qvqp), so an identifiers object — nearly
 always `ref`-typed — can't survive a normal lens step. Instead, `extensions` names the
@@ -119,7 +127,8 @@ const SOURCES: &[LensSource] = &[
 ];
 ```
 
-This compiles the lens at startup and makes the NSID show up in `supported_collections()`.
+Lenses compile lazily, on the first call to `resolve_subject` — not at registration or
+startup — but the NSID shows up in `supported_collections()` immediately.
 
 ## 5. Write the fixture
 
@@ -195,5 +204,6 @@ that skip the Rust toolchain.
 - [ ] `packages/lenses/lexicons/<nsid-as-path>.json` — the vendored source lexicon, verbatim
 - [ ] `SOURCES` entry in `packages/lenses/src/lib.rs`
 - [ ] `packages/lenses/testdata/<nsid>/*.json` — fixture(s), with hand-written `expected`
+- [ ] Add any new `type` value to `knownValues` in `lexicons/at/isnot/tag.json`
 - [ ] A changeset under `.changeset/`
 - [ ] **Not** `packages/lenses/dist/` — it's git-ignored and built by CI; never commit it

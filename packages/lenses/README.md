@@ -25,6 +25,12 @@ Add `lenses/<nsid>.json`, the source lexicon under `lexicons/`, a fixture under
 `rename_field`, `remove_field` (not on arrays) and `apply_expr`. Name the identifiers object
 in `extensions["at.isnot"]["identifiers"]`; panproto currently drops ref-typed properties.
 
+`loadLenses()`'s default wasm URL is `new URL('./isnot_lenses.wasm', import.meta.url)` — it must
+stay statically analysable (no ternary or computed path) so bundlers detect it and copy the
+asset into their output. `@is-not/lenses/isnot_lenses.wasm` is an explicit subpath export for
+hosting the file yourself instead, e.g. `import wasmUrl from '@is-not/lenses/isnot_lenses.wasm?url'`
+in Vite, then `loadLenses(wasmUrl)`.
+
 ## Wasm ABI
 
 `alloc(len) -> ptr`, `dealloc(ptr, len)`, `resolve_subject(ptr, len) -> ptr`,
