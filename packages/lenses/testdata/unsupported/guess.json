@@ -1,0 +1,24 @@
+{
+  "input": {
+    "uri": "at://did:plc:example/com.example.thing/3abc",
+    "cid": "bafyreibzsi5ubmnp4dx744kye6ulejwmpdhhnmem2vnaocgqm2fybvzyqa",
+    "record": {
+      "$type": "com.example.thing",
+      "name": "A Thing",
+      "externalId": "42",
+      "isbn13": "9780000000002",
+      "count": 3,
+      "tags": ["x"]
+    }
+  },
+  "expected": {
+    "supported": false,
+    "subject": {
+      "uri": "at://did:plc:example/com.example.thing/3abc",
+      "cid": "bafyreibzsi5ubmnp4dx744kye6ulejwmpdhhnmem2vnaocgqm2fybvzyqa",
+      "title": "A Thing",
+      "type": "",
+      "identifiers": [{ "key": "externalId", "value": "42" }, { "key": "isbn13", "value": "9780000000002" }]
+    }
+  }
+}

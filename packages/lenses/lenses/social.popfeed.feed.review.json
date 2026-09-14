@@ -1,0 +1,19 @@
+{
+  "id": "at.isnot.lens.social-popfeed-feed-review",
+  "description": "A popfeed review names the creative work it reviews; the tag subject is that work.",
+  "source": "social.popfeed.feed.review",
+  "target": "at.isnot.tag#subject",
+  "extensions": {
+    "at.isnot": { "identifiers": "identifiers" }
+  },
+  "steps": [
+    { "rename_field": { "old": "creativeWorkType", "new": "type" } },
+    {
+      "apply_expr": {
+        "field": "type",
+        "expr": "if type == \"tv_show\" then \"tv-show\" else if type == \"tv_season\" then \"tv-season\" else if type == \"tv_episode\" then \"tv-episode\" else if type == \"book_series\" then \"book-series\" else if type == \"video_game\" then \"video-game\" else if type == \"track\" then \"music-track\" else type",
+        "coercion": "projection"
+      }
+    }
+  ]
+}

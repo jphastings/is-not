@@ -1,0 +1,24 @@
+[package]
+name = "isnot_lenses"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+panproto-inst = "0.74.2"
+panproto-lens = "0.74.2"
+panproto-lens-dsl = "0.74.2"
+panproto-protocols = "0.74.2"
+panproto-schema = "0.74.2"
+serde_json = "1"
+unicode-segmentation = "1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

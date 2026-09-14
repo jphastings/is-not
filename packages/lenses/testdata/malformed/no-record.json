@@ -1,0 +1,4 @@
+{
+  "input": { "uri": "at://did:plc:example/com.example.thing/3abc", "cid": "bafyreibzsi5ubmnp4dx744kye6ulejwmpdhhnmem2vnaocgqm2fybvzyqa" },
+  "expected": { "error": "input.record must be an object" }
+}

@@ -1,0 +1,51 @@
+{
+  "input": {
+    "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/social.popfeed.feed.review/3lsdno2qnoc2g",
+    "cid": "bafyreibzsi5ubmnp4dx744kye6ulejwmpdhhnmem2vnaocgqm2fybvzyqa",
+    "record": {
+      "tags": [],
+      "text": "It’s a fun romp with all the insane stunts you’d expect from a mission impossible.\nThey’ve somewhat dropped the intrigue parts of previous installations and replaced with some (slightly heavy handed but heartfelt) messages on the theme of coping in today’s political environment — valuable (maybe needed?) but perhaps a bit much?\n\nOver all well worth a watch if you like great action stunts, and a worthy end to a very fun series of films.",
+      "$type": "social.popfeed.feed.review",
+      "title": "Mission: Impossible - The Final Reckoning",
+      "facets": [],
+      "genres": [
+        "Action",
+        "Adventure",
+        "Thriller"
+      ],
+      "rating": 7,
+      "createdAt": "2025-06-24T08:09:31.431Z",
+      "isRevisit": false,
+      "posterUrl": "https://image.tmdb.org/t/p/w500/z53D72EAOxGRqdr7KXXWp9dJiDe.jpg",
+      "mainCredit": "Christopher McQuarrie",
+      "backdropUrl": "https://image.tmdb.org/t/p/original/rwwkWkmecrH9glp5XJGZx3nPLhW.jpg",
+      "identifiers": {
+        "imdbId": "tt9603208",
+        "tmdbId": "575265"
+      },
+      "releaseDate": "2025-05-17T00:00:00.000Z",
+      "mainCreditRole": "director",
+      "containsSpoilers": false,
+      "creativeWorkType": "movie"
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/social.popfeed.feed.review/3lsdno2qnoc2g",
+      "cid": "bafyreibzsi5ubmnp4dx744kye6ulejwmpdhhnmem2vnaocgqm2fybvzyqa",
+      "title": "Mission: Impossible - The Final Reckoning",
+      "type": "movie",
+      "identifiers": [
+        {
+          "key": "imdbId",
+          "value": "tt9603208"
+        },
+        {
+          "key": "tmdbId",
+          "value": "575265"
+        }
+      ]
+    }
+  }
+}

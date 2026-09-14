@@ -1,0 +1,25 @@
+{
+  "input": {
+    "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/social.popfeed.feed.review/3tvshow",
+    "cid": "bafyreibzsi5ubmnp4dx744kye6ulejwmpdhhnmem2vnaocgqm2fybvzyqa",
+    "record": {
+      "$type": "social.popfeed.feed.review",
+      "title": "  Severance ",
+      "creativeWorkType": "tv_show",
+      "identifiers": { "tmdbId": "95396", "imdbId": "tt11280740", "seasonNumber": 2 },
+      "rating": 9,
+      "createdAt": "2025-06-24T08:09:31.431Z",
+      "genres": ["Drama"]
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/social.popfeed.feed.review/3tvshow",
+      "cid": "bafyreibzsi5ubmnp4dx744kye6ulejwmpdhhnmem2vnaocgqm2fybvzyqa",
+      "title": "Severance",
+      "type": "tv-show",
+      "identifiers": [{ "key": "imdbId", "value": "tt11280740" }, { "key": "tmdbId", "value": "95396" }]
+    }
+  }
+}
