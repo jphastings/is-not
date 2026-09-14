@@ -64,6 +64,9 @@ Rules:
 - Messages per locale live in `packages/sentence/src/locales/<lang>.ts` as
   plain objects: the direction phrases, "thinks", the self word and verb form,
   and the sentence templates. English ships first; a locale is a pull request.
+  An app can also register its own messages at startup with
+  `registerLocale(tag, messages)` (module-level, intended to run once before
+  requests are served), so adopters aren't blocked on a release.
 
 Tests: fixtures in `packages/sentence/testdata/*.json` with `review`, `options`
 and expected `text` for each supported locale, plus HTML wrapping and the
