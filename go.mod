@@ -5,6 +5,7 @@ go 1.26.6
 require (
 	github.com/bluesky-social/jetstream v0.2.2
 	github.com/jcalabro/atmos v0.4.0
+	github.com/tetratelabs/wazero v1.12.0
 	modernc.org/sqlite v1.58.0
 )
 
