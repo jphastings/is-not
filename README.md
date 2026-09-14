@@ -86,10 +86,12 @@ Go test suites.
 
 The project is `did:web:isnot.at`. Its DID document and handle file are static files in
 `web/static/.well-known/`, so deploying the site is what makes the identity resolve. The
-repo lives on `eurosky.social`, and the `#atproto` key in `did.json` is the one that PDS
-reserved for the DID, so moving to another PDS means editing `did.json` to match. Being a
-did:web, the domain is the identity: there are no rotation keys and no recovery if
-`isnot.at` is lost.
+repo lives on `eurosky.social`, and the `#atproto` key in `did.json` has to match the
+signing key that PDS holds for the account, which `com.atproto.identity.getRecommendedDidCredentials`
+reports. Do not reach for `com.atproto.server.reserveSigningKey`: a PDS creating a local
+account mints a fresh key and ignores reservations, which are only used by entryway
+deployments. Being a did:web, the domain is the identity: there are no rotation keys and no
+recovery if `isnot.at` is lost.
 
 ## Lexicon
 
