@@ -76,10 +76,14 @@
           "maxLength": 64,
           "knownValues": [
             "movie",
-            "tv-series",
+            "tv-show",
+            "tv-season",
             "tv-episode",
             "book",
+            "book-series",
             "album",
+            "music-track",
+            "video-game",
             "post"
           ],
           "description": "The kind of thing the subject is. Open set; add values as lenses support them."
