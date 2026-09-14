@@ -16,7 +16,7 @@ atproto appview for `at.isnot.review` records. Go API at the root, SvelteKit sit
 - Keep this file focused: only things that cost real time, or how development is done here. After each piece of work, check whether it needs updating and make the edit in the same commit.
 - Migrations in `migrations/` are append-only once anything is deployed. Until then, editing `001_init.sql` in place is fine.
 - The Go build embeds `packages/lenses/dist/isnot_lenses.wasm`, which is git-ignored. Before `go build` or `go test`, either build it (`sh packages/lenses/build-wasm.sh`, needs rustup with the wasm32 target and wasm-opt) or download the released one (`scripts/fetch-lenses.sh`).
-- JavaScript lives in a pnpm workspace with Vite+: `pnpm install`, `pnpm test`, `pnpm check`. Package versions use changesets (`pnpm changeset`). The site in `web/` must stay runnable without `node_modules` (adapter-node build, `node:sqlite`, everything in devDependencies) because the runtime image copies only `web/build`.
+- JavaScript lives in a pnpm workspace with Vite+: `pnpm install`, `pnpm test`, `pnpm check` (oxlint and oxfmt, configured in the root `vite.config.ts`; no prettier, eslint or biome). oxfmt does not format `.svelte` files; `pnpm --filter web check` type-checks them. Package versions use changesets (`pnpm changeset`). The site in `web/` must stay runnable without `node_modules` (adapter-node build, `node:sqlite`, everything in devDependencies) because the runtime image copies only `web/build`.
 - Anything that changes what the container needs (new Go embed, new build input, new env var) also changes the `Dockerfile`, `.dockerignore` or `.railway/railway.ts`. `docker build .` is the check (colima on JP's Mac: `colima start`).
 
 ## Things that cost time

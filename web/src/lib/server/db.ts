@@ -18,17 +18,17 @@ const QUERY = `
 let db: DatabaseSync | undefined;
 
 function open(): DatabaseSync | undefined {
-	if (db) return db;
-	try {
-		db = new DatabaseSync(env.DATABASE_PATH ?? '../isnot.db', { readOnly: true });
-	} catch {
-		return undefined;
-	}
-	return db;
+  if (db) return db;
+  try {
+    db = new DatabaseSync(env.DATABASE_PATH ?? '../isnot.db', { readOnly: true });
+  } catch {
+    return undefined;
+  }
+  return db;
 }
 
 export function randomTags(limit = 10): Tag[] {
-	const conn = open();
-	if (!conn) return [];
-	return conn.prepare(QUERY).all(limit) as unknown as Tag[];
+  const conn = open();
+  if (!conn) return [];
+  return conn.prepare(QUERY).all(limit) as unknown as Tag[];
 }
