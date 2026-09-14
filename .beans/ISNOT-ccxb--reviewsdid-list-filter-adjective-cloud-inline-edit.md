@@ -5,7 +5,7 @@ status: todo
 type: feature
 priority: normal
 created_at: 2026-09-14T22:26:37Z
-updated_at: 2026-09-14T22:26:49Z
+updated_at: 2026-09-14T22:31:48Z
 parent: ISNOT-kgev
 blocked_by:
     - ISNOT-oegf
@@ -16,7 +16,7 @@ Page `/reviews/{did}` in web/ listing every at.isnot.review the appview holds fo
 
 ## Listing
 
-- One row per review: subject title (linking to the subject uri), type, and its tags rendered as "is really / is / is not / really isn't / no comment on" + adjective. Direction 0 tags must be shown; the atstore import (ISNOT-tmj5) creates them.
+- One row per review: subject title (linking to the subject uri), type, and its tags rendered as "is really / is / is not / really isn't / ???" + adjective. Direction 0 tags render as "???" (ISNOT-zlhe); the atstore import (ISNOT-tmj5) creates them.
 - Filters: subject type (the known values present on this account) and adjective. Filters are URL query params so a view can be linked.
 - An adjective cloud above the list: each adjective the account has used, sized by count, click to filter by it. Counts come from review_tags for that did.
 - Ordered by updatedAt desc. Paginate only if a real account outgrows one page.
