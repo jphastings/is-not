@@ -1,5 +1,11 @@
 # @is-not/lenses
 
+## 0.3.0
+
+### Minor Changes
+
+- 86f3118: buildReview replaces buildTag: one at.isnot.review record per subject with a tags array and createdAt
+
 ## 0.2.0
 
 ### Minor Changes
