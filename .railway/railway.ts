@@ -3,7 +3,7 @@ import { defineRailway, github, preserve, project, service, volume } from 'railw
 // One container runs the Go API (PORT) and the SvelteKit site (WEB_PORT), both
 // on the same SQLite file under the persistent volume. See README.md.
 export default defineRailway(() => {
-  const data = volume('data', { sizeMB: 1024 });
+  const data = volume('data', { sizeMB: 1024, region: 'europe-west4-drams3a' });
 
   const isnot = service('isnot', {
     source: github('jphastings/is-not', { branch: 'main' }),
@@ -15,8 +15,12 @@ export default defineRailway(() => {
       DATABASE_PATH: '/data/isnot.db',
       JETSTREAM_API_KEY: preserve(),
     },
-    // Custom domains (isnot.at → 3000, api.isnot.at → 8080) can't be created
-    // here: add them in the dashboard, then `railway config pull` to record them.
+    // Railway can't register custom domains from here; these were added in the
+    // dashboard and are declared so plans don't propose removing them.
+    domains: [
+      { domain: 'isnot.at', port: 3000 },
+      { domain: 'api.isnot.at', port: 8080 },
+    ],
     volumeMounts: { '/data': data },
   });
 

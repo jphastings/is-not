@@ -43,6 +43,5 @@ COPY --from=api /isnot /usr/local/bin/isnot
 COPY --from=web /src/web/build /app/web
 COPY scripts/start.sh /usr/local/bin/start.sh
 ENV NODE_ENV=production PORT=8080 WEB_PORT=3000 DATABASE_PATH=/data/isnot.db
-VOLUME /data
 EXPOSE 8080 3000
 CMD ["start.sh"]
