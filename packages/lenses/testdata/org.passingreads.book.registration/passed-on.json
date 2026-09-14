@@ -15,9 +15,7 @@
       },
       "title": "Le chat chapeauté",
       "bookId": "4ahdqwch6j1we614jx3bh36m0t",
-      "authors": [
-        "Dr. Seuss"
-      ],
+      "authors": ["Dr. Seuss"],
       "location": {
         "name": "Barclay Street",
         "$type": "community.lexicon.location.hthree",

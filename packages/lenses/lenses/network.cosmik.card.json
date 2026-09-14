@@ -3,7 +3,9 @@
   "description": "A Cosmik card saves a web page or a note; the tag subject is that page or note.",
   "source": "network.cosmik.card",
   "target": "at.isnot.tag#subject",
-  "extensions": { "at.isnot": { "title": ["content.metadata.title", "content.url", "content.text"] } },
+  "extensions": {
+    "at.isnot": { "title": ["content.metadata.title", "content.url", "content.text"] }
+  },
   "steps": [
     {
       "apply_expr": {

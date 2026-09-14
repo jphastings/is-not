@@ -5,9 +5,7 @@
     "record": {
       "path": "/posts/tumblr-musings/timelapse",
       "site": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/site.standard.publication/3mdogbputbg2m",
-      "tags": [
-        "from-tumblr"
-      ],
+      "tags": ["from-tumblr"],
       "$type": "site.standard.document",
       "title": "Timelapse video",
       "publishedAt": "2009-03-31T01:10:00.000Z",

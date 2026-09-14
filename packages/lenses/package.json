@@ -3,24 +3,21 @@
   "version": "0.1.0",
   "description": "Turn an atproto record into an at.isnot.tag subject, using panproto lenses compiled to WebAssembly",
   "license": "MIT",
-  "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jphastings/isnot",
+    "url": "https://github.com/jphastings/is-not",
     "directory": "packages/lenses"
   },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./isnot_lenses.wasm": "./dist/isnot_lenses.wasm"
-  },
-  "files": [
-    "dist"
-  ],
-  "engines": {
-    "node": ">=20"
   },
   "publishConfig": {
     "access": "public"
@@ -33,5 +30,8 @@
   "devDependencies": {
     "@types/node": "^26.5.1",
     "vite-plus": "^0.2.7"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

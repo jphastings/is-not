@@ -19,7 +19,10 @@
       "cid": "bafyreibzsi5ubmnp4dx744kye6ulejwmpdhhnmem2vnaocgqm2fybvzyqa",
       "title": "Severance",
       "type": "tv-show",
-      "identifiers": [{ "key": "imdbId", "value": "tt11280740" }, { "key": "tmdbId", "value": "95396" }]
+      "identifiers": [
+        { "key": "imdbId", "value": "tt11280740" },
+        { "key": "tmdbId", "value": "95396" }
+      ]
     }
   }
 }

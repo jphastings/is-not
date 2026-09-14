@@ -3,7 +3,5 @@
   "description": "A Passing Reads registration records a physical book being passed on; the tag subject is that book.",
   "source": "org.passingreads.book.registration",
   "target": "at.isnot.tag#subject",
-  "steps": [
-    { "add_field": { "name": "type", "kind": "string", "fallback": "book" } }
-  ]
+  "steps": [{ "add_field": { "name": "type", "kind": "string", "fallback": "book" } }]
 }

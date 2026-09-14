@@ -21,23 +21,9 @@
           "mediaType": "icon"
         }
       ],
-      "modes": [
-        "mmo",
-        "multiplayer",
-        "singlePlayer",
-        "cooperative"
-      ],
-      "genres": [
-        "rpg",
-        "simulator"
-      ],
-      "themes": [
-        "sandbox",
-        "openWorld",
-        "fantasy",
-        "survival",
-        "action"
-      ],
+      "modes": ["mmo", "multiplayer", "singlePlayer", "cooperative"],
+      "genres": ["rpg", "simulator"],
+      "themes": ["sandbox", "openWorld", "fantasy", "survival", "action"],
       "summary": "FOLK is a free-to-play indie sandbox MMORPG. Tame mystical Folk creatures, craft, fight, and build your settlement. Play in browser, Telegram, or mobile.",
       "keywords": [
         "mmorpg",
@@ -179,9 +165,7 @@
           "interface": true
         }
       ],
-      "playerPerspectives": [
-        "topDown"
-      ]
+      "playerPerspectives": ["topDown"]
     }
   },
   "expected": {

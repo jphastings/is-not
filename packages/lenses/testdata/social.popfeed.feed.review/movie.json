@@ -8,11 +8,7 @@
       "$type": "social.popfeed.feed.review",
       "title": "Mission: Impossible - The Final Reckoning",
       "facets": [],
-      "genres": [
-        "Action",
-        "Adventure",
-        "Thriller"
-      ],
+      "genres": ["Action", "Adventure", "Thriller"],
       "rating": 7,
       "createdAt": "2025-06-24T08:09:31.431Z",
       "isRevisit": false,

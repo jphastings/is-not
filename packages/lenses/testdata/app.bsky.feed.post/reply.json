@@ -5,9 +5,7 @@
     "record": {
       "text": "This looks awesome, but I am absolutely broken that things are being advertised as being ready in 2030 now. That’s so far in the future — the 1980s was just 20 years ago!",
       "$type": "app.bsky.feed.post",
-      "langs": [
-        "en"
-      ],
+      "langs": ["en"],
       "reply": {
         "root": {
           "cid": "bafyreibi6hbcws7b5p327omzviawutke2j3mtchv572m37oupnefptgxvy",

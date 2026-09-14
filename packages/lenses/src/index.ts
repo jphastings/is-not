@@ -1,5 +1,11 @@
 export type Identifier = { key: string; value: string };
-export type Subject = { uri: string; cid: string; title: string; type: string; identifiers?: Identifier[] };
+export type Subject = {
+  uri: string;
+  cid: string;
+  title: string;
+  type: string;
+  identifiers?: Identifier[];
+};
 export type Resolution = { supported: boolean; subject: Subject } | { error: string };
 export type Direction = -2 | -1 | 0 | 1 | 2;
 export type TagRecord = {
@@ -40,7 +46,9 @@ export class Lenses {
 
   #take(result: number): string {
     const len = new DataView(this.#exports.memory.buffer).getUint32(result, true);
-    const text = new TextDecoder().decode(new Uint8Array(this.#exports.memory.buffer, result + 4, len));
+    const text = new TextDecoder().decode(
+      new Uint8Array(this.#exports.memory.buffer, result + 4, len),
+    );
     this.#exports.dealloc(result, 4 + len);
     return text;
   }
@@ -58,23 +66,30 @@ export async function loadLenses(source?: WasmSource): Promise<Lenses> {
   const isNode = typeof process !== 'undefined' && !!process.versions?.node;
   let bytes: BufferSource | WebAssembly.Module;
   if (src instanceof URL && src.protocol === 'file:' && isNode) {
-    const [{ readFile }, { fileURLToPath }] = await Promise.all([import('node:fs/promises'), import('node:url')]);
+    const [{ readFile }, { fileURLToPath }] = await Promise.all([
+      import('node:fs/promises'),
+      import('node:url'),
+    ]);
     bytes = await readFile(fileURLToPath(src));
   } else if (src instanceof URL || src instanceof Response || src instanceof Promise) {
     bytes = await (src instanceof URL ? fetch(src) : src).then((r) => r.arrayBuffer());
   } else {
     bytes = src;
   }
-  const { instance } = bytes instanceof WebAssembly.Module
-    ? { instance: await WebAssembly.instantiate(bytes, {}) }
-    : await WebAssembly.instantiate(bytes, {});
+  const { instance } =
+    bytes instanceof WebAssembly.Module
+      ? { instance: await WebAssembly.instantiate(bytes, {}) }
+      : await WebAssembly.instantiate(bytes, {});
   return new Lenses(instance);
 }
 
 const recordUri = /^at:\/\/([^/]+)\/([^/]+)\/([^/]+)$/;
 
 /** Fetch a record by at-uri: resolves the DID document, finds the PDS, calls getRecord. */
-export async function fetchRecord(uri: string, fetchImpl: typeof fetch = fetch): Promise<{ cid: string; record: unknown }> {
+export async function fetchRecord(
+  uri: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ cid: string; record: unknown }> {
   const match = recordUri.exec(uri);
   if (!match) throw new Error(`not a record at-uri: ${uri}`);
   const [, did, collection, rkey] = match;
@@ -92,7 +107,8 @@ export async function fetchRecord(uri: string, fetchImpl: typeof fetch = fetch):
 async function pdsFor(did: string, fetchImpl: typeof fetch): Promise<string> {
   let docUrl: string;
   if (did.startsWith('did:plc:')) docUrl = `https://plc.directory/${did}`;
-  else if (did.startsWith('did:web:')) docUrl = `https://${decodeURIComponent(did.slice('did:web:'.length))}/.well-known/did.json`;
+  else if (did.startsWith('did:web:'))
+    docUrl = `https://${decodeURIComponent(did.slice('did:web:'.length))}/.well-known/did.json`;
   else throw new Error(`unsupported DID method: ${did}`);
   const res = await fetchImpl(docUrl);
   if (!res.ok) throw new Error(`DID resolution failed for ${did}: ${res.status}`);

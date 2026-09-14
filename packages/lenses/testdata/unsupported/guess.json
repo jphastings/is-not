@@ -18,7 +18,10 @@
       "cid": "bafyreibzsi5ubmnp4dx744kye6ulejwmpdhhnmem2vnaocgqm2fybvzyqa",
       "title": "A Thing",
       "type": "",
-      "identifiers": [{ "key": "externalId", "value": "42" }, { "key": "isbn13", "value": "9780000000002" }]
+      "identifiers": [
+        { "key": "externalId", "value": "42" },
+        { "key": "isbn13", "value": "9780000000002" }
+      ]
     }
   }
 }

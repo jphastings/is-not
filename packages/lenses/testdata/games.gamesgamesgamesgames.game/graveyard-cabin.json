@@ -49,22 +49,11 @@
           "igdbImageId": "ar63h7"
         }
       ],
-      "modes": [
-        "singlePlayer"
-      ],
-      "genres": [
-        "puzzle",
-        "simulator",
-        "adventure",
-        "indie"
-      ],
-      "themes": [
-        "horror"
-      ],
+      "modes": ["singlePlayer"],
+      "genres": ["puzzle", "simulator", "adventure", "indie"],
+      "themes": ["horror"],
       "summary": "An FMV anomaly horror game. You are a night guard at a desolate graveyard. Monitor the cameras, spot the unnatural, and survive.",
-      "keywords": [
-        "steam achievements"
-      ],
+      "keywords": ["steam achievements"],
       "releases": [
         {
           "platformURI": "at://did:web:gamesgamesgamesgames.games/games.gamesgamesgamesgames.platform/3mgizckotrs2l",
@@ -202,12 +191,7 @@
       ],
       "platformFeatures": [
         {
-          "features": [
-            "singlePlayer",
-            "achievements",
-            "controllerSupportFull",
-            "moddingSupport"
-          ],
+          "features": ["singlePlayer", "achievements", "controllerSupportFull", "moddingSupport"],
           "platform": "steam"
         }
       ],
@@ -522,9 +506,7 @@
           ]
         }
       ],
-      "playerPerspectives": [
-        "firstPerson"
-      ],
+      "playerPerspectives": ["firstPerson"],
       "systemRequirements": [
         {
           "minimum": {

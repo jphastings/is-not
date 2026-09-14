@@ -4,7 +4,5 @@
   "source": "buzz.bookhive.book",
   "target": "at.isnot.tag#subject",
   "extensions": { "at.isnot": { "identifiers": "identifiers" } },
-  "steps": [
-    { "add_field": { "name": "type", "kind": "string", "fallback": "book" } }
-  ]
+  "steps": [{ "add_field": { "name": "type", "kind": "string", "fallback": "book" } }]
 }
