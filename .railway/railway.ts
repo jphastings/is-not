@@ -15,12 +15,10 @@ export default defineRailway(() => {
       DATABASE_PATH: '/data/isnot.db',
       JETSTREAM_API_KEY: preserve(),
     },
-    domains: [
-      { domain: 'isnot.at', port: 3000 },
-      { domain: 'api.isnot.at', port: 8080 },
-    ],
+    // Custom domains (isnot.at → 3000, api.isnot.at → 8080) can't be created
+    // here: add them in the dashboard, then `railway config pull` to record them.
     volumeMounts: { '/data': data },
   });
 
-  return project('isnot', { resources: [isnot] });
+  return project('is-not', { resources: [isnot] });
 });
