@@ -83,12 +83,17 @@ jobs:
           commit: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Not conditioned on the publish: Go builds need the wasm for whatever
+      # version main holds, even when npm already had it.
       - name: Attach wasm to a GitHub release
-        if: steps.changesets.outputs.published == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=$(node -p "require('./packages/lenses/package.json').version")
+          if gh release view "lenses-v${VERSION}" >/dev/null 2>&1; then
+            echo "lenses-v${VERSION} already released"
+            exit 0
+          fi
           gh release create "lenses-v${VERSION}" packages/lenses/dist/isnot_lenses.wasm \
             --title "@is-not/lenses ${VERSION}" \
             --notes "Built from packages/lenses at ${GITHUB_SHA}. Download isnot_lenses.wasm for Go builds via scripts/fetch-lenses.sh."
