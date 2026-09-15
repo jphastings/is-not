@@ -444,7 +444,7 @@ git commit -m "feat(web): atproto OAuth sign-in with several accounts per browse
 **Files:**
 - Create: `web/src/lib/review.ts` (shared validation, client and server)
 - Create: `web/src/lib/review.test.ts`
-- Modify: `web/src/lib/server/db.ts` (`findReview`)
+- Modify: `web/src/lib/server/db.ts` (`findReview`; `randomSentences` already exists and is unrelated)
 - Modify: `web/src/lib/server/db.test.ts`
 - Create: `web/src/routes/review/+page.server.ts` (load + `save` action)
 - Create: `web/src/routes/review/existing/+server.ts` (GET `?uri=` → existing review or null)
@@ -454,8 +454,9 @@ git commit -m "feat(web): atproto OAuth sign-in with several accounts per browse
 - Produces:
   ```ts
   // review.ts
-  export type ReviewInput = { subject: Subject; tags: Tag[]; locale?: string };  // Subject and Tag from @is-not/lenses
+  export type ReviewInput = { subject: Subject; tags: Tag[]; locale?: string; prefilled?: string[] };  // Subject and Tag from @is-not/lenses
   export function validateReview(input: unknown): { ok: true; value: ReviewInput } | { ok: false; error: string };
+  export function mergeTags(stored: Tag[], offered: Tag[], prefilled: string[]): Tag[];
   // db.ts
   export type ExistingReview = { rkey: string; createdAt: string; tags: Tag[]; locale?: string };
   export function findReview(did: string, subjectUri: string): ExistingReview | null;
@@ -465,6 +466,41 @@ git commit -m "feat(web): atproto OAuth sign-in with several accounts per browse
 - [ ] **Step 1: Failing tests**
 
 `web/src/lib/review.test.ts` (behavioral, concise): valid input passes and is returned normalised (adjectives trimmed, locale lowercased); each of these fails with a distinct `error` key: zero tags, 33 tags, adjective of 17 graphemes (use 17 emoji with skin tones to prove graphemes not code points), adjective over 160 bytes, direction 3, missing subject uri, title of 257 graphemes, locale `'not a tag'`. Error keys: `tags`, `adjective`, `direction`, `subject`, `title`, `locale`.
+
+For `mergeTags`, one test per rule:
+
+```ts
+const stored = [
+  { direction: 1, adjective: 'loud' },
+  { direction: -1, adjective: 'long' },
+];
+
+it('adds an adjective the review does not have', () => {
+  expect(mergeTags(stored, [{ direction: 2, adjective: 'funny' }], [])).toEqual([
+    ...stored,
+    { direction: 2, adjective: 'funny' },
+  ]);
+});
+
+it('re-aims an adjective the review already has, in place', () => {
+  expect(mergeTags(stored, [{ direction: -2, adjective: 'Loud' }], [])).toEqual([
+    { direction: -2, adjective: 'Loud' },
+    { direction: -1, adjective: 'long' },
+  ]);
+});
+
+it('removes only what the form was shown and no longer offers', () => {
+  expect(mergeTags(stored, [{ direction: 1, adjective: 'loud' }], ['loud', 'long'])).toEqual([
+    { direction: 1, adjective: 'loud' },
+  ]);
+});
+
+it('never removes when the form was not prefilled', () => {
+  expect(mergeTags(stored, [{ direction: 1, adjective: 'loud' }], [])).toEqual(stored);
+});
+```
+
+Matching is by trimmed, case-folded adjective; the offered spelling wins. A merged list longer than 32 makes the action fail with `error: 'tags'`.
 
 Extend `web/src/lib/server/db.test.ts`: insert a review with `created_at`, two tags and locale; `findReview(did, uri)` returns `{ rkey, createdAt, tags, locale }`; unknown uri returns `null`.
 
@@ -503,13 +539,16 @@ export const actions: Actions = {
     const form = await request.formData();
     const parsed = validateReview(JSON.parse(String(form.get('review') ?? 'null')));
     if (!parsed.ok) return fail(400, { error: parsed.error });
-    const { subject, tags, locale } = parsed.value;
+    const { subject, tags, locale, prefilled = [] } = parsed.value;
     const existing = findReview(did, subject.uri);
+    // One review per subject per person: a new opinion joins the record already there.
+    const merged = existing ? mergeTags(existing.tags, tags, prefilled) : tags;
+    if (merged.length > 32) return fail(400, { error: 'tags' });
     const now = new Date().toISOString();
     const record = {
       $type: 'at.isnot.review',
       subject,
-      tags,
+      tags: merged,
       ...(locale ? { locale } : {}),
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
@@ -529,7 +568,7 @@ export const actions: Actions = {
 };
 ```
 
-The client sends the whole review as one JSON form field named `review` (built from the resolved subject and the tag rows), which keeps the action independent of how the form is laid out.
+The client sends the whole review as one JSON form field named `review` (built from the resolved subject, the tag rows and the adjectives the form was prefilled with), which keeps the action independent of how the form is laid out.
 
 Messages: `"error_signin": "Sign in first."`, `"error_tags": "Add at least one adjective."`, `"error_adjective": "Adjectives are 1 to 16 characters."`, `"error_subject": "Pick something to review."`, `"error_pds": "Couldn't save to your account. Try again."`, `"error_handle": "Enter your handle."`, `"error_state": "Sign-in didn't complete. Try again."`, `"saved": "Saved."`, `"view_record": "See the record"`.
 
@@ -585,7 +624,7 @@ If Vite refuses the `?url` import on a package subpath, copy the wasm into `web/
   3. **tags**: a `<ul>` of rows. Each row: a `<select>` with the four direction phrases (values 2, 1, -1, -2; message keys `dir_2`, `dir_1`, `dir_m1`, `dir_m2`) and an `<input>` for the adjective (`adjective_placeholder`: "adjective", `maxlength` not set; validation handles graphemes). Rows joined with the list format visually by `reviewSentence` is not required; render rows as "…, is not boring" fragments separated by commas. A `remove` button per row (hidden when only one), and an `add_another` link-styled button after the last row.
   4. **locale**: a small `<input>` prefilled from `navigator.language` (in `$effect`, so SSR stays deterministic), rendered after the sentence in `--step--1` with the message `in_locale` ("in {locale}").
   5. **save**: a `.pill` submit button (`save` / `update`), disabled while saving. Below it, the last `validateReview` error or the action error, one line.
-- Client-side: before submit, build `{ subject, tags, locale }`, run `validateReview`, and put `JSON.stringify(value)` into a hidden input named `review`. On success (`form.uri`) show `saved` and a link `view_record` to `https://pdsls.dev/${form.uri}` (external record viewer) and reset `existing = true`.
+- Client-side: before submit, build `{ subject, tags, locale, prefilled }` (`prefilled` is the adjectives loaded from the existing review, empty when none was loaded), run `validateReview`, and put `JSON.stringify(value)` into a hidden input named `review`. On success (`form.uri`) show `saved` and a link `view_record` to `https://pdsls.dev/${form.uri}` (external record viewer) and reset `existing = true`.
 - Styling: inputs and selects inherit the display font and size, have no border, a 0.08em moss underline, `field-sizing: content` with a `min-width: 4ch` fallback, transparent background; focus uses the global ring. The sentence wraps naturally at 400px. Reduced motion respected for any transition.
 
 `web/src/routes/review/+page.svelte`: `<svelte:head><title>`; renders `<main>` with the same padding/max-width as the homepage and `<ReviewForm {data} {form} />`.

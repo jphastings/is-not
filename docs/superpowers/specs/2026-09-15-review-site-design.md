@@ -85,13 +85,16 @@ locale fallback matrix.
   `web/messages/<locale>.json`, strategy `cookie`, `preferredLanguage`,
   `baseLocale`; no URL prefixes. `hooks.server.ts` runs the middleware and sets
   `lang` and `dir` on `<html>`. English only at first.
-- **Homepage**: one review sentence at the largest type step, from the ten
-  random reviews already loaded, rotating every fifteen seconds. The swap is
-  choreographed word by word (each part leaves and the next arrives with a
-  short stagger) and reduces to a fade under `prefers-reduced-motion`. Below it,
-  a single pill button to `/review`. Below the fold, one real review record shown
-  as itself, with a one-line invitation and links to the lexicon file and the
-  npm packages. Empty state remains one sentence.
+- **Homepage**: one sentence at the largest type step, rotating every fifteen
+  seconds through ten random tags. Exactly one tag per sentence, in the short
+  form ("The Bear is not relaxing"), with the reviewer's handle in small type
+  beneath it. The swap is choreographed word by word (each part arrives with a
+  short stagger); under `prefers-reduced-motion` the stagger becomes a fade and
+  the rotation stops, so the sentence a reader landed on stays put. Below it, a
+  single pill button to `/review`. Below the fold, the record behind the sentence
+  currently on screen, shown as itself, with a one-line invitation and links to
+  the lexicon file and the npm packages. Empty state remains one sentence. The
+  page's `h1` is the site name, visually hidden until branding lands.
 - **Sentence rendering** on the site uses `@is-not/sentence` with the short
   form on the homepage and `sentenceHTML` wrappers that link the subject and tint
   the adjective by direction.
@@ -134,10 +137,22 @@ The homepage sentence made editable. Parts:
   adds a row; a row can be removed down to one.
 - **locale**: detected from the browser, shown as a small editable part.
 - **save**: a form action. The server finds the current account's existing
-  review for that subject in the shared database; if found it `putRecord`s with
-  the same rkey and the original `createdAt`, else `createRecord`s with a fresh
-  TID and both timestamps now. On success the sentence settles and links to the
-  record's at-uri; failure shows one line and keeps the form.
+  review for that subject in the shared database. If found it merges rather than
+  replaces, then `putRecord`s with the same rkey and the original `createdAt`;
+  otherwise it `createRecord`s with a fresh TID and both timestamps now. On
+  success the sentence settles and links to the record's at-uri; failure shows
+  one line and keeps the form.
+
+  **Merge rule.** One review per subject per person, so a second opinion about
+  the same thing joins the review that is already there. The form submits both
+  the tags it is offering and the adjectives it was prefilled with. The server
+  starts from the stored tags, drops any adjective the form was prefilled with
+  and no longer offers (an explicit removal the person could see), then applies
+  each offered tag: an adjective already in the review keeps its place with the
+  new direction, a new one is appended. Adjectives match after trimming and
+  case folding. A path that never loaded the existing review (a quick add from
+  elsewhere) sends no prefilled list and so can only add or re-aim adjectives,
+  never delete someone's earlier words. The merged list is capped at 32.
 
 Validation mirrors the lexicon on the client and again on the server before the
 PDS call. The record is built with `buildReview` from `@is-not/lenses`, extended
