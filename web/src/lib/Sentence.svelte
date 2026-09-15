@@ -6,7 +6,14 @@
     parts,
     animate = true,
     linkWho = false,
-  }: { parts: Part[]; animate?: boolean; linkWho?: boolean } = $props();
+    linkSubject = false,
+  }: {
+    parts: Part[];
+    animate?: boolean;
+    linkWho?: boolean;
+    /** Send the subject to its own reviews page rather than to the raw record. */
+    linkSubject?: boolean;
+  } = $props();
 
   const stagger = 45;
   const easeOutQuart = (t: number) => 1 - Math.pow(1 - t, 4);
@@ -15,7 +22,7 @@
 <span class="sentence">
   {#each parts as part, i (i)}
     {#if part.kind === 'text'}<span>{part.text}</span>{:else if part.kind === 'subject'}<a
-        href={`https://pdsls.dev/${part.uri}`}
+        href={linkSubject ? `/reviews/${part.uri}` : `https://pdsls.dev/${part.uri}`}
         rel="noreferrer"
         class={part.kind}
         in:fade|global={{

@@ -80,6 +80,8 @@ export function randomSentences(limit = 10): HomeReview[] {
 export type ExistingReview = { rkey: string; createdAt: string; tags: Tag[]; locale?: string };
 
 export type ListedReview = {
+  did: string;
+  handle: string;
   rkey: string;
   subject: { uri: string; cid: string; title: string; type: string };
   tags: Tag[];
@@ -90,7 +92,17 @@ export type ListedReview = {
 
 export type ReviewFilters = { type?: string; adjective?: string };
 
+/** Reviews are listed either by who wrote them or by what they are about. */
+export type ReviewScope = { did: string } | { subjectUri: string };
+
+const scopeClause = (scope: ReviewScope): { sql: string; params: string[] } =>
+  'did' in scope
+    ? { sql: 'r.did = ?', params: [scope.did] }
+    : { sql: 'r.subject_uri = ?', params: [scope.subjectUri] };
+
 type ListRow = {
+  did: string;
+  handle: string;
   rkey: string;
   subject_uri: string;
   subject_cid: string;
@@ -103,38 +115,46 @@ type ListRow = {
   direction: Direction;
 };
 
-/** Every review this account holds, newest update first, optionally narrowed to one subject type and/or adjective. */
-export function listReviews(did: string, filters: ReviewFilters = {}): ListedReview[] {
+/** Every review in scope, newest update first, optionally narrowed to one subject type and/or adjective. */
+export function listReviews(scope: ReviewScope, filters: ReviewFilters = {}): ListedReview[] {
   const conn = open();
   if (!conn) return [];
 
-  const conditions = ['r.did = ?'];
-  const params: string[] = [did];
+  const scoped = scopeClause(scope);
+  const conditions = [scoped.sql];
+  const params: string[] = [...scoped.params];
   if (filters.type) {
     conditions.push('r.subject_type = ?');
     params.push(filters.type);
   }
   if (filters.adjective) {
-    conditions.push('r.rkey IN (SELECT rkey FROM review_tags WHERE did = ? AND adjective = ?)');
-    params.push(did, filters.adjective);
+    conditions.push(
+      'EXISTS (SELECT 1 FROM review_tags x WHERE x.did = r.did AND x.rkey = r.rkey AND x.adjective = ?)',
+    );
+    params.push(filters.adjective);
   }
 
   const rows = conn
     .prepare(
-      `SELECT r.rkey, r.subject_uri, r.subject_cid, r.subject_title, r.subject_type,
+      `SELECT r.did, COALESCE(a.handle, '') AS handle,
+              r.rkey, r.subject_uri, r.subject_cid, r.subject_title, r.subject_type,
               r.locale, r.created_at, r.updated_at, t.adjective, t.direction
        FROM reviews r
        JOIN review_tags t ON t.did = r.did AND t.rkey = r.rkey
+       LEFT JOIN accounts a ON a.did = r.did
        WHERE ${conditions.join(' AND ')}
-       ORDER BY r.updated_at DESC, r.rkey, t.adjective`,
+       ORDER BY r.updated_at DESC, r.did, r.rkey, t.adjective`,
     )
     .all(...params) as unknown as ListRow[];
 
-  const byRkey = new Map<string, ListedReview>();
+  const byRecord = new Map<string, ListedReview>();
   for (const row of rows) {
-    let review = byRkey.get(row.rkey);
+    const key = `${row.did}/${row.rkey}`;
+    let review = byRecord.get(key);
     if (!review) {
       review = {
+        did: row.did,
+        handle: row.handle,
         rkey: row.rkey,
         subject: {
           uri: row.subject_uri,
@@ -147,11 +167,11 @@ export function listReviews(did: string, filters: ReviewFilters = {}): ListedRev
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       };
-      byRkey.set(row.rkey, review);
+      byRecord.set(key, review);
     }
     review.tags.push({ adjective: row.adjective, direction: row.direction });
   }
-  return [...byRkey.values()];
+  return [...byRecord.values()];
 }
 
 /** The distinct subject types this account has reviewed, for the type filter's options. */
@@ -166,16 +186,18 @@ export function subjectTypesFor(did: string): string[] {
 
 export type AdjectiveCount = { adjective: string; count: number };
 
-/** Every adjective this account has used and how often, for the adjective cloud. */
-export function adjectiveCounts(did: string): AdjectiveCount[] {
+/** Every adjective used in scope and how often, for the adjective cloud. */
+export function adjectiveCounts(scope: ReviewScope): AdjectiveCount[] {
   const conn = open();
   if (!conn) return [];
+  const scoped = scopeClause(scope);
   return conn
     .prepare(
-      `SELECT adjective, COUNT(*) AS count FROM review_tags
-       WHERE did = ? GROUP BY adjective ORDER BY count DESC, adjective`,
+      `SELECT t.adjective, COUNT(*) AS count FROM review_tags t
+       JOIN reviews r ON r.did = t.did AND r.rkey = t.rkey
+       WHERE ${scoped.sql} GROUP BY t.adjective ORDER BY count DESC, t.adjective`,
     )
-    .all(did) as unknown as AdjectiveCount[];
+    .all(...scoped.params) as unknown as AdjectiveCount[];
 }
 
 /** The reviewer's own review of a subject, if they have already reviewed it. */

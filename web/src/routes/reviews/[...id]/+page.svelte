@@ -5,7 +5,6 @@
 
   let { data }: PageProps = $props();
 
-  const who = $derived(data.handle || data.did);
 
   // Toggling a filter: clicking the active one clears it, everything else
   // preserves the other filter param.
@@ -16,7 +15,7 @@
     if (type) params.set('type', type);
     if (adjective) params.set('adjective', adjective);
     const qs = params.toString();
-    return qs ? `?${qs}` : `/reviews/${data.did}`;
+    return qs ? `?${qs}` : `/reviews/${data.id}`;
   }
 
   const minCount = $derived(Math.min(...data.adjectives.map((a) => a.count)));
@@ -29,16 +28,16 @@
 </script>
 
 <svelte:head>
-  <title>{m.reviews_title({ who })}</title>
+  <title>{m.reviews_title({ who: data.heading })}</title>
 </svelte:head>
 
 <main>
-  <h1 class="display">@{who}</h1>
+  <h1 class="display">{data.heading}</h1>
 
   {#if data.adjectives.length === 0}
     <p class="empty display">{m.reviews_empty()}</p>
   {:else}
-    <nav class="types" aria-label={m.filter_types()}>
+    {#if !data.ofSubject}<nav class="types" aria-label={m.filter_types()}>
       <a class="pill secondary small" class:active={!data.filters.type} href={href({ type: null })}>
         {m.filter_all()}
       </a>
@@ -51,7 +50,7 @@
           {type.replaceAll('-', ' ')}
         </a>
       {/each}
-    </nav>
+    </nav>{/if}
 
     <ul class="cloud" aria-label={m.filter_adjectives()}>
       {#each data.adjectives as { adjective, count } (adjective)}
@@ -72,7 +71,7 @@
     {:else}
       <ul class="reviews">
         {#each data.reviews as review (review.rkey)}
-          <ReviewRow {review} editable={data.editable} />
+          <ReviewRow {review} editable={review.did === data.viewer} who={data.ofSubject} />
         {/each}
       </ul>
     {/if}

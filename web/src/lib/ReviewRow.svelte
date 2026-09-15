@@ -7,7 +7,16 @@
   import TagRow from '$lib/TagRow.svelte';
   import type { ListedReview } from '$lib/server/db';
 
-  let { review, editable }: { review: ListedReview; editable: boolean } = $props();
+  let {
+    review,
+    editable,
+    who = false,
+  }: {
+    review: ListedReview;
+    editable: boolean;
+    /** Name the reviewer in the sentence — for pages not already about them. */
+    who?: boolean;
+  } = $props();
 
   // Deliberate one-time snapshot: an editable draft the user works on locally
   // until they save, not a live mirror of the loaded review.
@@ -19,7 +28,10 @@
   let deleteForm = $state<HTMLFormElement>();
 
   const parts = $derived(
-    reviewSentence({ subject: review.subject, tags: review.tags, locale: review.locale }),
+    reviewSentence(
+      { subject: review.subject, tags: review.tags, locale: review.locale },
+      who ? { who: { handle: review.handle || review.did, did: review.did } } : {},
+    ),
   );
 
   const payload = $derived(
@@ -94,7 +106,7 @@
         <input type="hidden" name="rkey" value={review.rkey} />
       </form>
     {:else}
-      <span class="sentence"><Sentence {parts} animate={false} /></span>
+      <span class="sentence"><Sentence {parts} animate={false} linkWho /></span>
     {/if}
   </div>
   <span class="type">{review.subject.type.replaceAll('-', ' ')}</span>

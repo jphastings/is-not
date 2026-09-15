@@ -474,7 +474,10 @@
      width differ per browser (Firefox sizes inputs taller than the same text),
      which would tilt the rules out of line. */
   .autosize::after {
-    content: attr(data-value) ' ';
+    /* A zero-width space, not a real one: the twin must never be an empty box
+       (it alone sets the height), but a trailing space would widen it and the
+       rule would run on past the word. */
+    content: attr(data-value) '\200b';
     visibility: hidden;
     white-space: pre-wrap;
     overflow-wrap: anywhere;

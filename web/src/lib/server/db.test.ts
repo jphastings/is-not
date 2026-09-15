@@ -57,6 +57,17 @@ beforeAll(() => {
     when,
     when,
   );
+  review.run(
+    'did:plc:unknown',
+    'same-subject',
+    'at://did:plc:x/app.bsky.feed.post/1',
+    'bafy1',
+    'a sandwich',
+    'post',
+    '',
+    when,
+    when,
+  );
   const tag = setup.prepare(
     'INSERT INTO review_tags (did, rkey, adjective, direction) VALUES (?, ?, ?, ?)',
   );
@@ -64,6 +75,7 @@ beforeAll(() => {
   tag.run('did:plc:known', 'two-tags', 'filling', 2);
   tag.run('did:plc:known', 'neutral-only', 'unremarkable', 0);
   tag.run('did:plc:unknown', 'one-tag', 'boring', -1);
+  tag.run('did:plc:unknown', 'same-subject', 'delicious', 1);
   setup.close();
 });
 
@@ -72,15 +84,18 @@ describe('randomSentences', () => {
     const { randomSentences } = await import('./db');
     const sentences = randomSentences();
 
-    expect(sentences).toHaveLength(3);
+    expect(sentences).toHaveLength(4);
     expect(sentences.every((s) => s.tags.length === 1)).toBe(true);
     expect(sentences.map((s) => s.tags[0].adjective).sort()).toEqual([
       'boring',
       'delicious',
+      'delicious',
       'filling',
     ]);
 
-    const known = sentences.find((s) => s.tags[0].adjective === 'delicious');
+    const known = sentences.find(
+      (s) => s.handle === 'known.example' && s.tags[0].adjective === 'delicious',
+    );
     expect(known?.handle).toBe('known.example');
     expect(known?.locale).toBe('en');
     expect(known?.subject).toEqual({
@@ -126,7 +141,7 @@ describe('findReview', () => {
 describe('listReviews', () => {
   it('returns every review for the account with its tags, direction 0 included', async () => {
     const { listReviews } = await import('./db');
-    const reviews = listReviews('did:plc:known');
+    const reviews = listReviews({ did: 'did:plc:known' });
 
     expect(reviews.map((r) => r.subject.title).sort()).toEqual(['a rock', 'a sandwich']);
     const sandwich = reviews.find((r) => r.subject.title === 'a sandwich');
@@ -140,15 +155,22 @@ describe('listReviews', () => {
 
   it('filters by adjective, keeping every tag on the matching review', async () => {
     const { listReviews } = await import('./db');
-    const reviews = listReviews('did:plc:known', { adjective: 'delicious' });
+    const reviews = listReviews({ did: 'did:plc:known' }, { adjective: 'delicious' });
     expect(reviews).toHaveLength(1);
     expect(reviews[0].tags.map((t) => t.adjective).sort()).toEqual(['delicious', 'filling']);
   });
 
+  it("lists every account's reviews of one subject, with the reviewer", async () => {
+    const { listReviews } = await import('./db');
+    const reviews = listReviews({ subjectUri: 'at://did:plc:x/app.bsky.feed.post/1' });
+    expect(reviews.map((r) => r.did).sort()).toEqual(['did:plc:known', 'did:plc:unknown']);
+    expect(reviews.find((r) => r.did === 'did:plc:known')?.handle).toBe('known.example');
+  });
+
   it('filters by subject type', async () => {
     const { listReviews } = await import('./db');
-    expect(listReviews('did:plc:known', { type: 'does-not-exist' })).toEqual([]);
-    expect(listReviews('did:plc:known', { type: 'post' })).toHaveLength(2);
+    expect(listReviews({ did: 'did:plc:known' }, { type: 'does-not-exist' })).toEqual([]);
+    expect(listReviews({ did: 'did:plc:known' }, { type: 'post' })).toHaveLength(2);
   });
 });
 
@@ -163,10 +185,18 @@ describe('subjectTypesFor', () => {
 describe('adjectiveCounts', () => {
   it('counts each adjective the account has used, most-used first', async () => {
     const { adjectiveCounts } = await import('./db');
-    expect(adjectiveCounts('did:plc:known')).toEqual([
+    expect(adjectiveCounts({ did: 'did:plc:known' })).toEqual([
       { adjective: 'delicious', count: 1 },
       { adjective: 'filling', count: 1 },
       { adjective: 'unremarkable', count: 1 },
+    ]);
+  });
+
+  it('counts the adjectives used about one subject', async () => {
+    const { adjectiveCounts } = await import('./db');
+    expect(adjectiveCounts({ subjectUri: 'at://did:plc:x/app.bsky.feed.post/1' })).toEqual([
+      { adjective: 'delicious', count: 2 },
+      { adjective: 'filling', count: 1 },
     ]);
   });
 });
