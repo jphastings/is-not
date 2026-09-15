@@ -52,3 +52,22 @@ async function build(): Promise<NodeOAuthClient> {
     sessionStore,
   });
 }
+
+// RFC 7517/7518 private members, by key type: RSA, EC and OKP, and oct.
+const PRIVATE_MEMBERS = ['d', 'p', 'q', 'dp', 'dq', 'qi', 'oth', 'k'];
+
+/**
+ * The keyset's own jwks still carries the private members, so publishing it
+ * verbatim would hand out the signing key. Strip them before serving.
+ */
+export function publicJwks(jwks: { keys: Record<string, unknown>[] }): {
+  keys: Record<string, unknown>[];
+} {
+  return {
+    keys: jwks.keys.map((key) => {
+      const pub = { ...key };
+      for (const member of PRIVATE_MEMBERS) delete pub[member];
+      return pub;
+    }),
+  };
+}
