@@ -4,6 +4,12 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('$env/dynamic/private', () => ({ env: process.env }));
+vi.mock('node:dns/promises', () => ({
+  resolveTxt: async (name: string) => {
+    if (name === '_atproto.dns.example') return [['did=did:plc:dns']];
+    throw new Error('no TXT record');
+  },
+}));
 vi.mock('./oauth.ts', () => ({
   origin: () => 'https://isnot.at',
   oauthClient: async () => ({
@@ -35,5 +41,24 @@ describe('accountsFor', () => {
   it('has no accounts when nobody is signed in', async () => {
     const { accountsFor } = await import('./accounts.ts');
     expect(await accountsFor(null)).toEqual({ accounts: [], current: null });
+  });
+});
+
+describe('handleDid', () => {
+  it('resolves via the DNS TXT method first', async () => {
+    const { handleDid } = await import('./accounts.ts');
+    expect(await handleDid('dns.example')).toBe('did:plc:dns');
+  });
+
+  it('falls back to the HTTPS well-known method when DNS has no record', async () => {
+    vi.stubGlobal('fetch', async () => new Response('did:plc:https\n'));
+    const { handleDid } = await import('./accounts.ts');
+    expect(await handleDid('https.example')).toBe('did:plc:https');
+  });
+
+  it('returns null when neither method resolves', async () => {
+    vi.stubGlobal('fetch', async () => new Response('not found', { status: 404 }));
+    const { handleDid } = await import('./accounts.ts');
+    expect(await handleDid('nobody.example')).toBeNull();
   });
 });

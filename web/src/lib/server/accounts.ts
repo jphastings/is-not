@@ -1,3 +1,4 @@
+import { resolveTxt } from 'node:dns/promises';
 import { Agent } from '@atproto/api';
 import type { OAuthSession } from '@atproto/oauth-client-node';
 import { oauthClient } from './oauth.ts';
@@ -14,6 +15,31 @@ export async function didHandle(did: string): Promise<string> {
     return doc.alsoKnownAs?.find((a) => a.startsWith('at://'))?.slice(5) ?? '';
   } catch {
     return '';
+  }
+}
+
+/**
+ * Resolves a handle to its DID, per the atproto handle resolution spec: the DNS
+ * TXT method first, then the HTTPS well-known fallback. Returns null when
+ * neither method resolves.
+ */
+export async function handleDid(handle: string): Promise<string | null> {
+  try {
+    const records = await resolveTxt(`_atproto.${handle}`);
+    const did = records
+      .flat()
+      .find((r) => r.startsWith('did='))
+      ?.slice(4);
+    if (did) return did;
+  } catch {
+    // fall through to the HTTPS method
+  }
+  try {
+    const res = await fetch(`https://${handle}/.well-known/atproto-did`);
+    const text = (await res.text()).trim();
+    return res.ok && text.startsWith('did:') ? text : null;
+  } catch {
+    return null;
   }
 }
 

@@ -10,6 +10,7 @@
   "unsupported_note": "We don't know this kind of thing yet, so check the title.",
   "dir_2": "is really",
   "dir_1": "is",
+  "dir_0": "???",
   "dir_m1": "is not",
   "dir_m2": "really isn't",
   "add_another": "and?",
@@ -66,5 +67,11 @@
   "import_favorited": "favourited",
   "import_reviewed": "{rating}★ review",
   "import_button": "Import",
-  "import_done": "Imported."
+  "import_done": "Imported.",
+  "reviews_title": "{who} · is/not",
+  "reviews_empty": "Nothing here yet.",
+  "filter_all": "All",
+  "filter_types": "Filter by type",
+  "filter_adjectives": "Filter by adjective",
+  "confirm_delete": "Delete this review? This can't be undone."
 }

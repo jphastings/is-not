@@ -3,6 +3,7 @@
 *.db-shm
 .superpowers/
 /isnot
+/is-not
 node_modules/
 packages/lenses/dist/
 packages/lenses/target/

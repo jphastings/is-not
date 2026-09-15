@@ -122,3 +122,51 @@ describe('findReview', () => {
     ).toBeNull();
   });
 });
+
+describe('listReviews', () => {
+  it('returns every review for the account with its tags, direction 0 included', async () => {
+    const { listReviews } = await import('./db');
+    const reviews = listReviews('did:plc:known');
+
+    expect(reviews.map((r) => r.subject.title).sort()).toEqual(['a rock', 'a sandwich']);
+    const sandwich = reviews.find((r) => r.subject.title === 'a sandwich');
+    expect(sandwich?.tags.sort((a, b) => a.adjective.localeCompare(b.adjective))).toEqual([
+      { adjective: 'delicious', direction: 1 },
+      { adjective: 'filling', direction: 2 },
+    ]);
+    const rock = reviews.find((r) => r.subject.title === 'a rock');
+    expect(rock?.tags).toEqual([{ adjective: 'unremarkable', direction: 0 }]);
+  });
+
+  it('filters by adjective, keeping every tag on the matching review', async () => {
+    const { listReviews } = await import('./db');
+    const reviews = listReviews('did:plc:known', { adjective: 'delicious' });
+    expect(reviews).toHaveLength(1);
+    expect(reviews[0].tags.map((t) => t.adjective).sort()).toEqual(['delicious', 'filling']);
+  });
+
+  it('filters by subject type', async () => {
+    const { listReviews } = await import('./db');
+    expect(listReviews('did:plc:known', { type: 'does-not-exist' })).toEqual([]);
+    expect(listReviews('did:plc:known', { type: 'post' })).toHaveLength(2);
+  });
+});
+
+describe('subjectTypesFor', () => {
+  it('returns the distinct subject types for the account', async () => {
+    const { subjectTypesFor } = await import('./db');
+    expect(subjectTypesFor('did:plc:known')).toEqual(['post']);
+    expect(subjectTypesFor('did:plc:nobody')).toEqual([]);
+  });
+});
+
+describe('adjectiveCounts', () => {
+  it('counts each adjective the account has used, most-used first', async () => {
+    const { adjectiveCounts } = await import('./db');
+    expect(adjectiveCounts('did:plc:known')).toEqual([
+      { adjective: 'delicious', count: 1 },
+      { adjective: 'filling', count: 1 },
+      { adjective: 'unremarkable', count: 1 },
+    ]);
+  });
+});

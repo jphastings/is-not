@@ -79,6 +79,105 @@ export function randomSentences(limit = 10): HomeReview[] {
 
 export type ExistingReview = { rkey: string; createdAt: string; tags: Tag[]; locale?: string };
 
+export type ListedReview = {
+  rkey: string;
+  subject: { uri: string; cid: string; title: string; type: string };
+  tags: Tag[];
+  locale?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ReviewFilters = { type?: string; adjective?: string };
+
+type ListRow = {
+  rkey: string;
+  subject_uri: string;
+  subject_cid: string;
+  subject_title: string;
+  subject_type: string;
+  locale: string;
+  created_at: string;
+  updated_at: string;
+  adjective: string;
+  direction: Direction;
+};
+
+/** Every review this account holds, newest update first, optionally narrowed to one subject type and/or adjective. */
+export function listReviews(did: string, filters: ReviewFilters = {}): ListedReview[] {
+  const conn = open();
+  if (!conn) return [];
+
+  const conditions = ['r.did = ?'];
+  const params: string[] = [did];
+  if (filters.type) {
+    conditions.push('r.subject_type = ?');
+    params.push(filters.type);
+  }
+  if (filters.adjective) {
+    conditions.push('r.rkey IN (SELECT rkey FROM review_tags WHERE did = ? AND adjective = ?)');
+    params.push(did, filters.adjective);
+  }
+
+  const rows = conn
+    .prepare(
+      `SELECT r.rkey, r.subject_uri, r.subject_cid, r.subject_title, r.subject_type,
+              r.locale, r.created_at, r.updated_at, t.adjective, t.direction
+       FROM reviews r
+       JOIN review_tags t ON t.did = r.did AND t.rkey = r.rkey
+       WHERE ${conditions.join(' AND ')}
+       ORDER BY r.updated_at DESC, r.rkey, t.adjective`,
+    )
+    .all(...params) as unknown as ListRow[];
+
+  const byRkey = new Map<string, ListedReview>();
+  for (const row of rows) {
+    let review = byRkey.get(row.rkey);
+    if (!review) {
+      review = {
+        rkey: row.rkey,
+        subject: {
+          uri: row.subject_uri,
+          cid: row.subject_cid,
+          title: row.subject_title,
+          type: row.subject_type,
+        },
+        tags: [],
+        locale: row.locale || undefined,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      };
+      byRkey.set(row.rkey, review);
+    }
+    review.tags.push({ adjective: row.adjective, direction: row.direction });
+  }
+  return [...byRkey.values()];
+}
+
+/** The distinct subject types this account has reviewed, for the type filter's options. */
+export function subjectTypesFor(did: string): string[] {
+  const conn = open();
+  if (!conn) return [];
+  const rows = conn
+    .prepare('SELECT DISTINCT subject_type FROM reviews WHERE did = ? ORDER BY subject_type')
+    .all(did) as unknown as { subject_type: string }[];
+  return rows.map((r) => r.subject_type);
+}
+
+export type AdjectiveCount = { adjective: string; count: number };
+
+/** Every adjective this account has used and how often, for the adjective cloud. */
+export function adjectiveCounts(did: string): AdjectiveCount[] {
+  const conn = open();
+  if (!conn) return [];
+  return conn
+    .prepare(
+      `SELECT adjective, COUNT(*) AS count FROM review_tags
+       WHERE did = ? GROUP BY adjective ORDER BY count DESC, adjective`,
+    )
+    .all(did) as unknown as AdjectiveCount[];
+}
+
 /** The reviewer's own review of a subject, if they have already reviewed it. */
 export function findReview(did: string, subjectUri: string): ExistingReview | null {
   const conn = open();
