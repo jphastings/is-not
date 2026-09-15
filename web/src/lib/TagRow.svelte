@@ -166,4 +166,14 @@
   .remove:hover {
     color: var(--ink);
   }
+  /* `font: inherit` carries the font shorthand's own line-height, not the one
+     the sentence cascades, so a field's box was the font's line-height while
+     the words beside it are as tall as the font's real metrics: every field
+     rode ~9px high, and a wrapped line staggered. `normal` is those metrics.
+     Last in the sheet because every `font` shorthand above resets it. */
+  .autosize::after,
+  .autosize textarea,
+  .autosize select {
+    line-height: normal;
+  }
 </style>
