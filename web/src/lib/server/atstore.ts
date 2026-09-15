@@ -1,19 +1,13 @@
 import type { Agent } from '@atproto/api';
-import { fetchRecord, loadLenses } from '@is-not/lenses';
-import type { Subject, Tag } from '@is-not/lenses';
+import type { Tag } from '@is-not/lenses';
 import { findReview } from './db.ts';
 
 const FAVORITE_COLLECTION = 'fyi.atstore.listing.favorite';
 const REVIEW_COLLECTION = 'fyi.atstore.listing.review';
 
-export type ImportSource = { collection: 'favorite' | 'review'; uri: string; rating?: number };
-
 export type ImportRow = {
   subjectUri: string;
-  subject: Subject | null;
-  error: string | null;
   tags: Tag[];
-  sources: ImportSource[];
   isUpdate: boolean;
   /** The oldest source record's own createdAt: an imported opinion is that old. */
   createdAt?: string;
@@ -51,15 +45,6 @@ function ratingDirection(rating: number): Tag['direction'] {
   return Math.min(2, Math.max(-2, Math.round(rating) - 3)) as Tag['direction'];
 }
 
-let lenses: ReturnType<typeof loadLenses> | undefined;
-
-/** Resolves a fyi.atstore.listing.detail record to a review subject, in Node. */
-async function resolveDetail(uri: string) {
-  lenses ??= loadLenses();
-  const [engine, { cid, record }] = await Promise.all([lenses, fetchRecord(uri)]);
-  return engine.resolveSubject({ uri, cid, record });
-}
-
 /**
  * Reads the signed-in account's atstore.fyi favourites and reviews, grouped by the app
  * (fyi.atstore.listing.detail record) they're about, so each becomes one at.isnot.review
@@ -71,56 +56,29 @@ export async function previewAtstoreImport(did: string, agent: Agent): Promise<I
     listAll(agent, did, REVIEW_COLLECTION),
   ]);
 
-  type Group = { tags: Tag[]; sources: ImportSource[]; createdAt?: string };
+  type Group = { tags: Tag[]; createdAt?: string };
   const bySubject = new Map<string, Group>();
-  const add = (record: ListedRecord, tag: Tag, source: ImportSource) => {
+  const add = (record: ListedRecord, tag: Tag) => {
     const subjectUri = record.value.subject;
     if (!isString(subjectUri) || subjectUri === '') return;
-    const entry = bySubject.get(subjectUri) ?? { tags: [], sources: [] };
+    const entry = bySubject.get(subjectUri) ?? { tags: [] };
     entry.tags.push(tag);
-    entry.sources.push(source);
     entry.createdAt = earliest(entry.createdAt, record.value.createdAt);
     bySubject.set(subjectUri, entry);
   };
 
   for (const record of favorites) {
-    add(
-      record,
-      { adjective: 'awesome', direction: 2 },
-      { collection: 'favorite', uri: record.uri },
-    );
+    add(record, { adjective: 'awesome', direction: 2 });
   }
   for (const record of reviews) {
     const rating = Number(record.value.rating);
-    add(
-      record,
-      { adjective: 'good', direction: ratingDirection(rating) },
-      { collection: 'review', uri: record.uri, rating },
-    );
+    add(record, { adjective: 'good', direction: ratingDirection(rating) });
   }
 
-  return Promise.all(
-    [...bySubject.entries()].map(async ([subjectUri, { tags, sources, createdAt }]) => {
-      const row = { subjectUri, tags, sources, createdAt };
-      try {
-        const resolution = await resolveDetail(subjectUri);
-        if ('error' in resolution) {
-          return { ...row, subject: null, error: resolution.error, isUpdate: false };
-        }
-        return {
-          ...row,
-          subject: resolution.subject,
-          error: null,
-          isUpdate: findReview(did, subjectUri) !== null,
-        };
-      } catch (e) {
-        return {
-          ...row,
-          subject: null,
-          error: e instanceof Error ? e.message : 'unresolved',
-          isUpdate: false,
-        };
-      }
-    }),
-  );
+  return [...bySubject.entries()].map(([subjectUri, { tags, createdAt }]) => ({
+    subjectUri,
+    tags,
+    createdAt,
+    isUpdate: findReview(did, subjectUri) !== null,
+  }));
 }
