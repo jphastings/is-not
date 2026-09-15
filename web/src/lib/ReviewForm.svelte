@@ -281,6 +281,9 @@
     font: inherit;
   }
 
+  /* The hidden twin alone sets the box: a form control's intrinsic height and
+     width differ per browser (Firefox sizes inputs taller than the same text),
+     which would tilt the rules out of line. */
   .autosize::after {
     content: attr(data-value) ' ';
     visibility: hidden;
@@ -288,13 +291,7 @@
     overflow-wrap: anywhere;
   }
 
-  .autosize input {
-    width: 100%;
-    min-width: 0;
-  }
-
-  /* A select is always as wide as its widest option, so take it out of the
-     grid's sizing and let the hidden twin hold the selected option's width. */
+  .autosize input,
   .autosize select {
     position: absolute;
     inset: 0;
@@ -321,11 +318,12 @@
     cursor: pointer;
   }
 
-  /* Every part of the sentence is underlined on its own box, so the rules sit
-     on one line however the parts are built. */
+  /* Every part of the sentence is ruled on its own box, so they sit on one
+     line however the part is built. The rule is a shadow, not a border, so
+     thickening it on focus cannot change anyone's height. */
   .autosize,
   .slot {
-    border-bottom: 0.07em solid var(--moss);
+    box-shadow: inset 0 -0.07em 0 var(--moss);
   }
 
   /* A box around a word would break the sentence, so focus thickens the rule. */
@@ -335,8 +333,7 @@
 
   .autosize:has(:focus-visible),
   .slot:focus-visible {
-    border-bottom-width: 0.16em;
-    border-bottom-color: var(--moss-deep);
+    box-shadow: inset 0 -0.16em 0 var(--moss-deep);
   }
 
   .comma {
@@ -380,8 +377,7 @@
     font: inherit;
     color: var(--ink-soft);
     background: none;
-    border-inline: 0;
-    border-top: 0;
+    border: 0;
     padding: 0;
     cursor: pointer;
   }
