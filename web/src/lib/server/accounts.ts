@@ -1,6 +1,7 @@
 import { Agent } from '@atproto/api';
-import type { Browser } from './sessions.ts';
+import type { OAuthSession } from '@atproto/oauth-client-node';
 import { oauthClient } from './oauth.ts';
+import { removeAccount, type Browser } from './sessions.ts';
 
 export type Account = { did: string; handle: string };
 
@@ -16,17 +17,44 @@ export async function didHandle(did: string): Promise<string> {
   }
 }
 
+/** The session for a DID, or null when it can no longer be restored. */
+export async function sessionFor(did: string): Promise<OAuthSession | null> {
+  try {
+    return await (await oauthClient()).restore(did);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A session the PDS will no longer honour, because it was revoked or because
+ * the scope we ask for changed, must read as signed out rather than as an
+ * account whose every save fails.
+ */
 export async function accountsFor(
   browser: Browser | null,
 ): Promise<{ accounts: Account[]; current: Account | null }> {
   if (!browser) return { accounts: [], current: null };
-  const accounts = await Promise.all(
-    browser.dids.map(async (did) => ({ did, handle: await didHandle(did) })),
+
+  const restored = await Promise.all(
+    browser.dids.map(async (did) => ({ did, session: await sessionFor(did) })),
   );
-  return { accounts, current: accounts.find((a) => a.did === browser.current) ?? null };
+
+  let current = browser.current;
+  for (const { did, session } of restored) {
+    if (session) continue;
+    current = removeAccount(browser.id, did).current;
+  }
+
+  const accounts = await Promise.all(
+    restored
+      .filter(({ session }) => session !== null)
+      .map(async ({ did }) => ({ did, handle: await didHandle(did) })),
+  );
+  return { accounts, current: accounts.find((a) => a.did === current) ?? null };
 }
 
-export async function agentFor(did: string): Promise<Agent> {
-  const session = await (await oauthClient()).restore(did);
-  return new Agent(session);
+export async function agentFor(did: string): Promise<Agent | null> {
+  const session = await sessionFor(did);
+  return session ? new Agent(session) : null;
 }

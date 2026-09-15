@@ -33,6 +33,7 @@ export const actions: Actions = {
     };
     try {
       const agent = await agentFor(did);
+      if (!agent) return fail(401, { error: 'signin' });
       const rkey = existing?.rkey ?? TID.nextStr();
       const res = existing
         ? await agent.com.atproto.repo.putRecord({

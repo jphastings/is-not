@@ -3,11 +3,11 @@ import { JoseKey } from '@atproto/jwk-jose';
 import { env } from '$env/dynamic/private';
 import { sessionStore, stateStore } from './sessions.ts';
 
-// The least privilege the network actually grants today. Every PDS we checked
-// (bsky.social, eurosky.social, blacksky.app, northsky.social) advertises only
-// atproto and the transition:* scopes, so writing records needs transition:generic.
-// Narrow this to at.isnot records the moment servers support it: bean ISNOT-67a5.
-const SCOPE = 'atproto transition:generic';
+// Exactly what this site does: read the account's identity, and create, update
+// and delete its own review records. Nothing else in the repo is ours to touch.
+// No PDS implements granular scopes yet, so sign-in fails until they do; that is
+// a deliberate choice, recorded in bean ISNOT-67a5.
+const SCOPE = 'atproto repo:at.isnot.review?action=create&action=update&action=delete';
 let client: Promise<NodeOAuthClient> | undefined;
 
 export function origin(): string {

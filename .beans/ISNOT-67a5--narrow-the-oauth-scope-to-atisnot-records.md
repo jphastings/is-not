@@ -5,18 +5,16 @@ status: todo
 type: task
 priority: high
 created_at: 2026-09-15T10:51:02Z
-updated_at: 2026-09-15T10:51:02Z
+updated_at: 2026-09-15T12:23:55Z
 parent: ISNOT-kgev
 ---
 
-The site asks for 'atproto transition:generic', which grants write access to every collection in the person's repo. We only ever write at.isnot.review.
+The site now asks for 'atproto repo:at.isnot.review?action=create&action=update&action=delete' instead of transition:generic, so it can only touch its own records. JP chose to ship this before servers support it.
 
-Blocked on the servers, not on us. On 2026-09-15 all four services we offer advertised the same scopes_supported in their authorization server metadata: atproto, transition:email, transition:generic, transition:chat.bsky. No granular scope is deployed anywhere yet, and putting one in client metadata is reported to break authentication on PDSes that cannot parse it, so requesting one now would lock everyone out.
+What is verified (2026-09-15): the pushed authorization request is ACCEPTED by eurosky.social with this scope, and the sign-in page renders normally with the identifier filled in. That was not expected; the scope is not advertised in scopes_supported on any of bsky.social, eurosky.social, blacksky.app or northsky.social.
 
-Watch for scopes_supported gaining repo:* entries, then switch web/src/lib/server/oauth.ts SCOPE to something like:
-  atproto repo:at.isnot.review?action=create&action=update&action=delete
-Check the final spec for how multiple actions are encoded (proposal 0011 says repeated query parameters; it also says parameter names were not final).
+What is NOT verified: everything past the password prompt. Whether the server shows sensible consent text for a scope it does not advertise, whether the token exchange succeeds, and whether a granted session can actually write an at.isnot.review record. Signing in once answers all three.
 
-Our own XRPC API is public and unauthenticated, so it needs no rpc scope. If an endpoint ever requires the caller's identity, add rpc:<nsid>?aud=did:web:api.isnot.at alongside.
+If it turns out the scope is rejected or silently ignored: revert SCOPE in web/src/lib/server/oauth.ts to 'atproto transition:generic' (one line) and redeploy. A session already granted under the old scope reads as signed out rather than failing every save, so the fallback is clean.
 
-Changing the scope invalidates existing sessions, so do it when a re-sign-in is acceptable.
+Our own XRPC API is public and unauthenticated, so no rpc: scope is needed. Add rpc:<nsid>?aud=did:web:api.isnot.at if an endpoint ever needs the caller's identity.
