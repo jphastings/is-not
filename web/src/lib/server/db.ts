@@ -1,19 +1,45 @@
 import { DatabaseSync } from 'node:sqlite';
 import { env } from '$env/dynamic/private';
-import type { Tag } from '$lib/tags';
+import type { Direction } from '@is-not/sentence';
 
-export type { Tag } from '$lib/tags';
-export { directionPhrase } from '$lib/tags';
+export type HomeReview = {
+  did: string;
+  handle: string;
+  rkey: string;
+  subject: { uri: string; cid: string; title: string; type: string };
+  tags: { direction: Direction; adjective: string }[];
+  locale?: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
 const QUERY = `
-	SELECT r.did, COALESCE(a.handle, '') AS handle, r.subject_title AS title, t.direction, t.adjective
-	FROM review_tags t
-	JOIN reviews r ON r.did = t.did AND r.rkey = t.rkey
-	LEFT JOIN accounts a ON a.did = r.did
-	WHERE t.direction != 0
-	ORDER BY random()
-	LIMIT ?
+  SELECT r.did, r.rkey, COALESCE(a.handle, '') AS handle,
+         r.subject_uri, r.subject_cid, r.subject_title, r.subject_type,
+         r.locale, r.created_at, r.updated_at,
+         t.adjective, t.direction
+  FROM review_tags t
+  JOIN reviews r ON r.did = t.did AND r.rkey = t.rkey
+  LEFT JOIN accounts a ON a.did = r.did
+  WHERE t.direction != 0
+  ORDER BY random()
+  LIMIT ?
 `;
+
+type Row = {
+  did: string;
+  rkey: string;
+  handle: string;
+  subject_uri: string;
+  subject_cid: string;
+  subject_title: string;
+  subject_type: string;
+  locale: string;
+  created_at: string;
+  updated_at: string;
+  adjective: string;
+  direction: Direction;
+};
 
 let db: DatabaseSync | undefined;
 
@@ -27,8 +53,24 @@ function open(): DatabaseSync | undefined {
   return db;
 }
 
-export function randomTags(limit = 10): Tag[] {
+/** Random reviews, each carrying exactly one tag, for the rotating homepage sentence. */
+export function randomSentences(limit = 10): HomeReview[] {
   const conn = open();
   if (!conn) return [];
-  return conn.prepare(QUERY).all(limit) as unknown as Tag[];
+  const rows = conn.prepare(QUERY).all(limit) as unknown as Row[];
+  return rows.map((row) => ({
+    did: row.did,
+    handle: row.handle,
+    rkey: row.rkey,
+    subject: {
+      uri: row.subject_uri,
+      cid: row.subject_cid,
+      title: row.subject_title,
+      type: row.subject_type,
+    },
+    tags: [{ direction: row.direction, adjective: row.adjective }],
+    locale: row.locale || undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
 }
