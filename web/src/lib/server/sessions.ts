@@ -12,6 +12,7 @@ export function sessionsDB(): DatabaseSync {
   db = new DatabaseSync(env.SESSIONS_DATABASE_PATH ?? 'web-sessions.db');
   db.exec(`
     PRAGMA journal_mode = WAL;
+    PRAGMA busy_timeout = 5000;
     CREATE TABLE IF NOT EXISTS oauth_state (key TEXT PRIMARY KEY, value TEXT NOT NULL, created_at INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS oauth_session (sub TEXT PRIMARY KEY, value TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS browser (id TEXT PRIMARY KEY, dids TEXT NOT NULL, current TEXT);

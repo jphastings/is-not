@@ -44,5 +44,11 @@
   "docs_link_lenses": "@is-not/lenses",
   "docs_link_sentence": "@is-not/sentence",
   "docs_link_source": "The source",
-  "home": "is/not"
+  "home": "is/not",
+  "login_heading": "Your Atmosphere account",
+  "login_placeholder": "handle or did",
+  "login_continue": "Continue",
+  "login_or": "or",
+  "login_on": "Sign in on {service}",
+  "error_handle": "That handle didn't resolve. Check it, or pick a service."
 }

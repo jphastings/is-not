@@ -47,6 +47,8 @@ function open(): DatabaseSync | undefined {
   if (db) return db;
   try {
     db = new DatabaseSync(env.DATABASE_PATH ?? '../isnot.db', { readOnly: true });
+    // The ingester is writing to this file; wait for it rather than throwing.
+    db.exec('PRAGMA busy_timeout = 5000');
   } catch {
     return undefined;
   }

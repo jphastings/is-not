@@ -5,6 +5,7 @@
   import { getLocale } from '$lib/paraglide/runtime.js';
   import { RECORD_URI, resolveSubject } from '$lib/lenses';
   import { validateReview } from '$lib/review';
+  import Login from '$lib/Login.svelte';
 
   type Account = { did: string; handle: string };
   type ExistingReview = { rkey: string; tags: Tag[]; locale?: string };
@@ -138,7 +139,9 @@
       </details>
       <span>{m.thinks()}</span>
     {:else}
-      <button form="login-form" class="slot">{m.handle_placeholder()}</button>
+      <button type="button" class="slot" popovertarget="login-popover">
+        {m.handle_placeholder()}
+      </button>
       <span>{m.thinks()}</span>
     {/if}
 
@@ -216,6 +219,8 @@
     {/if}
   </div>
 </form>
+
+<div id="login-popover" popover="auto"><Login /></div>
 
 <form id="login-form" method="POST" action="/oauth/login" hidden></form>
 <form id="switch-form" method="POST" action="/oauth/switch" hidden></form>
@@ -322,6 +327,7 @@
 
   .who {
     display: inline;
+    position: relative;
   }
 
   .who summary {
@@ -379,7 +385,7 @@
     color: var(--ink);
   }
 
-  /* Empty, this is a button that starts sign-in; it wears the inputs' clothes. */
+  /* Empty, this opens sign-in; it wears the inputs' clothes. */
   .slot {
     font: inherit;
     color: var(--ink-soft);
@@ -389,6 +395,17 @@
     border-bottom: 0.07em solid var(--moss);
     padding: 0;
     cursor: pointer;
+  }
+
+  #login-popover {
+    border: 0;
+    padding: 0;
+    background: none;
+    overflow: visible;
+  }
+
+  #login-popover::backdrop {
+    background: oklch(22% 0.03 140 / 0.3);
   }
 
   .hint,
