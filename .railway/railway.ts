@@ -13,6 +13,7 @@ export default defineRailway(() => {
       WEB_PORT: '3000',
       WEB_ORIGIN: 'https://isnot.at',
       DATABASE_PATH: '/data/isnot.db',
+      API_ORIGIN: 'http://127.0.0.1:8080',
       JETSTREAM_API_KEY: preserve(),
       OAUTH_PRIVATE_KEY: preserve(),
       SESSIONS_DATABASE_PATH: '/data/web-sessions.db',

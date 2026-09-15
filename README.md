@@ -56,6 +56,7 @@ prefix) so it can share a container with the API, which owns `PORT`.
 | `WEB_ORIGIN` | `http://127.0.0.1:5173` | site origin; an `http://127.0.0.1` origin uses the atproto OAuth loopback client (`localhost` is refused, RFC 8252, so browse the dev server at 127.0.0.1), any other origin needs `OAUTH_PRIVATE_KEY` |
 | `OAUTH_PRIVATE_KEY` | unset | ES256 JWK for OAuth client authentication; generate with `pnpm --filter web keygen`; not needed for loopback development |
 | `SESSIONS_DATABASE_PATH` | `web-sessions.db` | SQLite file for browser accounts and OAuth state/sessions |
+| `API_ORIGIN` | `http://127.0.0.1:8080` | where the site's server-side routes reach the Go API; both processes share a container, so the default is the API's own `PORT` |
 
 ## Deploying
 
@@ -111,6 +112,9 @@ recovery if `isnot.at` is lost.
 `lexicons/at/isnot/review.json`. A review is a subject (uri, cid, title, type, identifiers)
 plus one or more tags (an adjective of up to 16 graphemes, and a direction from -2 to 2),
 a createdAt and an updatedAt, and an optional locale.
+
+`lexicons/at/isnot/suggestSubjects.json` is a public query, `GET /xrpc/at.isnot.suggestSubjects?q=&limit=`,
+that suggests review subjects by title from the appview's own database.
 
 It is published to the network as a `com.atproto.lexicon.schema` record in the project's own
 repo, so anyone can resolve `at.isnot.review` without this repository. `_lexicon.isnot.at`

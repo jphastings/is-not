@@ -71,7 +71,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 		cancel()
 	}()
 	go func() {
-		errs <- serve(runCtx, ":"+env("PORT", "8080"), healthHandler(), log)
+		errs <- serve(runCtx, ":"+env("PORT", "8080"), apiHandler(db), log)
 		cancel()
 	}()
 
