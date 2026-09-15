@@ -1,0 +1,48 @@
+{
+  "lexicon": 1,
+  "id": "at.isnot.suggestSubjects",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Suggest review subjects whose title matches a search string, most-reviewed first.",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "q"
+        ],
+        "properties": {
+          "q": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Text to match against subject titles, case-insensitively. An empty string returns no suggestions."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25,
+            "default": 8
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "subjects"
+          ],
+          "properties": {
+            "subjects": {
+              "type": "array",
+              "maxLength": 25,
+              "items": {
+                "type": "ref",
+                "ref": "at.isnot.review#subject"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

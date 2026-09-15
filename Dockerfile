@@ -50,6 +50,6 @@ COPY --from=api /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=api /isnot /usr/local/bin/isnot
 COPY --from=web /src/web/build /app/web
 COPY scripts/start.sh /usr/local/bin/start.sh
-ENV NODE_ENV=production PORT=8080 WEB_PORT=3000 DATABASE_PATH=/data/isnot.db
+ENV NODE_ENV=production PORT=8080 WEB_PORT=3000 DATABASE_PATH=/data/isnot.db API_ORIGIN=http://127.0.0.1:8080
 EXPOSE 8080 3000
 CMD ["start.sh"]
