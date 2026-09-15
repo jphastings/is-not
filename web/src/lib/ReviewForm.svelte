@@ -6,6 +6,7 @@
   import { RECORD_URI, resolveSubject } from '$lib/lenses';
   import { validateReview } from '$lib/review';
   import Login from '$lib/Login.svelte';
+  import TagRow from '$lib/TagRow.svelte';
 
   type Account = { did: string; handle: string };
   type ExistingReview = { rkey: string; tags: Tag[]; locale?: string };
@@ -21,13 +22,6 @@
     serverError: string | null;
     saved: string | null;
   } = $props();
-
-  const directions = [
-    { value: 2, label: () => m.dir_2() },
-    { value: 1, label: () => m.dir_1() },
-    { value: -1, label: () => m.dir_m1() },
-    { value: -2, label: () => m.dir_m2() },
-  ];
 
   const errors: Record<string, () => string> = {
     signin: () => m.error_signin(),
@@ -162,38 +156,11 @@
 
     <ul class="tags">
       {#each tags as tag, i (i)}
-        <li>
-          <span
-            class="autosize direction"
-            data-value={directions.find((d) => d.value === tag.direction)?.label()}
-          >
-            <select bind:value={tag.direction} aria-label={m.dir_1()}>
-              {#each directions as direction (direction.value)}
-                <option value={direction.value}>{direction.label()}</option>
-              {/each}
-            </select>
-          </span>
-          <span class="autosize adjective" data-value={tag.adjective || m.adjective_placeholder()}>
-            <textarea
-              bind:value={tag.adjective}
-              rows="1"
-              onkeydown={oneLine}
-              placeholder={m.adjective_placeholder()}
-              aria-label={m.adjective_placeholder()}
-            ></textarea>
-          </span>
-          {#if i < tags.length - 1}<span class="comma">,</span>{/if}
-          {#if tags.length > 1}
-            <button
-              type="button"
-              class="plain remove"
-              aria-label={m.remove()}
-              onclick={() => (tags = tags.filter((_, n) => n !== i))}
-            >
-              &times;
-            </button>
-          {/if}
-        </li>
+        <TagRow
+          {tag}
+          showComma={i < tags.length - 1}
+          onRemove={tags.length > 1 ? () => (tags = tags.filter((_, n) => n !== i)) : undefined}
+        />
       {/each}
     </ul>
 
@@ -265,8 +232,7 @@
     text-wrap: balance;
   }
 
-  .tags,
-  .tags li {
+  .tags {
     display: inline;
     list-style: none;
     margin: 0;
@@ -282,8 +248,7 @@
   }
 
   .autosize::after,
-  .autosize textarea,
-  .autosize select {
+  .autosize textarea {
     grid-area: 1 / 1;
     font: inherit;
   }
@@ -298,22 +263,17 @@
     overflow-wrap: anywhere;
   }
 
-  .autosize textarea,
-  .autosize select {
+  .autosize textarea {
     position: absolute;
     inset: 0;
     width: 100%;
     min-width: 0;
-  }
-
-  .autosize textarea {
     resize: none;
     overflow: hidden;
     text-align: inherit;
   }
 
-  textarea,
-  select {
+  textarea {
     font: inherit;
     color: inherit;
     background: none;
@@ -326,11 +286,6 @@
     opacity: 0.7;
   }
 
-  select {
-    appearance: none;
-    cursor: pointer;
-  }
-
   /* Every part of the sentence is ruled on its own box, so they sit on one
      line however the part is built. The rule is a shadow, not a border, so
      thickening it on focus cannot change anyone's height. */
@@ -340,17 +295,13 @@
   }
 
   /* A box around a word would break the sentence, so focus thickens the rule. */
-  .sentence :is(textarea, select, .slot):focus-visible {
+  .sentence :is(textarea, .slot):focus-visible {
     outline: none;
   }
 
   .autosize:has(:focus-visible),
   .slot:focus-visible {
     box-shadow: inset 0 -0.16em 0 var(--moss-deep);
-  }
-
-  .comma {
-    margin-inline-start: -0.25em;
   }
 
   .subject textarea {
@@ -370,19 +321,6 @@
   .and {
     color: var(--ink-soft);
     text-decoration: none;
-  }
-
-  .remove {
-    font-size: var(--step-1);
-    line-height: 1;
-    color: var(--ink-soft);
-    text-decoration: none;
-    padding-inline: 0.15em;
-    align-self: center;
-  }
-
-  .remove:hover {
-    color: var(--ink);
   }
 
   /* Wears the inputs' clothes: empty it opens sign-in, filled it opens accounts. */

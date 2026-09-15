@@ -23,11 +23,12 @@ export type Messages = {
   thinks: string;
   self: string;
   selfThinks: string;
-  directions: Record<'2' | '1' | '-1' | '-2', string>;
+  directions: Record<'2' | '1' | '0' | '-1' | '-2', string>;
 };
 
 const locales: Record<string, Messages> = { en };
-const order: Direction[] = [2, 1, -1, -2];
+// Neutral (0) sits between positive and negative, matching a strength scale.
+const order: Direction[] = [2, 1, 0, -1, -2];
 
 export function resolveLocale(
   reviewLocale: string | undefined,

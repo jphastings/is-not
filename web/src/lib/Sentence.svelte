@@ -10,7 +10,16 @@
 
 <span class="sentence">
   {#each parts as part, i (i)}
-    {#if part.kind === 'text'}<span>{part.text}</span>{:else}<span
+    {#if part.kind === 'text'}<span>{part.text}</span>{:else if part.kind === 'subject'}<a
+        href={`https://pdsls.dev/${part.uri}`}
+        rel="noreferrer"
+        class={part.kind}
+        in:fade|global={{
+          duration: animate ? 420 : 160,
+          delay: animate ? i * stagger : 0,
+          easing: easeOutQuart,
+        }}>{part.text}</a
+      >{:else}<span
         class={part.kind}
         class:not={part.kind === 'adjective' && part.direction < 0}
         in:fade|global={{
@@ -29,13 +38,19 @@
 
   /* Plain inline boxes, not inline-block: a line full of atomic boxes cannot be
      balanced, and the parts arrive by fading, which inline boxes can do. */
-  .sentence :global(span) {
+  .sentence :global(span),
+  .sentence :global(a) {
     display: inline;
     white-space: pre-wrap;
   }
 
   .subject {
     color: var(--moss-deep);
+    text-decoration: none;
+  }
+
+  .subject:hover {
+    text-decoration: underline;
   }
 
   .adjective {
