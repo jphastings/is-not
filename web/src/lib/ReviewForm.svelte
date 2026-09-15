@@ -39,6 +39,7 @@
     locale: () => m.error_locale(),
     state: () => m.error_state(),
     pds: () => m.error_pds(),
+    handle: () => m.error_handle(),
     unresolved: () => m.error_subject(),
   };
 
@@ -247,7 +248,7 @@
         </li>
       {/each}
       <li class="another">
-        <button form="login-form">{m.sign_in()}</button>
+        <button type="button" popovertarget="login-popover">{m.sign_in()}</button>
       </li>
     </ul>
   </div>
