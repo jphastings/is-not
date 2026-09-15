@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fly } from 'svelte/transition';
+  import { fade } from 'svelte/transition';
   import type { Part } from '@is-not/sentence';
 
   let { parts, animate = true }: { parts: Part[]; animate?: boolean } = $props();
@@ -13,8 +13,7 @@
     {#if part.kind === 'text'}<span>{part.text}</span>{:else}<span
         class={part.kind}
         class:not={part.kind === 'adjective' && part.direction < 0}
-        in:fly|global={{
-          y: animate ? 14 : 0,
+        in:fade|global={{
           duration: animate ? 420 : 160,
           delay: animate ? i * stagger : 0,
           easing: easeOutQuart,
@@ -28,8 +27,10 @@
     display: inline;
   }
 
+  /* Plain inline boxes, not inline-block: a line full of atomic boxes cannot be
+     balanced, and the parts arrive by fading, which inline boxes can do. */
   .sentence :global(span) {
-    display: inline-block;
+    display: inline;
     white-space: pre-wrap;
   }
 

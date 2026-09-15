@@ -16,7 +16,6 @@
   "remove": "remove",
   "save": "Save",
   "update": "Update",
-  "sign_in_another": "Sign in another",
   "sign_out": "Sign out",
   "handle_placeholder": "@who?",
   "saved": "Saved.",
@@ -50,5 +49,6 @@
   "login_continue": "Continue",
   "login_or": "or",
   "login_on": "Sign in on {service}",
-  "error_handle": "That handle didn't resolve. Check it, or pick a service."
+  "error_handle": "That handle didn't resolve. Check it, or pick a service.",
+  "sign_in": "Sign in"
 }

@@ -71,6 +71,15 @@
     current !== null && subject !== null && validateReview(JSON.parse(payload)).ok,
   );
 
+  // The fields are textareas so long titles wrap with the sentence, but a
+  // review is one line: Enter submits rather than breaking it.
+  function oneLine(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      (event.currentTarget as HTMLElement).closest('form')?.requestSubmit();
+    }
+  }
+
   async function resolve() {
     const uri = subjectText.trim();
     if (!RECORD_URI.test(uri)) return;
@@ -138,14 +147,15 @@
     <span>{m.thinks()}</span>
 
     <span class="autosize subject" data-value={subjectText || m.subject_placeholder()}>
-      <input
+      <textarea
         bind:value={subjectText}
-        size="1"
+        rows="1"
         onchange={resolve}
+        onkeydown={oneLine}
         onpaste={() => queueMicrotask(resolve)}
         placeholder={m.subject_placeholder()}
         aria-label={m.subject_placeholder()}
-      />
+      ></textarea>
     </span>
     {#if resolving}<span class="hint">{m.resolving()}</span>{/if}
 
@@ -163,12 +173,13 @@
             </select>
           </span>
           <span class="autosize adjective" data-value={tag.adjective || m.adjective_placeholder()}>
-            <input
+            <textarea
               bind:value={tag.adjective}
-              size="1"
+              rows="1"
+              onkeydown={oneLine}
               placeholder={m.adjective_placeholder()}
               aria-label={m.adjective_placeholder()}
-            />
+            ></textarea>
           </span>
           {#if i < tags.length - 1}<span class="comma">,</span>{/if}
           {#if tags.length > 1}
@@ -229,12 +240,14 @@
             class="signout"
             aria-label={m.sign_out()}
           >
-            &times;
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path d="M4 4 12 12M12 4 4 12" />
+            </svg>
           </button>
         </li>
       {/each}
       <li class="another">
-        <button form="login-form">{m.sign_in_another()}</button>
+        <button form="login-form">{m.sign_in()}</button>
       </li>
     </ul>
   </div>
@@ -245,26 +258,18 @@
 <form id="logout-form" method="POST" action="/oauth/logout" hidden></form>
 
 <style>
+  /* Laid out as text, not as flex items, so the browser can balance the lines. */
   .sentence {
     font-size: var(--step-3);
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: baseline;
-    gap: 0 0.3em;
+    text-wrap: balance;
   }
 
-  .tags {
-    display: contents;
-    list-style: none;
-  }
-
+  .tags,
   .tags li {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: baseline;
-    gap: 0 0.3em;
+    display: inline;
+    list-style: none;
+    margin: 0;
+    padding: 0;
   }
 
   /* Inputs grow with what is typed: the ::after twin sets the width. */
@@ -272,10 +277,11 @@
     display: inline-grid;
     max-width: 100%;
     position: relative;
+    vertical-align: baseline;
   }
 
   .autosize::after,
-  .autosize input,
+  .autosize textarea,
   .autosize select {
     grid-area: 1 / 1;
     font: inherit;
@@ -291,7 +297,7 @@
     overflow-wrap: anywhere;
   }
 
-  .autosize input,
+  .autosize textarea,
   .autosize select {
     position: absolute;
     inset: 0;
@@ -299,7 +305,13 @@
     min-width: 0;
   }
 
-  input,
+  .autosize textarea {
+    resize: none;
+    overflow: hidden;
+    text-align: inherit;
+  }
+
+  textarea,
   select {
     font: inherit;
     color: inherit;
@@ -308,7 +320,7 @@
     padding: 0;
   }
 
-  input::placeholder {
+  textarea::placeholder {
     color: var(--ink-soft);
     opacity: 0.7;
   }
@@ -327,7 +339,7 @@
   }
 
   /* A box around a word would break the sentence, so focus thickens the rule. */
-  .sentence :is(input, select, .slot):focus-visible {
+  .sentence :is(textarea, select, .slot):focus-visible {
     outline: none;
   }
 
@@ -340,7 +352,7 @@
     margin-inline-start: -0.25em;
   }
 
-  .subject input {
+  .subject textarea {
     color: var(--moss-deep);
   }
 
@@ -432,8 +444,7 @@
 
   .accounts li {
     display: flex;
-    align-items: center;
-    gap: var(--space-2);
+    align-items: stretch;
     border-radius: 9px;
   }
 
@@ -460,16 +471,30 @@
     font-weight: 700;
   }
 
+  /* The whole right side of the row, with the cross the same distance from the
+     top, right and bottom edges. */
   .accounts .signout {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    padding: 0;
     color: var(--ink-soft);
-    font-size: var(--step-1);
-    line-height: 1;
-    padding: var(--space-1) var(--space-2);
+  }
+
+  /* A fraction of a square button, so the cross sits the same distance from
+     every edge whatever the row's height turns out to be. */
+  .accounts .signout svg {
+    width: 45%;
+    height: 45%;
+    fill: none;
+    stroke: currentcolor;
+    stroke-width: 2;
+    stroke-linecap: round;
   }
 
   .accounts .signout:hover {
     color: var(--ink);
-    background: var(--paper);
+    background: var(--moss-tint);
   }
 
   .accounts .another {
