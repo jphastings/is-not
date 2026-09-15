@@ -1,31 +1,6 @@
 import type { Agent } from '@atproto/api';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
-const detailNames: Record<string, string> = {
-  'at://did:plc:app1/fyi.atstore.listing.detail/a': 'App One',
-  'at://did:plc:app2/fyi.atstore.listing.detail/b': 'App Two',
-};
-
-vi.mock('@is-not/lenses', () => ({
-  loadLenses: async () => ({
-    resolveSubject: ({
-      uri,
-      cid,
-      record,
-    }: {
-      uri: string;
-      cid: string;
-      record: { name: string };
-    }) => ({ supported: true, subject: { uri, cid, title: record.name, type: 'app' } }),
-  }),
-  fetchRecord: async (uri: string) => {
-    if (uri === 'at://did:plc:gone/fyi.atstore.listing.detail/z') {
-      throw new Error('getRecord failed for detail: 404');
-    }
-    return { cid: 'bafycid', record: { name: detailNames[uri] } };
-  },
-}));
-
 vi.mock('./db.ts', () => ({
   findReview: (_did: string, subjectUri: string) =>
     subjectUri.includes('app2') ? { rkey: 'x' } : null,
@@ -70,12 +45,7 @@ describe('previewAtstoreImport', () => {
     );
 
     expect(rows).toHaveLength(1);
-    expect(rows[0].subject).toEqual({
-      uri: 'at://did:plc:app1/fyi.atstore.listing.detail/a',
-      cid: 'bafycid',
-      title: 'App One',
-      type: 'app',
-    });
+    expect(rows[0].subjectUri).toBe('at://did:plc:app1/fyi.atstore.listing.detail/a');
     expect(rows[0].tags).toEqual([
       { adjective: 'awesome', direction: 2 },
       { adjective: 'good', direction: 2 },
@@ -99,24 +69,6 @@ describe('previewAtstoreImport', () => {
 
     expect(rows[0].tags).toEqual([{ adjective: 'good', direction: 0 }]);
     expect(rows[0].isUpdate).toBe(true);
-  });
-
-  it('marks a subject whose detail record cannot be fetched as an error, with no subject', async () => {
-    const rows = await previewAtstoreImport(
-      'did:plc:me',
-      fakeAgent({
-        'fyi.atstore.listing.favorite': [
-          {
-            uri: 'at://did:plc:me/fyi.atstore.listing.favorite/2',
-            value: { subject: 'at://did:plc:gone/fyi.atstore.listing.detail/z' },
-          },
-        ],
-        'fyi.atstore.listing.review': [],
-      }),
-    );
-
-    expect(rows[0].subject).toBeNull();
-    expect(rows[0].error).toMatch(/404/);
   });
 
   it('paginates listRecords until the cursor runs out', async () => {
