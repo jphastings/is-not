@@ -1,11 +1,11 @@
 ---
 # ISNOT-ccxb
 title: '/reviews/{did}: list, filter, adjective cloud, inline edit'
-status: todo
+status: completed
 type: feature
 priority: normal
 created_at: 2026-09-14T22:26:37Z
-updated_at: 2026-09-14T22:31:48Z
+updated_at: 2026-09-15T21:57:28Z
 parent: ISNOT-kgev
 blocked_by:
     - ISNOT-oegf

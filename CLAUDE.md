@@ -11,7 +11,10 @@ atproto appview for `at.isnot.review` records. Go API at the root, SvelteKit sit
 
 ## Working here
 
-- Commit straight to `main` until GitHub PRs are set up.
+- Work happens on branches, in parallel, and lands through pull requests against `jphastings/is-not` (`gh` is authenticated). A piece of work gets its own git worktree so several can run at once without touching each other's files; give each agent an explicit list of the files it owns and the files another agent is in, or two of them will edit the same component and the merge will be yours to untangle.
+- A branch cut before a sibling landed will not have that sibling's work. If two branches need the same helper, land it on `main` first and tell both to reuse it: an agent that cannot see a function it was told to use will recreate it, and the merge then conflicts on a file neither side meant to touch.
+- Read a merged branch before trusting it, and run the checks yourself on the merged tree. An agent verifies in its own worktree, where the wasm, the `dist/` builds and the paraglide output are its own; `main` after a merge is a combination neither agent tested.
+- `.claude/worktrees/` holds whole copies of the repo, so a tool pointed at the repo root reads them too. `vite.config.ts` ignores that path for exactly this reason: `pnpm check` was reformatting vendored lexicons inside stale worktrees.
 - Run `go test ./...` before committing. The smoke test in the ingest plan needs network access.
 - Keep this file focused: only things that cost real time, or how development is done here. After each piece of work, check whether it needs updating and make the edit in the same commit.
 - Migrations in `migrations/` are append-only: the site is deployed, so a live database exists. Editing an applied file changes nothing on that database (the runner skips versions it has already recorded) and the mismatch only shows up as a missing column at runtime. Add a numbered file instead.

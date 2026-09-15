@@ -1,11 +1,11 @@
 ---
 # ISNOT-67a5
 title: Narrow the OAuth scope to at.isnot records
-status: todo
+status: completed
 type: task
 priority: high
 created_at: 2026-09-15T10:51:02Z
-updated_at: 2026-09-15T12:23:55Z
+updated_at: 2026-09-15T21:57:28Z
 parent: ISNOT-kgev
 ---
 
