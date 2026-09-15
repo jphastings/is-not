@@ -40,6 +40,7 @@
     state: () => m.error_state(),
     pds: () => m.error_pds(),
     handle: () => m.error_handle(),
+    created: () => m.error_created(),
     unresolved: () => m.error_subject(),
   };
 

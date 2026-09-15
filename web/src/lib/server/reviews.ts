@@ -14,7 +14,7 @@ export type SaveResult = { ok: true; uri: string } | { ok: false; status: number
  * place, a new one is created.
  */
 export async function saveReview(did: string, input: ReviewInput): Promise<SaveResult> {
-  const { subject, tags, locale, prefilled = [] } = input;
+  const { subject, tags, locale, prefilled = [], createdAt } = input;
   const existing = findReview(did, subject.uri);
   // One review per subject per person: a new opinion joins the record already there.
   const merged: Tag[] = existing ? mergeTags(existing.tags, tags, prefilled) : tags;
@@ -25,7 +25,7 @@ export async function saveReview(did: string, input: ReviewInput): Promise<SaveR
     subject,
     tags: merged,
     ...(locale ? { locale } : {}),
-    createdAt: existing?.createdAt ?? now,
+    createdAt: existing?.createdAt ?? createdAt ?? now,
     updatedAt: now,
   };
   const agent = await agentFor(did);

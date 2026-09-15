@@ -170,4 +170,32 @@ describe('previewAtstoreImport', () => {
       'at://did:plc:app2/fyi.atstore.listing.detail/b',
     ]);
   });
+  it('dates an imported review from its oldest source record, and shrugs at a missing rating', async () => {
+    const [row] = await previewAtstoreImport(
+      'did:plc:me',
+      fakeAgent({
+        'fyi.atstore.listing.favorite': [
+          {
+            uri: 'at://did:plc:me/fyi.atstore.listing.favorite/1',
+            value: {
+              subject: 'at://did:plc:app1/fyi.atstore.listing.detail/a',
+              createdAt: '2024-03-01T00:00:00.000Z',
+            },
+          },
+        ],
+        'fyi.atstore.listing.review': [
+          {
+            uri: 'at://did:plc:me/fyi.atstore.listing.review/1',
+            value: {
+              subject: 'at://did:plc:app1/fyi.atstore.listing.detail/a',
+              createdAt: '2023-01-05T00:00:00.000Z',
+            },
+          },
+        ],
+      }),
+    );
+
+    expect(row.createdAt).toBe('2023-01-05T00:00:00.000Z');
+    expect(row.tags).toContainEqual({ adjective: 'good', direction: 0 });
+  });
 });

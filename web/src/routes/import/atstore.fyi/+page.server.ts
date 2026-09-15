@@ -29,20 +29,26 @@ export const actions: Actions = {
     const form = await request.formData();
     const rows = form.getAll('row').map((raw) => JSON.parse(String(raw)) as unknown);
 
-    const results = await Promise.all(
-      rows.map(async (row) => {
-        const uri =
-          typeof row === 'object' && row !== null && 'subject' in row
-            ? ((row.subject as { uri?: unknown })?.uri ?? '')
-            : '';
-        const parsed = validateReview(row);
-        if (!parsed.ok) return { uri: String(uri), ok: false as const, error: parsed.error };
-        const result = await saveReview(did, parsed.value);
-        return result.ok
+    // One repo means one commit chain, and a PDS may reject the losers of a
+    // race, so the rows go out in turn rather than all at once.
+    const results = [];
+    for (const row of rows) {
+      const uri =
+        typeof row === 'object' && row !== null && 'subject' in row
+          ? ((row.subject as { uri?: unknown })?.uri ?? '')
+          : '';
+      const parsed = validateReview(row);
+      if (!parsed.ok) {
+        results.push({ uri: String(uri), ok: false as const, error: parsed.error });
+        continue;
+      }
+      const result = await saveReview(did, parsed.value);
+      results.push(
+        result.ok
           ? { uri: String(uri), ok: true as const, savedUri: result.uri }
-          : { uri: String(uri), ok: false as const, error: result.error };
-      }),
-    );
+          : { uri: String(uri), ok: false as const, error: result.error },
+      );
+    }
 
     return { results };
   },

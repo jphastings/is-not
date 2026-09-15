@@ -154,7 +154,7 @@
         <input
           type="hidden"
           name="row"
-          value={JSON.stringify({ subject: row.subject, tags: row.tags, locale })}
+          value={JSON.stringify({ subject: row.subject, tags: row.tags, locale, createdAt: row.createdAt })}
         />
       {/each}
 

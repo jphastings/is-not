@@ -15,9 +15,16 @@ export type ImportRow = {
   tags: Tag[];
   sources: ImportSource[];
   isUpdate: boolean;
+  /** The oldest source record's own createdAt: an imported opinion is that old. */
+  createdAt?: string;
 };
 
 type ListedRecord = { uri: string; value: Record<string, unknown> };
+
+const earliest = (a: string | undefined, b: unknown) =>
+  isString(b) && !Number.isNaN(Date.parse(b)) && (a === undefined || b < a) ? b : a;
+
+const isString = (v: unknown): v is string => typeof v === 'string';
 
 async function listAll(agent: Agent, did: string, collection: string): Promise<ListedRecord[]> {
   const records: ListedRecord[] = [];
@@ -37,7 +44,10 @@ async function listAll(agent: Agent, did: string, collection: string): Promise<L
 
 // A 1-5 star rating isn't enforced at the source PDS, so clamp defensively
 // rather than trust it (see docs/creating-a-lens.md on unvalidated records).
+// A missing one reads as no opinion rather than NaN, which would clamp to NaN
+// and only surface as a failed row at the end of the import.
 function ratingDirection(rating: number): Tag['direction'] {
+  if (!Number.isFinite(rating)) return 0;
   return Math.min(2, Math.max(-2, Math.round(rating) - 3)) as Tag['direction'];
 }
 
@@ -61,67 +71,53 @@ export async function previewAtstoreImport(did: string, agent: Agent): Promise<I
     listAll(agent, did, REVIEW_COLLECTION),
   ]);
 
-  const bySubject = new Map<string, { tags: Tag[]; sources: ImportSource[] }>();
-  const add = (subjectUri: unknown, tag: Tag, source: ImportSource) => {
-    if (typeof subjectUri !== 'string' || subjectUri === '') return;
+  type Group = { tags: Tag[]; sources: ImportSource[]; createdAt?: string };
+  const bySubject = new Map<string, Group>();
+  const add = (record: ListedRecord, tag: Tag, source: ImportSource) => {
+    const subjectUri = record.value.subject;
+    if (!isString(subjectUri) || subjectUri === '') return;
     const entry = bySubject.get(subjectUri) ?? { tags: [], sources: [] };
     entry.tags.push(tag);
     entry.sources.push(source);
+    entry.createdAt = earliest(entry.createdAt, record.value.createdAt);
     bySubject.set(subjectUri, entry);
   };
 
   for (const record of favorites) {
     add(
-      record.value.subject,
+      record,
       { adjective: 'awesome', direction: 2 },
-      {
-        collection: 'favorite',
-        uri: record.uri,
-      },
+      { collection: 'favorite', uri: record.uri },
     );
   }
   for (const record of reviews) {
     const rating = Number(record.value.rating);
     add(
-      record.value.subject,
+      record,
       { adjective: 'good', direction: ratingDirection(rating) },
-      {
-        collection: 'review',
-        uri: record.uri,
-        rating,
-      },
+      { collection: 'review', uri: record.uri, rating },
     );
   }
 
   return Promise.all(
-    [...bySubject.entries()].map(async ([subjectUri, { tags, sources }]) => {
+    [...bySubject.entries()].map(async ([subjectUri, { tags, sources, createdAt }]) => {
+      const row = { subjectUri, tags, sources, createdAt };
       try {
         const resolution = await resolveDetail(subjectUri);
         if ('error' in resolution) {
-          return {
-            subjectUri,
-            subject: null,
-            error: resolution.error,
-            tags,
-            sources,
-            isUpdate: false,
-          };
+          return { ...row, subject: null, error: resolution.error, isUpdate: false };
         }
         return {
-          subjectUri,
+          ...row,
           subject: resolution.subject,
           error: null,
-          tags,
-          sources,
           isUpdate: findReview(did, subjectUri) !== null,
         };
       } catch (e) {
         return {
-          subjectUri,
+          ...row,
           subject: null,
           error: e instanceof Error ? e.message : 'unresolved',
-          tags,
-          sources,
           isUpdate: false,
         };
       }

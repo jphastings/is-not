@@ -1,6 +1,13 @@
 import type { Subject, Tag } from '@is-not/lenses';
 
-export type ReviewInput = { subject: Subject; tags: Tag[]; locale?: string; prefilled?: string[] };
+export type ReviewInput = {
+  subject: Subject;
+  tags: Tag[];
+  locale?: string;
+  prefilled?: string[];
+  /** Only an import sets this: the review is as old as the record it came from. */
+  createdAt?: string;
+};
 
 type Validated<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -58,6 +65,14 @@ function validateLocale(input: unknown): Validated<string | undefined> {
   return { ok: true, value: input.toLowerCase() };
 }
 
+function validateCreatedAt(input: unknown): Validated<string | undefined> {
+  if (input === undefined || input === null || input === '') return { ok: true, value: undefined };
+  if (!isString(input) || Number.isNaN(Date.parse(input))) {
+    return { ok: false, error: 'created' };
+  }
+  return { ok: true, value: new Date(input).toISOString() };
+}
+
 export function validateReview(input: unknown): Validated<ReviewInput> {
   if (typeof input !== 'object' || input === null) return { ok: false, error: 'subject' };
   const raw = input as Record<string, unknown>;
@@ -80,12 +95,16 @@ export function validateReview(input: unknown): Validated<ReviewInput> {
 
   const prefilled = Array.isArray(raw.prefilled) ? raw.prefilled.filter(isString) : [];
 
+  const createdAt = validateCreatedAt(raw.createdAt);
+  if (!createdAt.ok) return createdAt;
+
   return {
     ok: true,
     value: {
       subject: subject.value,
       tags,
       ...(locale.value ? { locale: locale.value } : {}),
+      ...(createdAt.value ? { createdAt: createdAt.value } : {}),
       prefilled,
     },
   };
