@@ -1,0 +1,25 @@
+{
+  "lexicon": 1,
+  "id": "at.isnot.authManageReviews",
+  "defs": {
+    "main": {
+      "type": "permission-set",
+      "title": "Manage is/not review records",
+      "detail": "Create, update and delete your is/not reviews. Nothing else in your repo.",
+      "permissions": [
+        {
+          "type": "permission",
+          "resource": "repo",
+          "action": [
+            "create",
+            "update",
+            "delete"
+          ],
+          "collection": [
+            "at.isnot.review"
+          ]
+        }
+      ]
+    }
+  }
+}

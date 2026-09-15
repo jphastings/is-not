@@ -4,10 +4,10 @@ import { env } from '$env/dynamic/private';
 import { sessionStore, stateStore } from './sessions.ts';
 
 // Exactly what this site does: read the account's identity, and create, update
-// and delete its own review records. Nothing else in the repo is ours to touch.
-// No PDS implements granular scopes yet, so sign-in fails until they do; that is
-// a deliberate choice, recorded in bean ISNOT-67a5.
-const SCOPE = 'atproto repo:at.isnot.review?action=create&action=update&action=delete';
+// and delete its own review records. The permission set is
+// lexicons/at/isnot/authManageReviews.json, published as a lexicon record so
+// the PDS can resolve it and name the grant in words on the consent screen.
+const SCOPE = 'atproto include:at.isnot.authManageReviews';
 let client: Promise<NodeOAuthClient> | undefined;
 
 export function origin(): string {

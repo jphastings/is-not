@@ -109,13 +109,12 @@ locale fallback matrix.
   `/oauth/callback`, DPoP bound, `private_key_jwt`. The JWKS endpoint strips
   the private members of every key before serving; the keyset's own `jwks`
   includes them.
-- Scope is `atproto repo:at.isnot.review?action=create&action=update&action=delete`:
-  identify the account, and create, update and delete its own review records.
-  Nothing else in the repo is ours to touch. No PDS advertises granular scopes
-  yet (all four still list only `atproto` and the `transition:*` scopes), so how
-  far a sign-in gets is a live question: a pushed authorization request is
-  accepted and the sign-in page renders, but whether consent and the token
-  exchange honour the scope is untested. Bean ISNOT-67a5 tracks it.
+- Scope is `atproto include:at.isnot.authManageReviews`: identify the account,
+  and create, update and delete its own review records. Nothing else in the repo
+  is ours to touch. The permission set lives in
+  `lexicons/at/isnot/authManageReviews.json`, so the consent screen names the
+  grant in words rather than spelling out a resource string; like any lexicon it
+  only resolves once published as a `com.atproto.lexicon.schema` record.
 - A session the server stops honouring, whether revoked or invalidated by a
   scope change, reads as signed out: `accountsFor` drops the account and forgets
   it, and the save action asks for sign-in rather than returning a bad gateway.
