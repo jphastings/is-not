@@ -28,6 +28,15 @@
   type LiveCandidate =
     | { uri: string; status: 'loading' }
     | { uri: string; status: 'ready'; subject: Subject; supported: boolean };
+  type ReadyCandidate = Extract<LiveCandidate, { status: 'ready' }>;
+
+  // A canonical page can declare several at:canonical uris (array semantics),
+  // so its result is a list of already-resolved candidates rather than one
+  // liveCandidate: unlike an at-uri, there's no single subject to mask to
+  // until the endpoint answers.
+  type UrlFetch =
+    | { url: string; status: 'loading' }
+    | { url: string; status: 'ready'; candidates: ReadyCandidate[] };
 
   type Row =
     | { kind: 'clipboard' }
@@ -35,11 +44,14 @@
     | { kind: 'live-ready'; subject: Subject; supported: boolean }
     | { kind: 'item'; subject: Subject };
 
+  const HTTP_URL = /^https?:\/\//i;
+
   let focused = $state(false);
   let suppressed = $state(false);
   let activeIndex = $state(-1);
   let serverItems = $state<Subject[]>([]);
   let liveCandidate = $state<LiveCandidate | null>(null);
+  let urlFetch = $state<UrlFetch | null>(null);
   let pendingCommit = $state(false);
   let clipboardAffordance = $state(false);
 
@@ -48,6 +60,8 @@
   let liveToken = 0;
   let debounceHandle: ReturnType<typeof setTimeout> | undefined;
   let suggestAbort: AbortController | undefined;
+  let urlDebounceHandle: ReturnType<typeof setTimeout> | undefined;
+  let urlAbort: AbortController | undefined;
   let textareaEl = $state<HTMLTextAreaElement>();
   let listEl = $state<HTMLUListElement>();
 
@@ -63,19 +77,34 @@
     } else if (liveCandidate?.status === 'ready') {
       list.push({ kind: 'live-ready', subject: liveCandidate.subject, supported: liveCandidate.supported });
     }
+    if (urlFetch?.status === 'loading') {
+      list.push({ kind: 'live-loading', uri: urlFetch.url });
+    } else if (urlFetch?.status === 'ready') {
+      for (const c of urlFetch.candidates) {
+        list.push({ kind: 'live-ready', subject: c.subject, supported: c.supported });
+      }
+    }
     for (const item of serverItems) list.push({ kind: 'item', subject: item });
     return list;
   });
 
   const showList = $derived(focused && !suppressed && rows.length > 0);
 
-  // An at-uri is forty unreadable characters of infrastructure, and it sits in
-  // the field from the moment it is pasted until the subject is committed. For
-  // all of that the field shows a word instead: that it is working, then what
-  // it found. The value is untouched, so a failure leaves the uri there to fix.
+  // An at-uri is forty unreadable characters of infrastructure, and a pasted
+  // URL is no more readable, so both sit in the field masked from the moment
+  // they're entered until a subject is committed: "looking…" while resolving,
+  // then what it found. The value is untouched, so a failure leaves it there
+  // to fix.
   const maskLabel = $derived.by(() => {
-    if (!liveCandidate || liveCandidate.uri !== text.trim()) return null;
-    return liveCandidate.status === 'loading' ? m.resolving() : liveCandidate.subject.title;
+    const trimmed = text.trim();
+    if (liveCandidate?.uri === trimmed) {
+      return liveCandidate.status === 'loading' ? m.resolving() : liveCandidate.subject.title;
+    }
+    if (urlFetch?.url === trimmed) {
+      if (urlFetch.status === 'loading') return m.resolving();
+      return urlFetch.candidates[0]?.subject.title ?? null;
+    }
+    return null;
   });
 
   // Keeps a highlighted row whenever there's something to highlight, so Enter
@@ -89,14 +118,28 @@
   });
 
   // A typed or pasted at-uri resolves through the lens as it's typed, so the
-  // suggestion is ready (or visibly loading) by the time it's chosen.
+  // suggestion is ready (or visibly loading) by the time it's chosen. A typed
+  // ordinary URL instead asks the server for the page's at:canonical uris —
+  // the browser can't read a third-party page itself (CORS) — debounced so a
+  // URL isn't fetched once per keystroke while it's still being typed.
   $effect(() => {
     const trimmed = text.trim();
     if (trimmed === '') return; // keep any clipboard-origin candidate
     if (RECORD_URI.test(trimmed)) {
       if (liveCandidate?.uri !== trimmed) offerLive(trimmed, 'typed');
+      urlFetch = null;
+    } else if (HTTP_URL.test(trimmed)) {
+      liveCandidate = null;
+      if (urlFetch?.url !== trimmed) {
+        clearTimeout(urlDebounceHandle);
+        urlAbort?.abort();
+        const token = ++liveToken;
+        urlFetch = { url: trimmed, status: 'loading' };
+        urlDebounceHandle = setTimeout(() => offerLiveUrl(trimmed, token), 200);
+      }
     } else {
       liveCandidate = null;
+      urlFetch = null;
     }
   });
 
@@ -167,12 +210,48 @@
       });
   }
 
+  async function offerLiveUrl(rawUrl: string, token: number) {
+    const controller = new AbortController();
+    urlAbort = controller;
+    let uris: string[];
+    try {
+      const res = await fetch(`/review/canonical?url=${encodeURIComponent(rawUrl)}`, {
+        signal: controller.signal,
+      });
+      uris = res.ok ? ((await res.json()).uris ?? []) : [];
+    } catch {
+      if (token === liveToken) urlFetch = null;
+      return;
+    }
+    if (token !== liveToken) return;
+    if (uris.length === 0) {
+      urlFetch = null;
+      return;
+    }
+    const resolved = await Promise.all(
+      uris.map(async (uri): Promise<ReadyCandidate | null> => {
+        try {
+          const result = await resolveSubject(uri);
+          return 'error' in result
+            ? null
+            : { uri, status: 'ready', subject: result.subject, supported: result.supported };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    if (token !== liveToken) return;
+    const candidates = resolved.filter((c): c is ReadyCandidate => c !== null);
+    urlFetch = candidates.length > 0 ? { url: rawUrl, status: 'ready', candidates } : null;
+  }
+
   function commit(picked: Subject, supported: boolean) {
     subject = picked;
     text = picked.title;
     unsupported = !supported;
     error = null;
     liveCandidate = null;
+    urlFetch = null;
     pendingCommit = false;
     suppressed = true;
     onchosen(picked.uri);
@@ -295,6 +374,7 @@
     unsupported = false;
     error = null;
     liveCandidate = null;
+    urlFetch = null;
     pendingCommit = false;
     onclear();
     // The × button vanishes with the subject it belonged to; don't lose focus.

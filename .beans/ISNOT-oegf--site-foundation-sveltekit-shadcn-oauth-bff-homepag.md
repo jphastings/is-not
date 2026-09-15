@@ -1,11 +1,11 @@
 ---
 # ISNOT-oegf
 title: 'Site foundation: SvelteKit, shadcn, OAuth BFF, homepage'
-status: todo
+status: completed
 type: feature
 priority: normal
 created_at: 2026-09-13T16:23:18Z
-updated_at: 2026-09-14T22:26:49Z
+updated_at: 2026-09-15T21:57:28Z
 parent: ISNOT-kgev
 ---
 

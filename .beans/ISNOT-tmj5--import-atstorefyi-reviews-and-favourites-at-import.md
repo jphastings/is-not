@@ -1,10 +1,11 @@
 ---
 # ISNOT-tmj5
 title: Import atstore.fyi reviews and favourites at /import/atstore.fyi
-status: todo
+status: completed
 type: feature
+priority: normal
 created_at: 2026-09-14T22:26:37Z
-updated_at: 2026-09-14T22:26:37Z
+updated_at: 2026-09-15T21:57:28Z
 parent: ISNOT-kgev
 blocked_by:
     - ISNOT-oegf
