@@ -10,7 +10,7 @@ import (
 )
 
 func TestHealthHandler(t *testing.T) {
-	h := healthHandler()
+	h := apiHandler(testDB(t))
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/xrpc/_health", nil))

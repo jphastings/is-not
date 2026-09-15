@@ -36,12 +36,6 @@ func withCORS(h http.Handler) http.Handler {
 	})
 }
 
-func healthHandler() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /xrpc/_health", healthCheck)
-	return mux
-}
-
 func healthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"version": version()})
@@ -90,6 +84,10 @@ func likeEscape(q string) string {
 // q: titles starting with q first, then any other containing match; within a
 // tier, the most-reviewed subject first, then alphabetically. Each subject's
 // cid/title/type come from its most recently updated review.
+//
+// SQLite's LOWER and NOCASE fold ASCII only, so a title typed with different
+// accents or in a non-Latin script matches only on its exact case. Reviews
+// carry a locale, so this will want a folded title column (or ICU) eventually.
 func suggestSubjects(ctx context.Context, db *sql.DB, q string, limit int) ([]subject, error) {
 	escaped := likeEscape(q)
 	prefix := escaped + "%"
