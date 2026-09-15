@@ -66,6 +66,10 @@
 
   const error = $derived(clientError ?? serverError);
   const canAdd = $derived((tags.at(-1)?.adjective ?? '').trim() !== '');
+  // Save only exists once the sentence would survive the server's own check.
+  const saveable = $derived(
+    current !== null && subject !== null && validateReview(JSON.parse(payload)).ok,
+  );
 
   async function resolve() {
     const uri = subjectText.trim();
@@ -123,27 +127,15 @@
 
   <div class="display sentence">
     {#if current}
-      <details class="who">
-        <summary>@{current.handle || current.did}</summary>
-        <div class="accounts">
-          {#each accounts.filter((a) => a.did !== current.did) as account (account.did)}
-            <button form="switch-form" name="did" value={account.did} class="plain">
-              @{account.handle || account.did}
-            </button>
-          {/each}
-          <button form="login-form" class="plain">{m.sign_in_another()}</button>
-          <button form="logout-form" name="did" value={current.did} class="plain">
-            {m.sign_out()}
-          </button>
-        </div>
-      </details>
-      <span>{m.thinks()}</span>
+      <button type="button" class="slot handle" popovertarget="accounts-popover">
+        @{current.handle || current.did}
+      </button>
     {:else}
       <button type="button" class="slot" popovertarget="login-popover">
         {m.handle_placeholder()}
       </button>
-      <span>{m.thinks()}</span>
     {/if}
+    <span>{m.thinks()}</span>
 
     <span class="autosize subject" data-value={subjectText || m.subject_placeholder()}>
       <input
@@ -157,7 +149,7 @@
     </span>
     {#if resolving}<span class="hint">{m.resolving()}</span>{/if}
 
-    <ul>
+    <ul class="tags">
       {#each tags as tag, i (i)}
         <li>
           <span
@@ -207,7 +199,7 @@
   {#if unsupported}<p class="note">{m.unsupported_note()}</p>{/if}
 
   <div class="actions">
-    <button class="pill" disabled={sending || !current}>
+    <button class="pill" class:hidden={!saveable} disabled={sending || !saveable}>
       {existing ? m.update() : m.save()}
     </button>
     {#if error}<p class="error" role="alert">{(errors[error] ?? (() => error))()}</p>{/if}
@@ -221,6 +213,32 @@
 </form>
 
 <div id="login-popover" popover="auto"><Login /></div>
+
+{#if current}
+  <div id="accounts-popover" popover="auto">
+    <ul class="accounts">
+      {#each accounts as account (account.did)}
+        <li class:current={account.did === current.did}>
+          <button form="switch-form" name="did" value={account.did} class="account">
+            @{account.handle || account.did}
+          </button>
+          <button
+            form="logout-form"
+            name="did"
+            value={account.did}
+            class="signout"
+            aria-label={m.sign_out()}
+          >
+            &times;
+          </button>
+        </li>
+      {/each}
+      <li class="another">
+        <button form="login-form">{m.sign_in_another()}</button>
+      </li>
+    </ul>
+  </div>
+{/if}
 
 <form id="login-form" method="POST" action="/oauth/login" hidden></form>
 <form id="switch-form" method="POST" action="/oauth/switch" hidden></form>
@@ -236,12 +254,12 @@
     gap: 0 0.3em;
   }
 
-  ul {
+  .tags {
     display: contents;
     list-style: none;
   }
 
-  li {
+  .tags li {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -291,11 +309,6 @@
     background: none;
     border: 0;
     padding: 0;
-    border-radius: 2px;
-  }
-
-  input {
-    border-bottom: 0.07em solid var(--moss);
   }
 
   input::placeholder {
@@ -308,8 +321,22 @@
     cursor: pointer;
   }
 
-  .direction {
+  /* Every part of the sentence is underlined on its own box, so the rules sit
+     on one line however the parts are built. */
+  .autosize,
+  .slot {
     border-bottom: 0.07em solid var(--moss);
+  }
+
+  /* A box around a word would break the sentence, so focus thickens the rule. */
+  .sentence :is(input, select, .slot):focus-visible {
+    outline: none;
+  }
+
+  .autosize:has(:focus-visible),
+  .slot:focus-visible {
+    border-bottom-width: 0.16em;
+    border-bottom-color: var(--moss-deep);
   }
 
   .comma {
@@ -318,43 +345,6 @@
 
   .subject input {
     color: var(--moss-deep);
-  }
-
-  .adjective input {
-    background: var(--moss-tint);
-    border-bottom-color: var(--moss-deep);
-  }
-
-  .who {
-    display: inline;
-    position: relative;
-  }
-
-  .who summary {
-    display: inline;
-    cursor: pointer;
-    list-style: none;
-    text-decoration: underline;
-    text-decoration-color: var(--moss);
-    text-decoration-thickness: 0.07em;
-    text-underline-offset: 0.12em;
-  }
-
-  .who summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .accounts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2) var(--space-4);
-    margin-block: var(--space-2);
-    padding: var(--space-3);
-    background: var(--moss-tint);
-    border-radius: 14px;
-    font-family: var(--font-body);
-    font-size: var(--step-0);
-    font-weight: 400;
   }
 
   .plain {
@@ -385,27 +375,119 @@
     color: var(--ink);
   }
 
-  /* Empty, this opens sign-in; it wears the inputs' clothes. */
+  /* Wears the inputs' clothes: empty it opens sign-in, filled it opens accounts. */
   .slot {
     font: inherit;
     color: var(--ink-soft);
     opacity: 0.7;
     background: none;
-    border: 0;
-    border-bottom: 0.07em solid var(--moss);
+    border-inline: 0;
+    border-top: 0;
     padding: 0;
     cursor: pointer;
   }
 
-  #login-popover {
+  .handle {
+    color: var(--ink);
+    opacity: 1;
+    anchor-name: --who;
+  }
+
+  [popover] {
     border: 0;
     padding: 0;
     background: none;
     overflow: visible;
   }
 
-  #login-popover::backdrop {
+  [popover]::backdrop {
     background: oklch(22% 0.03 140 / 0.3);
+  }
+
+  /* Anchored to the handle, so opening it moves nothing else on the page. */
+  @supports (anchor-name: --a) {
+    #accounts-popover {
+      position: absolute;
+      position-anchor: --who;
+      position-area: bottom center;
+      position-try-fallbacks: flip-block;
+      margin: var(--space-2) 0 0;
+    }
+
+    #accounts-popover::backdrop {
+      background: none;
+    }
+  }
+
+  .accounts {
+    list-style: none;
+    margin: 0;
+    padding: var(--space-2);
+    display: grid;
+    gap: var(--space-1);
+    min-width: max-content;
+    background: var(--paper);
+    border: 1px solid var(--moss-tint);
+    border-radius: 14px;
+    box-shadow: 0 10px 40px oklch(22% 0.03 140 / 0.12);
+    font-family: var(--font-body);
+    font-size: var(--step-0);
+    font-weight: 400;
+    text-align: start;
+  }
+
+  .accounts li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    border-radius: 9px;
+  }
+
+  .accounts li.current {
+    background: var(--moss-tint);
+  }
+
+  .accounts button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: var(--space-2) var(--space-3);
+    cursor: pointer;
+    border-radius: 9px;
+  }
+
+  .accounts .account {
+    flex: 1;
+    text-align: start;
+  }
+
+  .accounts li.current .account {
+    font-weight: 700;
+  }
+
+  .accounts .signout {
+    color: var(--ink-soft);
+    font-size: var(--step-1);
+    line-height: 1;
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .accounts .signout:hover {
+    color: var(--ink);
+    background: var(--paper);
+  }
+
+  .accounts .another {
+    border-top: 1px solid var(--moss-tint);
+    margin-top: var(--space-1);
+    padding-top: var(--space-1);
+  }
+
+  .accounts .another button {
+    color: var(--moss-deep);
+    width: 100%;
+    text-align: start;
   }
 
   .hint,
@@ -426,6 +508,11 @@
     display: grid;
     justify-items: center;
     gap: var(--space-3);
+  }
+
+  /* Keeps its space, so the sentence never jumps when it becomes saveable. */
+  .hidden {
+    visibility: hidden;
   }
 
   .error,
