@@ -1,0 +1,70 @@
+{
+  "input": {
+    "uri": "at://did:plc:kwgllf365cwmxbnxitx4pjdj/fyi.atstore.listing.detail/3mkivhwatns42",
+    "cid": "bafyreigyqepyfnwp3qlep4boikbng62ghwacbaqaoj5pvpp5lvtazgg7lq",
+    "record": {
+      "icon": {
+        "$type": "blob",
+        "ref": { "$link": "bafkreihxdbbrc2qr3pki6uqgabopxyfw7as6t6x6aqvimxhixmrbljufre" },
+        "mimeType": "image/png",
+        "size": 14230
+      },
+      "name": "rpg.actor",
+      "slug": "rpg-actor",
+      "$type": "fyi.atstore.listing.detail",
+      "links": [
+        { "url": "https://rpg.actor/privacy", "type": "privacy" },
+        { "url": "https://rpg.actor/terms", "type": "terms" }
+      ],
+      "appTags": ["creative", "fun", "games", "roleplaying"],
+      "tagline": "Build your character on rpg.actor and have fun playing in many worlds!",
+      "createdAt": "2026-04-27T20:21:25.015Z",
+      "heroImage": {
+        "$type": "blob",
+        "ref": { "$link": "bafkreieootp4vj2a7krvevryr7u4bd6llzeo4ra2k5m3j3bbvloz4acv4m" },
+        "mimeType": "image/png",
+        "size": 268600
+      },
+      "updatedAt": "2026-06-12T14:06:37.249Z",
+      "description": "Create roleplaying characters that work across many tabletop systems, video games, and more!",
+      "externalUrl": "https://rpg.actor",
+      "screenshots": [
+        {
+          "$type": "blob",
+          "ref": { "$link": "bafkreicq6uuroozqmtzpd3nockaf2f6rtqekzd73ybjjjvzsixchdfmm24" },
+          "mimeType": "image/png",
+          "size": 331840
+        },
+        {
+          "$type": "blob",
+          "ref": { "$link": "bafkreig4buvjy3tbqe2cmagyduxqy6dvzw73mcmaylraiql2zpaphiombi" },
+          "mimeType": "image/png",
+          "size": 192898
+        },
+        {
+          "$type": "blob",
+          "ref": { "$link": "bafkreid6dqfliiglrxmzhq3jjg66tglj5ch45hghups63geicavvi3q3oe" },
+          "mimeType": "image/png",
+          "size": 302199
+        },
+        {
+          "$type": "blob",
+          "ref": { "$link": "bafkreiaopmj6ujc64w7kkzt7npikes7ufuqavwpgbyciotugd7y47fkvvi" },
+          "mimeType": "image/png",
+          "size": 225349
+        }
+      ],
+      "categorySlug": ["apps/rpg-actor"],
+      "productAccountDid": "did:plc:kwgllf365cwmxbnxitx4pjdj"
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:kwgllf365cwmxbnxitx4pjdj/fyi.atstore.listing.detail/3mkivhwatns42",
+      "cid": "bafyreigyqepyfnwp3qlep4boikbng62ghwacbaqaoj5pvpp5lvtazgg7lq",
+      "title": "rpg.actor",
+      "type": "app"
+    }
+  }
+}

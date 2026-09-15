@@ -50,5 +50,20 @@
   "login_or": "or",
   "login_on": "Sign in on {service}",
   "error_handle": "That handle didn't resolve. Check it, or pick a service.",
-  "sign_in": "Sign in"
+  "sign_in": "Sign in",
+  "dir_0": "???",
+  "import_atstore_title": "Import from atstore.fyi · is/not",
+  "import_atstore_heading": "Import from atstore.fyi",
+  "import_atstore_intro": "Every app you've favourited or reviewed on atstore.fyi becomes a review here.",
+  "import_atstore_signin": "Sign in to import your atstore.fyi activity.",
+  "import_atstore_empty": "Nothing to import.",
+  "import_col_select": "Import",
+  "import_col_app": "App",
+  "import_col_source": "From",
+  "import_col_tags": "Tags",
+  "import_col_status": "Status",
+  "import_favorited": "favourited",
+  "import_reviewed": "{rating}★ review",
+  "import_button": "Import",
+  "import_done": "Imported."
 }
