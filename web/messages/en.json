@@ -6,5 +6,9 @@
   "for_developers": "One record, in the reviewer's own repo.",
   "record_invite": "Read it, write it, show it in your app.",
   "lexicon_link": "the lexicon",
-  "packages_link": "the packages"
+  "packages_link": "the packages",
+  "sign_in": "Sign in",
+  "handle_placeholder": "your.handle",
+  "sign_out": "Sign out",
+  "switch_account": "Switch"
 }

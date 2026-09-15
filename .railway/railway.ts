@@ -14,6 +14,8 @@ export default defineRailway(() => {
       WEB_ORIGIN: 'https://isnot.at',
       DATABASE_PATH: '/data/isnot.db',
       JETSTREAM_API_KEY: preserve(),
+      OAUTH_PRIVATE_KEY: preserve(),
+      SESSIONS_DATABASE_PATH: '/data/web-sessions.db',
     },
     // Railway can't register custom domains from here; these were added in the
     // dashboard and are declared so plans don't propose removing them.

@@ -51,6 +51,12 @@ pnpm --filter web build && WEB_PORT=3000 node web/build
 The built site reads `WEB_PORT`, `WEB_HOST` and `WEB_ORIGIN` (adapter-node with the `WEB_`
 prefix) so it can share a container with the API, which owns `PORT`.
 
+| env var | default | purpose |
+|---|---|---|
+| `WEB_ORIGIN` | `http://127.0.0.1:5173` | site origin; an `http://127.0.0.1` or `http://localhost` origin uses the atproto OAuth loopback client, any other origin needs `OAUTH_PRIVATE_KEY` |
+| `OAUTH_PRIVATE_KEY` | unset | ES256 JWK for OAuth client authentication; generate with `pnpm --filter web keygen`; not needed for loopback development |
+| `SESSIONS_DATABASE_PATH` | `web-sessions.db` | SQLite file for browser accounts and OAuth state/sessions |
+
 ## Deploying
 
 One Railway service runs both processes from the root `Dockerfile` (`scripts/start.sh` is the

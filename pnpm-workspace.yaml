@@ -2,6 +2,7 @@ packages:
   - packages/*
   - web
 allowBuilds:
+  core-js: false
   esbuild: true
 minimumReleaseAgeExclude:
   - '@changesets/apply-release-plan@8.1.1'
