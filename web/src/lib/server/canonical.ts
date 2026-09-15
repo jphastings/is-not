@@ -1,5 +1,8 @@
-import { lookup } from 'node:dns/promises';
-import { BlockList } from 'node:net';
+import { lookup as lookupAsync } from 'node:dns/promises';
+import { lookup as lookupCb, type LookupOptions } from 'node:dns';
+import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
+import { BlockList, type LookupFunction } from 'node:net';
 import { checkSubjectUri } from '../review';
 
 const MAX_BYTES = 512 * 1024;
@@ -34,48 +37,98 @@ blockedAddresses.addSubnet('ff00::', 8, 'ipv6');
 const mappedIPv4 = new BlockList();
 mappedIPv4.addSubnet('::ffff:0:0', 96, 'ipv6');
 
-/** True only when every address the hostname resolves to is safe to fetch.
-    Checking every resolved address (not just the first) stops a host that
-    resolves to both a public and an internal address from sneaking through. */
+function isAllowedAddress(address: string, family: number): boolean {
+  if (family === 6 && mappedIPv4.check(address, 'ipv6')) return false;
+  return !blockedAddresses.check(address, family === 6 ? 'ipv6' : 'ipv4');
+}
+
+/**
+ * The lookup the socket itself uses, so the addresses vetted here are the ones
+ * connected to. Validating separately and then handing the hostname to a client
+ * that resolves it again leaves a gap wide enough to drive a DNS rebind through:
+ * a name under the caller's control can answer with a public address for the
+ * check and a loopback one a moment later for the connection.
+ */
+const guardedLookup: LookupFunction = (hostname, options, callback) => {
+  const opts = (typeof options === 'object' && options !== null ? options : {}) as LookupOptions;
+  lookupCb(hostname, { ...opts, all: true, verbatim: true }, (err, addresses) => {
+    const cb = callback as (
+      err: NodeJS.ErrnoException | null,
+      address?: unknown,
+      family?: number,
+    ) => void;
+    if (err) return cb(err);
+    if (addresses.length === 0 || !addresses.every((a) => isAllowedAddress(a.address, a.family))) {
+      return cb(Object.assign(new Error('blocked address'), { code: 'EACCES' }));
+    }
+    if (opts.all) return cb(null, addresses);
+    cb(null, addresses[0].address, addresses[0].family);
+  });
+};
+
+/** A cheap pre-flight that rejects an obviously unreachable target before a
+    socket is opened. `guardedLookup` is what actually holds the line. */
 async function isSafeUrl(url: URL): Promise<boolean> {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
   const hostname = url.hostname.replace(/^\[|\]$/g, '');
-  let addresses: { address: string; family: number }[];
   try {
-    addresses = await lookup(hostname, { all: true, verbatim: true });
+    const addresses = await lookupAsync(hostname, { all: true, verbatim: true });
+    return addresses.length > 0 && addresses.every((a) => isAllowedAddress(a.address, a.family));
   } catch {
     return false; // doesn't resolve: nothing to fetch
   }
-  return (
-    addresses.length > 0 &&
-    addresses.every(({ address, family }) => {
-      if (family === 6 && mappedIPv4.check(address, 'ipv6')) return false;
-      return !blockedAddresses.check(address, family === 6 ? 'ipv6' : 'ipv4');
-    })
-  );
 }
 
-/** Reads at most MAX_BYTES of the body. A timed-out or dropped connection
-    mid-read just yields whatever arrived rather than throwing. */
-async function readCapped(response: Response): Promise<string> {
-  const reader = response.body?.getReader();
-  if (!reader) return '';
-  const decoder = new TextDecoder();
-  let received = 0;
-  let text = '';
-  try {
-    while (received < MAX_BYTES) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      received += value.byteLength;
-      text += decoder.decode(value, { stream: true });
-    }
-  } catch {
-    // use whatever arrived before the drop or timeout
-  } finally {
-    reader.cancel().catch(() => {});
-  }
-  return text;
+type Fetched = { status: number; location: string | null; contentType: string; body: string };
+
+/**
+ * One GET over node's own http client, which takes the `lookup` that fetch has
+ * no way to accept, never follows a redirect on its own, and lets the body be
+ * abandoned once MAX_BYTES have arrived. Resolves to null for anything that
+ * goes wrong, so no detail of the failure can reach the caller.
+ */
+function get(url: URL): Promise<Fetched | null> {
+  const send = url.protocol === 'https:' ? httpsRequest : httpRequest;
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = (value: Fetched | null) => {
+      if (!settled) {
+        settled = true;
+        resolve(value);
+      }
+    };
+    const req = send(
+      url,
+      { method: 'GET', lookup: guardedLookup, timeout: FETCH_TIMEOUT_MS },
+      (res) => {
+        const status = res.statusCode ?? 0;
+        const location = res.headers.location ?? null;
+        const contentType = String(res.headers['content-type'] ?? '').toLowerCase();
+        if (status >= 300 || !contentType.includes('text/html')) {
+          res.destroy();
+          done({ status, location, contentType, body: '' });
+          return;
+        }
+        const decoder = new TextDecoder();
+        let received = 0;
+        let body = '';
+        res.on('data', (chunk: Buffer) => {
+          received += chunk.byteLength;
+          body += decoder.decode(chunk, { stream: true });
+          if (received >= MAX_BYTES) res.destroy();
+        });
+        res.on('end', () => done({ status, location, contentType, body }));
+        res.on('error', () => done({ status, location, contentType, body }));
+        res.on('close', () => done({ status, location, contentType, body }));
+      },
+    );
+    req.on('timeout', () => {
+      req.destroy();
+      done(null);
+    });
+    req.on('error', () => done(null));
+    req.end();
+  });
 }
 
 const META_TAG = /<meta\b[^>]*>/gi;
@@ -118,35 +171,22 @@ export async function fetchCanonicalUris(rawUrl: string): Promise<string[]> {
   for (let hop = 0; hop < MAX_HOPS; hop++) {
     if (!(await isSafeUrl(current))) return [];
 
-    let res: Response;
-    try {
-      res = await fetch(current, {
-        redirect: 'manual',
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      });
-    } catch {
-      return [];
-    }
+    const res = await get(current);
+    if (!res) return [];
 
     if (res.status >= 300 && res.status < 400) {
-      const location = res.headers.get('location');
-      res.body?.cancel().catch(() => {});
-      if (!location) return [];
+      if (!res.location) return [];
       try {
-        current = new URL(location, current);
+        current = new URL(res.location, current);
       } catch {
         return [];
       }
       continue;
     }
 
-    if (!res.ok || !(res.headers.get('content-type') ?? '').toLowerCase().includes('text/html')) {
-      res.body?.cancel().catch(() => {});
-      return [];
-    }
+    if (res.status < 200 || res.status >= 300 || !res.contentType.includes('text/html')) return [];
 
-    const html = await readCapped(res);
-    return extractCanonicalUris(html).filter((uri) => checkSubjectUri(uri) === null);
+    return extractCanonicalUris(res.body).filter((uri) => checkSubjectUri(uri) === null);
   }
   return [];
 }
