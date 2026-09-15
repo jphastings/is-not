@@ -242,6 +242,15 @@
     box-shadow: inset 0 -0.16em 0 var(--moss-deep);
   }
 
+  /* A slot opens its list rather than holding focus, so while that list is up
+     its rule thickens the same way a field's does while the field is focused.
+     No selector reaches an invoker from its popover, so this asks the ancestor
+     both share whether the popover it contains is open. */
+  :global(main:has(#login-popover:popover-open)) .slot,
+  :global(main:has(#accounts-popover:popover-open)) .slot {
+    box-shadow: inset 0 -0.16em 0 var(--moss-deep);
+  }
+
   .plain {
     font: inherit;
     color: var(--moss-deep);
