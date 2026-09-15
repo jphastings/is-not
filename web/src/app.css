@@ -8,6 +8,9 @@
   --moss: oklch(52% 0.11 145);
   --moss-deep: oklch(38% 0.1 145);
   --moss-tint: oklch(92% 0.05 145);
+  /* A small lift off --moss-deep, for the reviewer-handle link in a sentence
+     next to the subject link: still green, one step lighter than it. */
+  --moss-handle: oklch(43% 0.1 145);
   /* Fixed light backing for the PDS logos, which stay the same in both themes. */
   --plate: oklch(97% 0.02 95);
   --shadow: 0 10px 40px oklch(22% 0.03 140 / 0.12);
@@ -51,6 +54,7 @@
     --moss: oklch(72% 0.14 145);
     --moss-deep: oklch(80% 0.12 145);
     --moss-tint: oklch(30% 0.035 145);
+    --moss-handle: oklch(85% 0.12 145);
     --shadow: 0 10px 40px oklch(0% 0 0 / 0.55);
   }
 }
