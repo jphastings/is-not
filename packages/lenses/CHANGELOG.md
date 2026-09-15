@@ -1,5 +1,11 @@
 # @is-not/lenses
 
+## 0.5.0
+
+### Minor Changes
+
+- f69489b: Lens for fyi.atstore.listing.detail, so an AT Store app listing can be a review subject.
+
 ## 0.4.0
 
 ### Minor Changes
