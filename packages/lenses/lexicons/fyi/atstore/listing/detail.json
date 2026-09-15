@@ -1,0 +1,176 @@
+{
+  "id": "fyi.atstore.listing.detail",
+  "defs": {
+    "link": {
+      "type": "object",
+      "required": [
+        "type",
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048,
+          "description": "The destination URL."
+        },
+        "type": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "The kind of link.",
+          "knownValues": [
+            "privacy",
+            "terms",
+            "support",
+            "contact",
+            "docs",
+            "blog",
+            "changelog",
+            "source",
+            "status",
+            "community",
+            "donate",
+            "license",
+            "other"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Optional human-readable label, especially useful when type is 'other'.",
+          "maxGraphemes": 50
+        }
+      }
+    },
+    "main": {
+      "key": "tid",
+      "type": "record",
+      "record": {
+        "type": "object",
+        "required": [
+          "slug",
+          "name",
+          "tagline",
+          "externalUrl",
+          "icon",
+          "categorySlug",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "icon": {
+            "type": "blob",
+            "accept": [
+              "image/png",
+              "image/jpeg",
+              "image/webp",
+              "image/gif",
+              "image/svg+xml"
+            ],
+            "maxSize": 2000000,
+            "description": "Square / app icon (uploaded to repo via com.atproto.repo.uploadBlob)."
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 640
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "Stable URL slug; unique within the publishing account."
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "ref": "#link",
+              "type": "ref"
+            },
+            "maxLength": 12,
+            "description": "Relevant links for the app, including trust/compliance, support, and project resources."
+          },
+          "appTags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 96
+            },
+            "maxLength": 64
+          },
+          "tagline": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "heroImage": {
+            "type": "blob",
+            "accept": [
+              "image/png",
+              "image/jpeg",
+              "image/webp",
+              "image/gif",
+              "image/svg+xml"
+            ],
+            "maxSize": 12000000,
+            "description": "Hero / cover image blob."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "externalUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "Primary product or project URL."
+          },
+          "screenshots": {
+            "type": "array",
+            "items": {
+              "type": "blob",
+              "accept": [
+                "image/png",
+                "image/jpeg",
+                "image/webp",
+                "image/gif",
+                "image/svg+xml"
+              ],
+              "maxSize": 12000000
+            },
+            "maxLength": 20
+          },
+          "categorySlug": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "maxLength": 32,
+            "minLength": 1,
+            "description": "Browse category keys (e.g. protocol/pds). First entry is the primary category for legacy surfaces."
+          },
+          "migratedFromAtUri": {
+            "type": "string",
+            "format": "at-uri",
+            "maxLength": 8192,
+            "description": "When this listing.detail record supersedes a prior record in another repo (e.g. moved from the AT Store publisher to a product owner PDS), the at:// URI of that prior fyi.atstore.listing.detail record."
+          },
+          "productAccountDid": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "Bluesky DID for the product, app, or tool (not the AT Store publisher). Handle is resolved and stored in Postgres only."
+          }
+        }
+      },
+      "description": "Public protocol or app listing in the AT Store directory. Images are stored as repo blobs (Kitchen-style); the web app caches HTTPS URLs in Postgres separately."
+    }
+  },
+  "lexicon": 1
+}
