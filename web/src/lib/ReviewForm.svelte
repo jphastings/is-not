@@ -379,7 +379,6 @@
   .slot {
     font: inherit;
     color: var(--ink-soft);
-    opacity: 0.7;
     background: none;
     border-inline: 0;
     border-top: 0;
@@ -389,7 +388,6 @@
 
   .handle {
     color: var(--ink);
-    opacity: 1;
     anchor-name: --who;
   }
 
@@ -429,7 +427,7 @@
     background: var(--paper);
     border: 1px solid var(--moss-tint);
     border-radius: 14px;
-    box-shadow: 0 10px 40px oklch(22% 0.03 140 / 0.12);
+    box-shadow: var(--shadow);
     font-family: var(--font-body);
     font-size: var(--step-0);
     font-weight: 400;

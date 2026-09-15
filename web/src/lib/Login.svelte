@@ -53,7 +53,7 @@
     background: var(--paper);
     border: 1px solid var(--moss-tint);
     border-radius: 18px;
-    box-shadow: 0 10px 40px oklch(22% 0.03 140 / 0.12);
+    box-shadow: var(--shadow);
     font-family: var(--font-body);
     font-size: var(--step-0);
     font-weight: 400;
@@ -130,7 +130,11 @@
   }
 
   img {
+    /* Some PDS marks are dark-on-transparent; a fixed light plate keeps them
+       visible once the button's own background goes dark. */
+    background: var(--plate);
     border-radius: 6px;
+    padding: 2px;
     flex: none;
   }
 </style>

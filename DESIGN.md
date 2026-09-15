@@ -15,7 +15,22 @@ landing page, a Bluesky client, a review aggregator or a terminal.
 hero, buttons, the "is" side of a review, the selection state. Ink and a warm
 paper neutral do the rest. "Is not" is expressed by the words and by an inverted
 treatment (ink on paper vs paper on green), never by a second signal colour.
-Exact values `[to be resolved during implementation]`.
+
+Every colour is a custom property (`--paper`, `--ink`, `--ink-soft`, `--moss`,
+`--moss-deep`, `--moss-tint`) in `web/src/app.css`, in `oklch()`. The system
+`prefers-color-scheme` is the only switch — there is no in-app toggle — and it
+redefines only these tokens, so every surface built from them follows for
+free.
+
+Light is a cream paper wall (`--paper` at 97% lightness) with near-black ink
+(22%) and a mid-tone moss (52%): ink on paper reaches 15.8:1, moss on paper
+4.8:1. Dark is the same sign in an unlit room, not a slate developer-tool
+theme: a dark warm ground (18%) with the ink and moss roles pushed lighter so
+they still carry the surface — ink to 92% (14.9:1 on the dark ground), moss to
+72% (8.0:1) and moss-deep to 80% (10.5:1), moss-tint down to 30% so it reads
+as a raised panel rather than a glow. Button text (`--paper`) sits on moss
+backgrounds either way, so the pill stays dark-text-on-green in dark mode
+too — the inversion, not a new treatment.
 
 ## Typography
 

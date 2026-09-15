@@ -8,6 +8,9 @@
   --moss: oklch(52% 0.11 145);
   --moss-deep: oklch(38% 0.1 145);
   --moss-tint: oklch(92% 0.05 145);
+  /* Fixed light backing for the PDS logos, which stay the same in both themes. */
+  --plate: oklch(97% 0.02 95);
+  --shadow: 0 10px 40px oklch(22% 0.03 140 / 0.12);
 
   --font-display: 'Baloo 2 Variable', 'Arial Rounded MT Bold', ui-rounded, system-ui, sans-serif;
   --font-body: 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif;
@@ -35,7 +38,21 @@
   --dur-fast: 180ms;
   --dur-slow: 600ms;
 
-  color-scheme: light;
+  color-scheme: light dark;
+}
+
+/* Same hues as the light palette, an unlit version of the same room: dark warm
+   ground, light warm ink, moss brightened to stay the one glowing thing. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: oklch(18% 0.015 95);
+    --ink: oklch(92% 0.015 95);
+    --ink-soft: oklch(70% 0.02 95);
+    --moss: oklch(72% 0.14 145);
+    --moss-deep: oklch(80% 0.12 145);
+    --moss-tint: oklch(30% 0.035 145);
+    --shadow: 0 10px 40px oklch(0% 0 0 / 0.55);
+  }
 }
 
 html {
