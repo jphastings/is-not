@@ -98,3 +98,14 @@ recovery if `isnot.at` is lost.
 `lexicons/at/isnot/review.json`. A review is a subject (uri, cid, title, type, identifiers)
 plus one or more tags (an adjective of up to 16 graphemes, and a direction from -2 to 2),
 a createdAt and an updatedAt, and an optional locale.
+
+It is published to the network as a `com.atproto.lexicon.schema` record in the project's own
+repo, so anyone can resolve `at.isnot.review` without this repository. `_lexicon.isnot.at`
+carries the authority DID; the record itself is at
+`at://did:web:isnot.at/com.atproto.lexicon.schema/at.isnot.review`. Republish after any edit:
+
+```sh
+goat account login -u isnot.at                 # once per machine
+goat lex publish ./lexicons
+goat lex status ./lexicons                      # green when the network matches the files
+```
