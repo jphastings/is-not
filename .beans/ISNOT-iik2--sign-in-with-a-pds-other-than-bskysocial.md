@@ -1,11 +1,11 @@
 ---
 # ISNOT-iik2
 title: Sign in with a PDS other than bsky.social
-status: todo
+status: completed
 type: task
 priority: normal
 created_at: 2026-09-15T00:44:22Z
-updated_at: 2026-09-15T00:44:22Z
+updated_at: 2026-09-15T09:32:10Z
 parent: ISNOT-kgev
 ---
 

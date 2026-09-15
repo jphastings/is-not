@@ -103,10 +103,20 @@ locale fallback matrix.
 
 `@atproto/oauth-client-node` as a confidential client:
 
-- Client metadata served at `/oauth/client-metadata.json` and JWKS at
+- Client metadata served at `/oauth-client-metadata.json` (at the root, so the
+  authorization screen shows the site rather than a file path) and JWKS at
   `/oauth/jwks.json`. `client_id` is the metadata URL, redirect URI
-  `/oauth/callback`, scope `atproto transition:generic`, DPoP bound,
-  `private_key_jwt`.
+  `/oauth/callback`, DPoP bound, `private_key_jwt`. The JWKS endpoint strips
+  the private members of every key before serving; the keyset's own `jwks`
+  includes them.
+- Scope is `atproto transition:generic`, which is broader than this site needs:
+  it can write any collection. No narrower scope exists on the network yet, as
+  every PDS still advertises only `atproto` and the `transition:*` scopes, and
+  an unparseable scope in client metadata locks people out. Narrow it to
+  `at.isnot.review` when servers support it (bean ISNOT-67a5).
+- Sign-in takes a handle or DID, which the client resolves to whichever PDS
+  hosts that account, or one of four named services (Bluesky, Eurosky, Blacksky,
+  Northsky). Accounts are not assumed to live on bsky.social.
 - One private key from `OAUTH_PRIVATE_KEY` (a JWK JSON string). `WEB_ORIGIN`
   already exists and becomes the public origin for all URLs.
 - State and session stores are tables in the site's own SQLite file at

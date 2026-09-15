@@ -3,6 +3,10 @@ import { JoseKey } from '@atproto/jwk-jose';
 import { env } from '$env/dynamic/private';
 import { sessionStore, stateStore } from './sessions.ts';
 
+// The least privilege the network actually grants today. Every PDS we checked
+// (bsky.social, eurosky.social, blacksky.app, northsky.social) advertises only
+// atproto and the transition:* scopes, so writing records needs transition:generic.
+// Narrow this to at.isnot records the moment servers support it: bean ISNOT-67a5.
 const SCOPE = 'atproto transition:generic';
 let client: Promise<NodeOAuthClient> | undefined;
 
@@ -34,7 +38,7 @@ async function build(): Promise<NodeOAuthClient> {
     throw new Error('OAUTH_PRIVATE_KEY is required when WEB_ORIGIN is not a loopback address');
   return new NodeOAuthClient({
     clientMetadata: {
-      client_id: `${o}/oauth/client-metadata.json`,
+      client_id: `${o}/oauth-client-metadata.json`,
       client_name: 'is/not',
       client_uri: o,
       redirect_uris: [redirect],
