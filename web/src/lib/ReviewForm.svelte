@@ -380,15 +380,12 @@
     stroke-linecap: round;
   }
 
+  /* Paper flips with the theme, so half of it over the row reads as lighter on
+     light and darker on dark. The tint this used to use is the selected row's
+     own colour, which left the cross invisible on exactly the row it matters. */
   .accounts .signout:hover {
     color: var(--ink);
-    background: var(--moss-tint);
-  }
-
-  .accounts .another {
-    border-top: 1px solid var(--moss-tint);
-    margin-top: var(--space-1);
-    padding-top: var(--space-1);
+    background: color-mix(in oklch, var(--paper) 50%, transparent);
   }
 
   .accounts .another button {
