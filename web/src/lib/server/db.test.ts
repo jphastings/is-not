@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -13,9 +13,10 @@ const when = '2026-09-15T12:00:00.000Z';
 beforeAll(() => {
   const setup = new DatabaseSync(process.env.DATABASE_PATH!);
   // The writer's own schema, so this test fails if the site reads columns the ingester stopped writing.
-  setup.exec(
-    readFileSync(join(import.meta.dirname, '../../../../migrations/001_init.sql'), 'utf8'),
-  );
+  const migrations = join(import.meta.dirname, '../../../../migrations');
+  for (const file of readdirSync(migrations).sort()) {
+    setup.exec(readFileSync(join(migrations, file), 'utf8'));
+  }
   setup
     .prepare('INSERT INTO accounts (did, handle, updated_at) VALUES (?, ?, ?)')
     .run('did:plc:known', 'known.example', when);

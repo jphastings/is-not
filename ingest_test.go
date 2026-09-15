@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"io/fs"
 	"log/slog"
 	"path/filepath"
 	"testing"
@@ -138,6 +139,36 @@ func apply(t *testing.T, in *ingester, cursor uint64, events ...jetstream.Event)
 	}
 }
 
+// A database left behind by an earlier deploy is at an earlier version; opening
+// it has to bring it forward rather than assume the first migration's shape.
+func TestOpenDBUpgradesAnOlderDatabase(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "test.db")
+	old, err := sql.Open("sqlite", "file:"+path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := migrationFS.ReadFile("migrations/001_init.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := old.Exec(string(first)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := old.Exec(`CREATE TABLE schema_version (version INTEGER PRIMARY KEY); INSERT INTO schema_version VALUES (1)`); err != nil {
+		t.Fatal(err)
+	}
+	old.Close()
+
+	db, err := openDB(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if _, err := db.Exec(`SELECT locale FROM reviews`); err != nil {
+		t.Fatalf("locale missing after upgrade: %v", err)
+	}
+}
+
 func TestOpenDBMigratesOnceAndIsRepeatable(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "test.db")
 	for range 2 {
@@ -145,14 +176,18 @@ func TestOpenDBMigratesOnceAndIsRepeatable(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		files, err := fs.Glob(migrationFS, "migrations/*.sql")
+		if err != nil {
+			t.Fatal(err)
+		}
 		var n int
 		if err := db.QueryRow(`SELECT COUNT(*) FROM schema_version`).Scan(&n); err != nil {
 			t.Fatal(err)
 		}
-		if n != 1 {
-			t.Fatalf("schema_version rows = %d, want 1", n)
+		if n != len(files) {
+			t.Fatalf("schema_version rows = %d, want %d", n, len(files))
 		}
-		if _, err := db.Exec(`SELECT did, rkey, subject_uri, subject_cid, subject_title, subject_type, created_at, updated_at FROM reviews`); err != nil {
+		if _, err := db.Exec(`SELECT did, rkey, subject_uri, subject_cid, subject_title, subject_type, locale, created_at, updated_at FROM reviews`); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := db.Exec(`SELECT did, handle, updated_at FROM accounts`); err != nil {

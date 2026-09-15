@@ -14,7 +14,7 @@ atproto appview for `at.isnot.review` records. Go API at the root, SvelteKit sit
 - Commit straight to `main` until GitHub PRs are set up.
 - Run `go test ./...` before committing. The smoke test in the ingest plan needs network access.
 - Keep this file focused: only things that cost real time, or how development is done here. After each piece of work, check whether it needs updating and make the edit in the same commit.
-- Migrations in `migrations/` are append-only once anything is deployed. Until then, editing `001_init.sql` in place is fine.
+- Migrations in `migrations/` are append-only: the site is deployed, so a live database exists. Editing an applied file changes nothing on that database (the runner skips versions it has already recorded) and the mismatch only shows up as a missing column at runtime. Add a numbered file instead.
 - Editing a file in `lexicons/` changes nothing for anyone else until it is republished as a `com.atproto.lexicon.schema` record: `goat account login -u isnot.at`, then `goat lex publish ./lexicons`. `goat lex status ./lexicons` says whether the network matches the files, `goat lex check-dns ./lexicons` checks `_lexicon.isnot.at` resolves, and `goat lex breaking` checks an edit against the evolution rules before it goes out.
 - The Go build embeds `packages/lenses/dist/isnot_lenses.wasm`, which is git-ignored. Before `go build` or `go test`, either build it (`sh packages/lenses/build-wasm.sh`, needs rustup with the wasm32 target and wasm-opt) or download the released one (`scripts/fetch-lenses.sh`).
 - The site's design context is `PRODUCT.md` and `DESIGN.md` at the repo root (impeccable); read them before changing how anything looks.
