@@ -11,7 +11,7 @@
 </svelte:head>
 
 <main>
-  <h1>{m.say_something()}</h1>
+  <h1>{m.review_something()}</h1>
   <ReviewForm
     accounts={data.accounts}
     current={data.current}

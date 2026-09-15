@@ -87,6 +87,16 @@ body {
   transform: translateY(1px);
 }
 
+.pill.secondary {
+  background: var(--moss-tint);
+  color: var(--moss-deep);
+}
+
+.pill.secondary:hover {
+  background: var(--moss);
+  color: var(--paper);
+}
+
 .pill:disabled {
   opacity: 0.45;
   cursor: not-allowed;
