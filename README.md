@@ -53,7 +53,7 @@ prefix) so it can share a container with the API, which owns `PORT`.
 
 | env var | default | purpose |
 |---|---|---|
-| `WEB_ORIGIN` | `http://127.0.0.1:5173` | site origin; an `http://127.0.0.1` or `http://localhost` origin uses the atproto OAuth loopback client, any other origin needs `OAUTH_PRIVATE_KEY` |
+| `WEB_ORIGIN` | `http://127.0.0.1:5173` | site origin; an `http://127.0.0.1` origin uses the atproto OAuth loopback client (`localhost` is refused, RFC 8252, so browse the dev server at 127.0.0.1), any other origin needs `OAUTH_PRIVATE_KEY` |
 | `OAUTH_PRIVATE_KEY` | unset | ES256 JWK for OAuth client authentication; generate with `pnpm --filter web keygen`; not needed for loopback development |
 | `SESSIONS_DATABASE_PATH` | `web-sessions.db` | SQLite file for browser accounts and OAuth state/sessions |
 

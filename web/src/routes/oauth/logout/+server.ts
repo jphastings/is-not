@@ -5,7 +5,7 @@ import { oauthClient } from '$lib/server/oauth';
 import { removeAccount } from '$lib/server/sessions';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
-  const did = String((await request.formData()).get('did') ?? '');
+  const did = String((await request.formData().catch(() => new FormData())).get('did') ?? '');
   const browser = ensureBrowser(cookies);
   removeAccount(browser.id, did);
   try {

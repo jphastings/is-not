@@ -17,7 +17,12 @@ export function oauthClient(): Promise<NodeOAuthClient> {
 async function build(): Promise<NodeOAuthClient> {
   const o = origin();
   const redirect = `${o}/oauth/callback`;
-  if (/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(o)) {
+  if (/^http:\/\/localhost(:\d+)?$/.test(o)) {
+    throw new Error(
+      'WEB_ORIGIN must use 127.0.0.1 rather than localhost: an atproto loopback client id may not name localhost (RFC 8252). Browse the dev server at 127.0.0.1 too, so the cookie and the redirect share a host.',
+    );
+  }
+  if (/^http:\/\/127\.0\.0\.1(:\d+)?$/.test(o)) {
     const clientId = `http://localhost?${new URLSearchParams({ redirect_uri: redirect, scope: SCOPE })}`;
     return new NodeOAuthClient({
       clientMetadata: atprotoLoopbackClientMetadata(clientId),

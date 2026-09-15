@@ -36,7 +36,6 @@
     adjective: () => m.error_adjective(),
     direction: () => m.error_adjective(),
     locale: () => m.error_locale(),
-    handle: () => m.error_handle(),
     state: () => m.error_state(),
     pds: () => m.error_pds(),
     unresolved: () => m.error_subject(),
@@ -54,8 +53,6 @@
   let resolution = 0;
 
   const locale = getLocale();
-  const languageName =
-    new Intl.DisplayNames([locale], { type: 'language' }).of(locale) ?? locale;
 
   const payload = $derived(
     JSON.stringify({
@@ -67,6 +64,7 @@
   );
 
   const error = $derived(clientError ?? serverError);
+  const canAdd = $derived((tags.at(-1)?.adjective ?? '').trim() !== '');
 
   async function resolve() {
     const uri = subjectText.trim();
@@ -132,7 +130,6 @@
               @{account.handle || account.did}
             </button>
           {/each}
-          <input form="login-form" name="handle" placeholder={m.handle_placeholder()} />
           <button form="login-form" class="plain">{m.sign_in_another()}</button>
           <button form="logout-form" name="did" value={current.did} class="plain">
             {m.sign_out()}
@@ -141,10 +138,7 @@
       </details>
       <span>{m.thinks()}</span>
     {:else}
-      <span class="autosize" data-value={m.handle_placeholder()}>
-        <input form="login-form" name="handle" size="1" placeholder={m.handle_placeholder()} />
-      </span>
-      <button form="login-form" class="plain sign-in">{m.sign_in()}</button>
+      <button form="login-form" class="slot">{m.handle_placeholder()}</button>
       <span>{m.thinks()}</span>
     {/if}
 
@@ -196,19 +190,18 @@
       {/each}
     </ul>
 
-    <button
-      type="button"
-      class="plain and"
-      onclick={() => (tags = [...tags, { direction: 1, adjective: '' }])}
-    >
-      {m.add_another()}
-    </button>
+    {#if canAdd}
+      <button
+        type="button"
+        class="plain and"
+        onclick={() => (tags = [...tags, { direction: 1, adjective: '' }])}
+      >
+        {m.add_another()}
+      </button>
+    {/if}
   </div>
 
-  <p class="meta">
-    {m.in_locale({ locale: languageName })}
-    {#if unsupported}<span class="note">{m.unsupported_note()}</span>{/if}
-  </p>
+  {#if unsupported}<p class="note">{m.unsupported_note()}</p>{/if}
 
   <div class="actions">
     <button class="pill" disabled={sending || !current}>
@@ -233,6 +226,7 @@
     font-size: var(--step-3);
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     align-items: baseline;
     gap: 0 0.3em;
   }
@@ -245,6 +239,7 @@
   li {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     align-items: baseline;
     gap: 0 0.3em;
   }
@@ -367,9 +362,8 @@
   }
 
   .and {
-    font-size: var(--step-0);
-    font-family: var(--font-body);
-    align-self: center;
+    color: var(--ink-soft);
+    text-decoration: none;
   }
 
   .remove {
@@ -385,9 +379,16 @@
     color: var(--ink);
   }
 
-  .sign-in {
-    font-size: var(--step-0);
-    font-family: var(--font-body);
+  /* Empty, this is a button that starts sign-in; it wears the inputs' clothes. */
+  .slot {
+    font: inherit;
+    color: var(--ink-soft);
+    opacity: 0.7;
+    background: none;
+    border: 0;
+    border-bottom: 0.07em solid var(--moss);
+    padding: 0;
+    cursor: pointer;
   }
 
   .hint,
@@ -398,19 +399,15 @@
     color: var(--ink-soft);
   }
 
-  .meta {
+  .note {
     margin: var(--space-4) 0 0;
-    color: var(--ink-soft);
-    font-size: var(--step--1);
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-3);
+    text-align: center;
   }
 
   .actions {
-    margin-top: var(--space-5);
+    margin-top: var(--space-6);
     display: grid;
-    justify-items: start;
+    justify-items: center;
     gap: var(--space-3);
   }
 

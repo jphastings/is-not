@@ -27,14 +27,22 @@ COPY --from=wasm /src/packages/lenses/dist/isnot_lenses.wasm packages/lenses/dis
 RUN CGO_ENABLED=0 go build -o /isnot .
 
 # 3. Site: SvelteKit built with adapter-node; runs without node_modules.
+# The site imports the workspace packages, so they are installed and packed here
+# (the wasm comes from stage 1, so this stage needs no Rust).
 FROM node:24-bookworm-slim AS web
 RUN npm install -g pnpm@11
 WORKDIR /src
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc vite.config.ts ./
+COPY packages/lenses/package.json packages/lenses/
+COPY packages/sentence/package.json packages/sentence/
 COPY web/package.json web/
-RUN pnpm install --frozen-lockfile --filter web
+RUN pnpm install --frozen-lockfile
+COPY packages packages
 COPY web web
-RUN pnpm --filter web build
+COPY --from=wasm /src/packages/lenses/dist/isnot_lenses.wasm packages/lenses/dist/isnot_lenses.wasm
+RUN pnpm --filter @is-not/sentence build \
+ && pnpm --filter @is-not/lenses exec vp pack \
+ && pnpm --filter web build
 
 # 4. Runtime: both processes, one SQLite file on the volume.
 FROM node:24-bookworm-slim

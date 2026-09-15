@@ -23,11 +23,12 @@
 <style>
   main {
     padding: var(--space-5);
-    max-width: 62rem;
+    max-width: 52rem;
     margin-inline: auto;
     min-height: 100dvh;
     display: grid;
     align-content: center;
+    text-align: center;
   }
 
   h1 {
