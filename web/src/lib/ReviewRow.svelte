@@ -72,7 +72,11 @@
         <input type="hidden" name="review" value={payload} />
         <ul class="tags">
           {#each tags as tag, i (i)}
-            <TagRow {tag} showComma={i < tags.length - 1} onRemove={() => removeTag(i)} />
+            <TagRow
+              {tag}
+              separator={i >= tags.length - 1 ? null : i === tags.length - 2 ? 'and' : 'comma'}
+              onRemove={() => removeTag(i)}
+            />
           {/each}
         </ul>
         <button

@@ -143,7 +143,7 @@
       {#each tags as tag, i (i)}
         <TagRow
           {tag}
-          showComma={i < tags.length - 1}
+          separator={i >= tags.length - 1 ? null : i === tags.length - 2 ? 'and' : 'comma'}
           onRemove={tags.length > 1 ? () => (tags = tags.filter((_, n) => n !== i)) : undefined}
         />
       {/each}

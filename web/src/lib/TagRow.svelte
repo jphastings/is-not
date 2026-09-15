@@ -6,11 +6,12 @@
   let {
     tag,
     onRemove,
-    showComma = false,
+    separator = null,
   }: {
     tag: Tag;
     onRemove?: () => void;
-    showComma?: boolean;
+    /** What joins this tag to the next: a comma, or the final "and". */
+    separator?: 'comma' | 'and' | null;
   } = $props();
 
   const directions = [
@@ -61,7 +62,8 @@
       <ClearButton label={m.remove()} onclick={onRemove} />
     {/if}
   </span>
-  {#if showComma}<span class="comma">,</span>{/if}
+  {#if separator === 'comma'}<span class="comma">,</span>{' '}{/if}
+  {#if separator === 'and'}{' '}<span class="conj">{m.and()}</span>{' '}{/if}
 </li>
 
 <style>

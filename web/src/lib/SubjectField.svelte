@@ -309,6 +309,8 @@
     bind:this={textareaEl}
     bind:value={text}
     rows="1"
+    spellcheck="false"
+    autocapitalize="none"
     role="combobox"
     aria-expanded={showList}
     aria-controls="subject-listbox"
