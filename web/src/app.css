@@ -76,7 +76,13 @@ body {
 .display {
   font-family: var(--font-display);
   font-weight: 700;
-  line-height: 1.1;
+  /* A highlighted word paints its whole content area, which this font makes
+     ~1.6em tall whatever the leading, so at 1.1 each line's background ate the
+     descenders of the line above. Wide enough that the two clear each other.
+     `text-box-trim` would be the real fix, but it does nothing to an inline
+     box — only an atomic one, which the sentence can't use: an inline-block
+     part is ignored by `text-wrap: balance` and flies in rather than fading. */
+  line-height: 1.4;
   letter-spacing: -0.01em;
   text-wrap: balance;
   overflow-wrap: anywhere;
