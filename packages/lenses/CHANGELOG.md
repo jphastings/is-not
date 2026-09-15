@@ -1,5 +1,11 @@
 # @is-not/lenses
 
+## 0.4.0
+
+### Minor Changes
+
+- fc9bcb2: buildReview accepts an optional locale and ReviewRecord carries it.
+
 ## 0.3.0
 
 ### Minor Changes
