@@ -11,7 +11,7 @@
       "id": "did:web:isnot.at#atproto",
       "type": "Multikey",
       "controller": "did:web:isnot.at",
-      "publicKeyMultibase": "zQ3shkS5jDn66q4EJ8y1cvWLEUUU76ABQNCb31Qeo2aRqAxqy"
+      "publicKeyMultibase": "zQ3shTKLURKeJUrnvVP8o8KyLf9Kw5ggNNcujXdsjoVyS4oc7"
     }
   ],
   "service": [
