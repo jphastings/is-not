@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { env } from '$env/dynamic/private';
-import type { Direction } from '@is-not/sentence';
+import type { Direction, Tag } from '@is-not/sentence';
 
 export type HomeReview = {
   did: string;
@@ -73,4 +73,31 @@ export function randomSentences(limit = 10): HomeReview[] {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));
+}
+
+export type ExistingReview = { rkey: string; createdAt: string; tags: Tag[]; locale?: string };
+
+/** The reviewer's own review of a subject, if they have already reviewed it. */
+export function findReview(did: string, subjectUri: string): ExistingReview | null {
+  const conn = open();
+  if (!conn) return null;
+  const review = conn
+    .prepare(
+      `SELECT rkey, locale, created_at FROM reviews
+       WHERE did = ? AND subject_uri = ?
+       ORDER BY updated_at DESC LIMIT 1`,
+    )
+    .get(did, subjectUri) as { rkey: string; locale: string; created_at: string } | undefined;
+  if (!review) return null;
+  const tags = conn
+    .prepare(
+      'SELECT adjective, direction FROM review_tags WHERE did = ? AND rkey = ? ORDER BY adjective',
+    )
+    .all(did, review.rkey) as unknown as Tag[];
+  return {
+    rkey: review.rkey,
+    createdAt: review.created_at,
+    tags,
+    locale: review.locale || undefined,
+  };
 }

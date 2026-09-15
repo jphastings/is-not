@@ -87,6 +87,12 @@ body {
   transform: translateY(1px);
 }
 
+.pill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
 :focus-visible {
   outline: 3px solid var(--moss);
   outline-offset: 3px;

@@ -76,6 +76,13 @@ replay is wanted (the config preserves whatever value is there), and point `isno
 `api.isnot.at` at the CNAME targets Railway shows for the custom domains. Deploys follow
 pushes to `main` on `jphastings/is-not`.
 
+## Packages
+
+- `@is-not/lenses` turns a third-party atproto record into a review subject (panproto lenses compiled to wasm).
+- `@is-not/sentence` turns a review record into a sentence, as typed parts, plain text or HTML.
+
+Both are published from `packages/`; the site uses them through the workspace.
+
 ## Working on the lenses package
 
 ```sh

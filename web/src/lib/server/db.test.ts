@@ -99,3 +99,25 @@ describe('randomSentences', () => {
     expect(randomSentences(1)).toHaveLength(1);
   });
 });
+
+describe('findReview', () => {
+  it('returns the stored review with its tags', async () => {
+    const { findReview } = await import('./db');
+    expect(findReview('did:plc:known', 'at://did:plc:x/app.bsky.feed.post/1')).toEqual({
+      rkey: 'two-tags',
+      createdAt: when,
+      tags: [
+        { adjective: 'delicious', direction: 1 },
+        { adjective: 'filling', direction: 2 },
+      ],
+      locale: 'en',
+    });
+  });
+
+  it('returns null for an unknown subject', async () => {
+    const { findReview } = await import('./db');
+    expect(
+      findReview('did:plc:known', 'at://did:plc:x/app.bsky.feed.post/does-not-exist'),
+    ).toBeNull();
+  });
+});
