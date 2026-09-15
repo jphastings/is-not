@@ -2,7 +2,11 @@
   import { fade } from 'svelte/transition';
   import type { Part } from '@is-not/sentence';
 
-  let { parts, animate = true }: { parts: Part[]; animate?: boolean } = $props();
+  let {
+    parts,
+    animate = true,
+    linkWho = false,
+  }: { parts: Part[]; animate?: boolean; linkWho?: boolean } = $props();
 
   const stagger = 45;
   const easeOutQuart = (t: number) => 1 - Math.pow(1 - t, 4);
@@ -13,6 +17,14 @@
     {#if part.kind === 'text'}<span>{part.text}</span>{:else if part.kind === 'subject'}<a
         href={`https://pdsls.dev/${part.uri}`}
         rel="noreferrer"
+        class={part.kind}
+        in:fade|global={{
+          duration: animate ? 420 : 160,
+          delay: animate ? i * stagger : 0,
+          easing: easeOutQuart,
+        }}>{part.text}</a
+      >{:else if part.kind === 'who' && linkWho}<a
+        href={`/reviews/${part.did}`}
         class={part.kind}
         in:fade|global={{
           duration: animate ? 420 : 160,
@@ -50,6 +62,17 @@
   }
 
   .subject:hover {
+    text-decoration: underline;
+  }
+
+  /* One step lighter than .subject's moss-deep, so the reviewer reads as
+     linked prose without competing with the subject for attention. */
+  .who {
+    color: var(--moss-handle);
+    text-decoration: none;
+  }
+
+  .who:hover {
     text-decoration: underline;
   }
 

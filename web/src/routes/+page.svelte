@@ -37,7 +37,7 @@
   {#if current}
     <p class="display sentence">
       {#key i}
-        <Sentence {parts} animate={!prefersReducedMotion.current} />
+        <Sentence {parts} animate={!prefersReducedMotion.current} linkWho />
       {/key}
     </p>
   {:else}
