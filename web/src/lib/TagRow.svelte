@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Tag } from '@is-not/lenses';
   import { m } from '$lib/paraglide/messages.js';
+  import ClearButton from '$lib/ClearButton.svelte';
 
   let {
     tag,
@@ -19,6 +20,11 @@
     { value: -1, label: () => m.dir_m1() },
     { value: -2, label: () => m.dir_m2() },
   ];
+
+  // The clear button only earns its place once the adjective is done, not
+  // while it's still being typed: blurred and non-empty.
+  let touched = $state(false);
+  const complete = $derived(touched && tag.adjective.trim() !== '');
 
   // The fields are textareas so long adjectives wrap with the sentence, but a
   // review is one line: Enter submits rather than breaking it.
@@ -46,16 +52,16 @@
       bind:value={tag.adjective}
       rows="1"
       onkeydown={oneLine}
+      onfocus={() => (touched = false)}
+      onblur={() => (touched = true)}
       placeholder={m.adjective_placeholder()}
       aria-label={m.adjective_placeholder()}
     ></textarea>
+    {#if complete && onRemove}
+      <ClearButton label={m.remove()} onclick={onRemove} />
+    {/if}
   </span>
   {#if showComma}<span class="comma">,</span>{/if}
-  {#if onRemove}
-    <button type="button" class="plain remove" aria-label={m.remove()} onclick={onRemove}>
-      &times;
-    </button>
-  {/if}
 </li>
 
 <style>
@@ -144,28 +150,6 @@
     margin-inline-start: -0.25em;
   }
 
-  .plain {
-    font: inherit;
-    color: var(--moss-deep);
-    background: none;
-    border: 0;
-    padding: 0;
-    cursor: pointer;
-    text-decoration: underline;
-  }
-
-  .remove {
-    font-size: var(--step-1);
-    line-height: 1;
-    color: var(--ink-soft);
-    text-decoration: none;
-    padding-inline: 0.15em;
-    align-self: center;
-  }
-
-  .remove:hover {
-    color: var(--ink);
-  }
   /* `font: inherit` carries the font shorthand's own line-height, not the one
      the sentence cascades, so a field's box was the font's line-height while
      the words beside it are as tall as the font's real metrics: every field

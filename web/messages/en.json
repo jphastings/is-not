@@ -30,6 +30,8 @@
   "error_state": "Sign-in didn't complete. Try again.",
   "error_pds": "Couldn't save to your account. Try again.",
   "error_created": "That review's date didn't make sense.",
+  "error_subject_person": "Not people — try what they made or did.",
+  "paste_from_clipboard": "Paste from clipboard",
   "review_something": "Review something",
   "docs": "Docs",
   "docs_title": "Docs · is/not",
