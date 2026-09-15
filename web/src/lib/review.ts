@@ -1,5 +1,27 @@
 import type { Subject, Tag } from '@is-not/lenses';
 
+export const RECORD_URI = /^at:\/\/([^/\s]+)\/([^/\s]+)\/([^/\s]+)$/;
+
+// NSIDs that end `.profile` but describe something other than a person, so
+// they stay reviewable — none yet. Add exact collection NSIDs here, not a
+// pattern, so this stays an explicit exception rather than a loophole.
+const PROFILE_ALLOWLIST = new Set<string>();
+
+const isPersonCollection = (collection: string) =>
+  collection.endsWith('.profile') && !PROFILE_ALLOWLIST.has(collection);
+
+export type SubjectUriRejection = 'subject' | 'subject_person';
+
+/** Checks an at-uri is reviewable before it's fetched: exactly three parts
+    (at://authority/collection/rkey), and not a person — is/not reviews what
+    people made or did, not people themselves. */
+export function checkSubjectUri(uri: string): SubjectUriRejection | null {
+  const match = RECORD_URI.exec(uri.trim());
+  if (!match) return 'subject';
+  const [, , collection] = match;
+  return isPersonCollection(collection) ? 'subject_person' : null;
+}
+
 export type ReviewInput = {
   subject: Subject;
   tags: Tag[];
@@ -26,6 +48,8 @@ function validateSubject(input: unknown): Validated<Subject> {
   if (typeof input !== 'object' || input === null) return { ok: false, error: 'subject' };
   const s = input as Record<string, unknown>;
   if (!isString(s.uri) || s.uri.trim() === '') return { ok: false, error: 'subject' };
+  const rejection = checkSubjectUri(s.uri);
+  if (rejection) return { ok: false, error: rejection };
   if (!isString(s.cid) || !isString(s.type)) return { ok: false, error: 'subject' };
   if (
     !isString(s.title) ||

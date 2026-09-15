@@ -1,6 +1,6 @@
 import type { Tag } from '@is-not/lenses';
 import { describe, expect, it } from 'vite-plus/test';
-import { mergeTags, validateReview } from './review';
+import { checkSubjectUri, mergeTags, validateReview } from './review';
 
 const validSubject = {
   uri: 'at://did:plc:x/app.bsky.feed.post/1',
@@ -78,6 +78,33 @@ describe('validateReview', () => {
       locale: 'not a tag',
     });
     expect(result).toEqual({ ok: false, error: 'locale' });
+  });
+
+  it('fails when the subject uri has only two parts (an authority alone)', () => {
+    const subject = { ...validSubject, uri: 'at://did:plc:ephkzpinhaqcabtkugtbzrwu' };
+    const result = validateReview({ subject, tags: [{ adjective: 'loud', direction: 1 }] });
+    expect(result).toEqual({ ok: false, error: 'subject' });
+  });
+
+  it('fails when the subject is a person (a profile record)', () => {
+    const subject = { ...validSubject, uri: 'at://did:plc:x/app.bsky.actor.profile/self' };
+    const result = validateReview({ subject, tags: [{ adjective: 'loud', direction: 1 }] });
+    expect(result).toEqual({ ok: false, error: 'subject_person' });
+  });
+});
+
+describe('checkSubjectUri', () => {
+  it('accepts a three-part record uri', () => {
+    expect(checkSubjectUri('at://did:web:x/app.bsky.feed.post/1')).toBeNull();
+  });
+
+  it('rejects a bare handle or DID (not a record)', () => {
+    expect(checkSubjectUri('at://byjp.me')).toBe('subject');
+    expect(checkSubjectUri('at://did:plc:ephkzpinhaqcabtkugtbzrwu')).toBe('subject');
+  });
+
+  it('rejects any collection ending in .profile', () => {
+    expect(checkSubjectUri('at://did:plc:x/app.bsky.actor.profile/self')).toBe('subject_person');
   });
 });
 

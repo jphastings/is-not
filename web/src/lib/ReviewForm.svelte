@@ -1,12 +1,13 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
+  import { page } from '$app/state';
   import type { Subject, Tag } from '@is-not/lenses';
   import { m } from '$lib/paraglide/messages.js';
   import { getLocale } from '$lib/paraglide/runtime.js';
-  import { RECORD_URI, resolveSubject } from '$lib/lenses';
   import { validateReview } from '$lib/review';
   import Login from '$lib/Login.svelte';
   import TagRow from '$lib/TagRow.svelte';
+  import SubjectField from '$lib/SubjectField.svelte';
 
   type Account = { did: string; handle: string };
   type ExistingReview = { rkey: string; tags: Tag[]; locale?: string };
@@ -36,18 +37,21 @@
     handle: () => m.error_handle(),
     created: () => m.error_created(),
     unresolved: () => m.error_subject(),
+    subject_person: () => m.error_subject_person(),
   };
 
   let subjectText = $state('');
   let subject = $state<Subject | null>(null);
-  let resolving = $state(false);
   let unsupported = $state(false);
   let existing = $state(false);
   let prefilled = $state<string[]>([]);
   let tags = $state<Tag[]>([{ direction: 1, adjective: '' }]);
   let clientError = $state<string | null>(null);
   let sending = $state(false);
-  let resolution = 0;
+
+  // A subject shared as a link resolves the same way a typed or pasted one
+  // does; only ever applied once, even if the field is cleared afterwards.
+  const initialSubjectUri = page.url.searchParams.get('subject') ?? undefined;
 
   const locale = getLocale();
 
@@ -67,43 +71,25 @@
     current !== null && subject !== null && validateReview(JSON.parse(payload)).ok,
   );
 
-  // The fields are textareas so long titles wrap with the sentence, but a
-  // review is one line: Enter submits rather than breaking it.
-  function oneLine(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      (event.currentTarget as HTMLElement).closest('form')?.requestSubmit();
-    }
+  // Picking a subject (fresh or re-picked) starts a clean slate: any tags
+  // shown belong to whatever was loaded for it, never the previous subject.
+  function onSubjectChosen(uri: string) {
+    existing = false;
+    prefilled = [];
+    tags = [{ direction: 1, adjective: '' }];
+    loadExisting(uri);
   }
 
-  async function resolve() {
-    const uri = subjectText.trim();
-    if (!RECORD_URI.test(uri)) return;
-    const token = ++resolution;
-    resolving = true;
-    clientError = null;
-    try {
-      const result = await resolveSubject(uri);
-      if (token !== resolution) return;
-      if ('error' in result) {
-        clientError = 'subject';
-        return;
-      }
-      subject = result.subject;
-      subjectText = result.subject.title;
-      unsupported = !result.supported;
-      await loadExisting(uri, token);
-    } catch {
-      if (token === resolution) clientError = 'subject';
-    } finally {
-      if (token === resolution) resolving = false;
-    }
+  function onSubjectCleared() {
+    existing = false;
+    prefilled = [];
+    tags = [{ direction: 1, adjective: '' }];
   }
 
-  async function loadExisting(uri: string, token: number) {
+  async function loadExisting(uri: string) {
     const res = await fetch(`/review/existing?uri=${encodeURIComponent(uri)}`);
     const review = (await res.json()) as ExistingReview | null;
-    if (token !== resolution || !review) return;
+    if (subject?.uri !== uri || !review) return;
     existing = true;
     prefilled = review.tags.map((t) => t.adjective);
     tags = review.tags.length > 0 ? review.tags : tags;
@@ -142,18 +128,16 @@
     {/if}
     <span>{m.thinks()}</span>
 
-    <span class="autosize subject" data-value={subjectText || m.subject_placeholder()}>
-      <textarea
-        bind:value={subjectText}
-        rows="1"
-        onchange={resolve}
-        onkeydown={oneLine}
-        onpaste={() => queueMicrotask(resolve)}
-        placeholder={m.subject_placeholder()}
-        aria-label={m.subject_placeholder()}
-      ></textarea>
-    </span>
-    {#if resolving}<span class="hint">{m.resolving()}</span>{/if}
+    <SubjectField
+      bind:subject
+      bind:text={subjectText}
+      bind:unsupported
+      bind:error={clientError}
+      initialUri={initialSubjectUri}
+      placeholder={m.subject_placeholder()}
+      onchosen={onSubjectChosen}
+      onclear={onSubjectCleared}
+    />
 
     <ul class="tags">
       {#each tags as tag, i (i)}
@@ -240,73 +224,22 @@
     padding: 0;
   }
 
-  /* Inputs grow with what is typed: the ::after twin sets the width. */
-  .autosize {
-    display: inline-grid;
-    max-width: 100%;
-    position: relative;
-    vertical-align: baseline;
-  }
-
-  .autosize::after,
-  .autosize textarea {
-    grid-area: 1 / 1;
-    font: inherit;
-  }
-
-  /* The hidden twin alone sets the box: a form control's intrinsic height and
-     width differ per browser (Firefox sizes inputs taller than the same text),
-     which would tilt the rules out of line. */
-  .autosize::after {
-    content: attr(data-value) ' ';
-    visibility: hidden;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-  }
-
-  .autosize textarea {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    min-width: 0;
-    resize: none;
-    overflow: hidden;
-    text-align: inherit;
-  }
-
-  textarea {
-    font: inherit;
-    color: inherit;
-    background: none;
-    border: 0;
-    padding: 0;
-  }
-
-  textarea::placeholder {
-    color: var(--ink-soft);
-    opacity: 0.7;
-  }
-
   /* Every part of the sentence is ruled on its own box, so they sit on one
      line however the part is built. The rule is a shadow, not a border, so
-     thickening it on focus cannot change anyone's height. */
-  .autosize,
+     thickening it on focus cannot change anyone's height. Subject and
+     adjective fields draw their own matching rule (SubjectField, TagRow):
+     Svelte scopes styles per-component, so this can't be shared here. */
   .slot {
     box-shadow: inset 0 -0.07em 0 var(--moss);
   }
 
   /* A box around a word would break the sentence, so focus thickens the rule. */
-  .sentence :is(textarea, .slot):focus-visible {
+  .sentence .slot:focus-visible {
     outline: none;
   }
 
-  .autosize:has(:focus-visible),
   .slot:focus-visible {
     box-shadow: inset 0 -0.16em 0 var(--moss-deep);
-  }
-
-  .subject textarea {
-    color: var(--moss-deep);
   }
 
   .plain {
@@ -455,7 +388,6 @@
     text-align: start;
   }
 
-  .hint,
   .note {
     font-family: var(--font-body);
     font-size: var(--step--1);
@@ -499,8 +431,6 @@
      the words beside it are as tall as the font's real metrics: every field
      rode ~9px high, and a wrapped line staggered. `normal` is those metrics.
      Last in the sheet because every `font` shorthand above resets it. */
-  .autosize::after,
-  .autosize textarea,
   .slot {
     line-height: normal;
   }
