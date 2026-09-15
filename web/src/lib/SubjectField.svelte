@@ -69,6 +69,15 @@
 
   const showList = $derived(focused && !suppressed && rows.length > 0);
 
+  // An at-uri is forty unreadable characters of infrastructure, and it sits in
+  // the field from the moment it is pasted until the subject is committed. For
+  // all of that the field shows a word instead: that it is working, then what
+  // it found. The value is untouched, so a failure leaves the uri there to fix.
+  const maskLabel = $derived.by(() => {
+    if (!liveCandidate || liveCandidate.uri !== text.trim()) return null;
+    return liveCandidate.status === 'loading' ? m.resolving() : liveCandidate.subject.title;
+  });
+
   // Keeps a highlighted row whenever there's something to highlight, so Enter
   // has an obvious target without the user ever touching an arrow key.
   $effect(() => {
@@ -304,7 +313,13 @@
   });
 </script>
 
-<span class="autosize subject" data-value={text || placeholder} onfocusout={onFocusOut}>
+<span
+  class="autosize subject"
+  class:masked={maskLabel !== null}
+  data-value={maskLabel ?? (text || placeholder)}
+  onfocusout={onFocusOut}
+>
+  {#if maskLabel !== null}<span class="masking" aria-hidden="true">{maskLabel}</span>{/if}
   <textarea
     bind:this={textareaEl}
     bind:value={text}
@@ -432,6 +447,23 @@
   .autosize::after,
   .autosize textarea {
     line-height: normal;
+  }
+
+  /* The value stays in the textarea for editing and undo; only its ink goes,
+     and the caret with it, so the word underneath is what reads. */
+  .masked textarea {
+    color: transparent;
+    caret-color: transparent;
+  }
+
+  .masking {
+    grid-area: 1 / 1;
+    position: absolute;
+    inset: 0;
+    font: inherit;
+    line-height: normal;
+    color: var(--ink-soft);
+    pointer-events: none;
   }
 
   /* A dropdown panel, not a sentence word: body font, out of the text flow so
