@@ -442,10 +442,14 @@
     text-align: start;
   }
 
+  /* One box per row: the outer corners are rounded and the halves inside it are
+     clipped flush against each other. */
   .accounts li {
     display: flex;
     align-items: stretch;
-    border-radius: 9px;
+    min-height: 2.75rem;
+    border-radius: 10px;
+    overflow: hidden;
   }
 
   .accounts li.current {
@@ -459,11 +463,12 @@
     border: 0;
     padding: var(--space-2) var(--space-3);
     cursor: pointer;
-    border-radius: 9px;
   }
 
   .accounts .account {
     flex: 1;
+    display: flex;
+    align-items: center;
     text-align: start;
   }
 
@@ -471,21 +476,22 @@
     font-weight: 700;
   }
 
-  /* The whole right side of the row, with the cross the same distance from the
-     top, right and bottom edges. */
+  /* The whole right of the row. Square by explicit width rather than
+     aspect-ratio, which contributes nothing to the panel's intrinsic width and
+     so used to push the cross outside it. */
   .accounts .signout {
     display: grid;
     place-items: center;
-    aspect-ratio: 1;
+    width: 2.75rem;
     padding: 0;
     color: var(--ink-soft);
   }
 
-  /* A fraction of a square button, so the cross sits the same distance from
-     every edge whatever the row's height turns out to be. */
+  /* A fraction of that square, so the cross sits the same distance from the
+     top, right and bottom edges. */
   .accounts .signout svg {
-    width: 45%;
-    height: 45%;
+    width: 40%;
+    height: 40%;
     fill: none;
     stroke: currentcolor;
     stroke-width: 2;
