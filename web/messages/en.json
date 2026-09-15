@@ -1,7 +1,7 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "site_title": "is/not",
-  "review_title": "Say something · is/not",
+  "review_title": "is/not",
   "empty_state": "Nobody has said anything yet.",
   "thinks": "thinks",
   "subject_placeholder": "something?",
