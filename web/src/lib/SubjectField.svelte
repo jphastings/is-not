@@ -49,6 +49,11 @@
   let debounceHandle: ReturnType<typeof setTimeout> | undefined;
   let suggestAbort: AbortController | undefined;
   let textareaEl = $state<HTMLTextAreaElement>();
+  let listEl = $state<HTMLUListElement>();
+
+  // Matches the page's own side padding, so a shifted list stops where the
+  // sentence does rather than against the glass.
+  const GUTTER = 16;
 
   const rows = $derived.by<Row[]>(() => {
     const list: Row[] = [];
@@ -286,6 +291,17 @@
     // The × button vanishes with the subject it belonged to; don't lose focus.
     textareaEl?.focus();
   }
+
+  // The list hangs off the field, which the sentence can leave close to the
+  // right edge: unshifted it widens the document and the whole page scrolls
+  // sideways. No CSS expresses "only as far as the viewport allows" without
+  // anchor positioning, which Firefox and Safari don't have yet.
+  $effect(() => {
+    if (!showList || !listEl) return;
+    listEl.style.marginInlineStart = '0px';
+    const overhang = listEl.getBoundingClientRect().right - (window.innerWidth - GUTTER);
+    if (overhang > 0) listEl.style.marginInlineStart = `-${Math.ceil(overhang)}px`;
+  });
 </script>
 
 <span class="autosize subject" data-value={text || placeholder} onfocusout={onFocusOut}>
@@ -308,7 +324,13 @@
     <ClearButton label={m.remove()} onclick={clear} />
   {/if}
   {#if showList}
-    <ul id="subject-listbox" role="listbox" class="listbox" aria-label={placeholder}>
+    <ul
+      bind:this={listEl}
+      id="subject-listbox"
+      role="listbox"
+      class="listbox"
+      aria-label={placeholder}
+    >
       {#each rows as row, i (rowKey(row, i))}
         <li
           id={`subject-option-${i}`}
