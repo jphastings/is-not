@@ -1,0 +1,77 @@
+{
+  "input": {
+    "uri": "at://did:plc:enu2j5xjlqsjaylv3du4myh4/buzz.bookhive.catalogBook/bk_SwIlpP4gr9q5FkvHOwWy",
+    "cid": "bafyreign7wsmlu3gpuqzq6z3zpumlynw4r3hfheqwcruwqc6mrwzj2ahkm",
+    "record": {
+      "id": "bk_SwIlpP4gr9q5FkvHOwWy",
+      "$type": "buzz.bookhive.catalogBook",
+      "cover": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1443106959i/26114545.jpg",
+      "title": "Too Like the Lightning",
+      "genres": [
+        "Science Fiction",
+        "Fiction",
+        "Fantasy",
+        "Science Fiction Fantasy",
+        "Audiobook",
+        "Speculative Fiction",
+        "Adult",
+        "Dystopia",
+        "Philosophy",
+        "Book Club"
+      ],
+      "rating": 3810,
+      "series": "{\"title\":\"Terra Ignota\",\"position\":\"1\",\"webUrl\":\"https://www.goodreads.com/series/166200-terra-ignota\"}",
+      "source": "Goodreads",
+      "authors": "Ada Palmer",
+      "language": "English",
+      "numPages": 432,
+      "sourceId": "26114545",
+      "coverBlob": {
+        "ref": {
+          "$link": "bafkreihtpajymgicplxagjiyolryrt53bxreuxxs7wcj4icq7t5k7qcc7a"
+        },
+        "size": 142114,
+        "$type": "blob",
+        "mimeType": "image/jpeg"
+      },
+      "createdAt": "2024-12-28T18:10:52.481Z",
+      "publisher": "Tor Books",
+      "sourceUrl": "https://www.goodreads.com/book/show/26114545",
+      "thumbnail": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1443106959i/26114545._SY75_.jpg",
+      "updatedAt": "2026-09-09T20:11:12.380Z",
+      "description": "Mycroft Canner is a convict. For his crimes he is required, as is the custom of the 25th century, to wander the world being as useful as he can to all he meets. Carlyle Foster is a sensayer--a spiritual counselor in a world that has outlawed the public practice of religion, but which also knows that the inner lives of humans cannot be wished away.<br /><br />The world into which Mycroft and Carlyle have been born is as strange to our 21st-century eyes as ours would be to a native of the 1500s. It is a hard-won utopia built on technologically-generated abundance, and also on complex and mandatory systems of labeling all public writing and speech. What seem to us normal gender distinctions are now distinctly taboo in most social situations. And most of the world's population is affiliated with globe-girdling clans of the like-minded, whose endless economic and cultural competition is carefully managed by central planners of inestimable subtlety. To us it seems like a mad combination of heaven and hell. To them, it seems like normal life.<br /><br />And in this world, Mycroft and Carlyle have stumbled on the wild card that may destablize the system: the boy Bridger, who can effortlessly make his wishes come true. Who can, it would seem, bring inanimate objects to life...",
+      "identifiers": {
+        "hiveId": "bk_SwIlpP4gr9q5FkvHOwWy",
+        "isbn10": "0765378000",
+        "isbn13": "9780765378002",
+        "goodreadsId": "26861260"
+      },
+      "ratingsCount": 16569,
+      "thumbnailBlob": {
+        "ref": {
+          "$link": "bafkreid7kubdsou7sy4l4frqb54eqv4rgqp7rn53sbryizhejt2jjpcdu4"
+        },
+        "size": 1958,
+        "$type": "blob",
+        "mimeType": "image/jpeg"
+      },
+      "publicationYear": 2016,
+      "ratingsDistribution": [849, 1503, 3113, 5505, 5565]
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:enu2j5xjlqsjaylv3du4myh4/buzz.bookhive.catalogBook/bk_SwIlpP4gr9q5FkvHOwWy",
+      "cid": "bafyreign7wsmlu3gpuqzq6z3zpumlynw4r3hfheqwcruwqc6mrwzj2ahkm",
+      "title": "Too Like the Lightning",
+      "type": "book",
+      "identifiers": [
+        { "key": "goodreadsId", "value": "26861260" },
+        { "key": "hiveId", "value": "bk_SwIlpP4gr9q5FkvHOwWy" },
+        { "key": "isbn10", "value": "0765378000" },
+        { "key": "isbn13", "value": "9780765378002" }
+      ]
+    }
+  }
+}

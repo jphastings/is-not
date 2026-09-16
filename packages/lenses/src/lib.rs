@@ -40,6 +40,11 @@ const SOURCES: &[LensSource] = &[
         lexicon: include_str!("../lexicons/buzz/bookhive/book.json"),
     },
     LensSource {
+        nsid: "buzz.bookhive.catalogBook",
+        document: include_str!("../lenses/buzz.bookhive.catalogBook.json"),
+        lexicon: include_str!("../lexicons/buzz/bookhive/catalogBook.json"),
+    },
+    LensSource {
         nsid: "fyi.atstore.listing.review",
         document: include_str!("../lenses/fyi.atstore.listing.review.json"),
         lexicon: include_str!("../lexicons/fyi/atstore/listing/review.json"),

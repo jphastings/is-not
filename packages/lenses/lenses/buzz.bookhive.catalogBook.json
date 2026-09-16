@@ -1,0 +1,8 @@
+{
+  "id": "at.isnot.lens.buzz-bookhive-catalogBook",
+  "description": "A BookHive catalog record is a book in BookHive's shared catalog; the tag subject is that book.",
+  "source": "buzz.bookhive.catalogBook",
+  "target": "at.isnot.review#subject",
+  "extensions": { "at.isnot": { "identifiers": "identifiers" } },
+  "steps": [{ "add_field": { "name": "type", "kind": "string", "fallback": "book" } }]
+}
