@@ -9,6 +9,7 @@
 	let { children, data }: LayoutProps = $props();
 
 	const imagePath = $derived(page.data.ogImage ?? '/og.png');
+	const description = $derived(page.data.description ?? m.meta_home());
 </script>
 
 <svelte:head>
@@ -19,7 +20,8 @@
 	<meta property="og:image" content={`${page.data.origin}${imagePath}`} />
 	<meta property="og:image:width" content="1200" />
 	<meta property="og:image:height" content="630" />
-	{#if page.data.ogDescription}<meta property="og:description" content={page.data.ogDescription} />{/if}
+	<meta name="description" content={description} />
+	<meta property="og:description" content={description} />
 	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 

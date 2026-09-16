@@ -9,7 +9,8 @@ declare global {
     interface PageData {
       origin: string;
       ogImage?: string;
-      ogDescription?: string;
+      /** The page's meta and og description; the homepage's when unset. */
+      description?: string;
     }
     interface PageState {
       filters?: { type: string | null; adjective: string | null };
