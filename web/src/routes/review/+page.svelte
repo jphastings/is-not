@@ -8,6 +8,7 @@
 
 <svelte:head>
   <title>{m.review_title()}</title>
+  <meta property="og:title" content={m.review_title()} />
 </svelte:head>
 
 <main>

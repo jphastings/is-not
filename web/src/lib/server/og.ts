@@ -76,23 +76,23 @@ const MARK_PATH: Record<Theme, string> = {
   dark: pathD(faviconRaw, 'light'),
 };
 
-type Run = { text: string; kind: Part['kind'] };
+type Run = { text: string; kind: Part['kind']; part: number };
 type Word = Run[];
 
 function wordsFromParts(parts: Part[]): Word[] {
   const words: Word[] = [];
   let current: Word = [];
-  for (const part of parts) {
+  parts.forEach((part, index) => {
     for (const piece of part.text.split(/(\s+)/)) {
       if (piece === '') continue;
       if (/^\s+$/.test(piece)) {
         if (current.length) words.push(current);
         current = [];
       } else {
-        current.push({ text: piece, kind: part.kind });
+        current.push({ text: piece, kind: part.kind, part: index });
       }
     }
-  }
+  });
   if (current.length) words.push(current);
   return words;
 }
@@ -157,14 +157,16 @@ function fitPhrase(
     const widths = words.map((w) => wordWidth(font, w, size));
     const spaceWidth = font.getAdvanceWidth(' ', size);
     const lines = balancedWrap(words, widths, spaceWidth, TEXT_BOX.width);
-    if (lines.length * size * LINE_HEIGHT <= availableHeight) return { fontSize: size, lines };
+    const fits =
+      lines.length * size * LINE_HEIGHT <= availableHeight && Math.max(...widths) <= TEXT_BOX.width;
+    if (fits) return { fontSize: size, lines };
   }
   const widths = words.map((w) => wordWidth(font, w, size));
   const spaceWidth = font.getAdvanceWidth(' ', size);
   return { fontSize: size, lines: balancedWrap(words, widths, spaceWidth, TEXT_BOX.width) };
 }
 
-export type LaidOutRun = { x: number; text: string; kind: Part['kind'] };
+export type LaidOutRun = { x: number; text: string; kind: Part['kind']; part: number };
 export type LaidOutLine = {
   top: number;
   height: number;
@@ -228,7 +230,7 @@ export function layout(parts: Part[], font: Font, options: { tagline?: string } 
     lineWords.forEach((word, wi) => {
       if (wi > 0) x += spaceWidth;
       for (const run of word) {
-        runs.push({ x, text: run.text, kind: run.kind });
+        runs.push({ x, text: run.text, kind: run.kind, part: run.part });
         x += font.getAdvanceWidth(run.text, fontSize);
       }
     });
@@ -262,21 +264,23 @@ function colorFor(kind: Part['kind'], colors: (typeof COLORS)[Theme]): string {
   return colors.ink; // text, subject, adjective
 }
 
-// Baloo2-Bold's glyf outlines hit an opentype.js rounding bug at some exact
-// font sizes — the control point of one curve comes out `NaN`, and resvg's
-// SVG path parser then silently drops everything after it in that `d`
-// string (spec-correct: a parser stops at the first invalid token). The bad
-// sizes are isolated points, not a range, so a sub-pixel nudge reliably steps
-// around them without any visible change in size.
-const NUDGE_STEP = 0.013;
-const MAX_NUDGE_ATTEMPTS = 25;
-
-function safePathData(font: Font, text: string, fontSize: number): string {
-  for (let attempt = 0; attempt < MAX_NUDGE_ATTEMPTS; attempt++) {
-    const d = font.getPath(text, 0, 0, fontSize + attempt * NUDGE_STEP).toPathData(2);
-    if (!d.includes('NaN')) return d;
-  }
-  return font.getPath(text, 0, 0, fontSize).toPathData(2).replaceAll('NaN', '0');
+// Not `path.toPathData()`: its rounding concatenates `decimal + "e+2"`, so a
+// coordinate a hair off an integer (printed as `1e-15`) becomes NaN, and resvg
+// drops the rest of the path at the first invalid token.
+export function pathData(font: Font, text: string, fontSize: number): string {
+  return font
+    .getPath(text, 0, 0, fontSize)
+    .commands.map((c) => {
+      if (c.type === 'Z') return 'Z';
+      const points =
+        c.type === 'C'
+          ? [c.x1, c.y1, c.x2, c.y2, c.x, c.y]
+          : c.type === 'Q'
+            ? [c.x1, c.y1, c.x, c.y]
+            : [c.x, c.y];
+      return c.type + points.map((v) => v.toFixed(2)).join(' ');
+    })
+    .join('');
 }
 
 function renderRun(
@@ -286,17 +290,36 @@ function renderRun(
   fontSize: number,
   colors: (typeof COLORS)[Theme],
 ): string {
-  const d = safePathData(font, run.text, fontSize);
+  const d = pathData(font, run.text, fontSize);
   const color = colorFor(run.kind, colors);
   const skew = run.kind === 'text' ? ` skewX(${SKEW_DEG})` : '';
-  let svg = `<g transform="translate(${run.x.toFixed(2)},${baseline.toFixed(2)})${skew}"><path d="${d}" fill="${color}"/></g>`;
-  if (run.kind === 'subject' || run.kind === 'adjective') {
-    const width = font.getAdvanceWidth(run.text, fontSize);
-    const y = baseline + fontSize * UNDERLINE_OFFSET;
-    const height = fontSize * UNDERLINE_THICKNESS;
-    svg += `<rect x="${run.x.toFixed(2)}" y="${y.toFixed(2)}" width="${width.toFixed(2)}" height="${height.toFixed(2)}" fill="${color}"/>`;
+  return `<g transform="translate(${run.x.toFixed(2)},${baseline.toFixed(2)})${skew}"><path d="${d}" fill="${color}"/></g>`;
+}
+
+// One rule per part per line, so a multi-word subject is underlined through its
+// spaces as `text-decoration` does on the site.
+function renderUnderlines(
+  font: Font,
+  line: LaidOutLine,
+  fontSize: number,
+  colors: (typeof COLORS)[Theme],
+): string {
+  const spans = new Map<number, { start: number; end: number; kind: Part['kind'] }>();
+  for (const run of line.runs) {
+    if (run.kind !== 'subject' && run.kind !== 'adjective') continue;
+    const end = run.x + font.getAdvanceWidth(run.text, fontSize);
+    const span = spans.get(run.part);
+    if (span) span.end = end;
+    else spans.set(run.part, { start: run.x, end, kind: run.kind });
   }
-  return svg;
+  const y = line.baseline + fontSize * UNDERLINE_OFFSET;
+  const height = fontSize * UNDERLINE_THICKNESS;
+  return [...spans.values()]
+    .map(
+      ({ start, end, kind }) =>
+        `<rect x="${start.toFixed(2)}" y="${y.toFixed(2)}" width="${(end - start).toFixed(2)}" height="${height.toFixed(2)}" fill="${colorFor(kind, colors)}"/>`,
+    )
+    .join('');
 }
 
 function renderLogo(theme: Theme, colors: (typeof COLORS)[Theme]): string {
@@ -316,14 +339,17 @@ function renderSvg(parts: Part[], font: Font, options: PhraseOptions): string {
   const laid = layout(parts, font, { tagline: options.tagline });
 
   const lines = laid.lines
-    .map((line) =>
-      line.runs.map((run) => renderRun(font, run, line.baseline, laid.fontSize, colors)).join(''),
+    .map(
+      (line) =>
+        line.runs
+          .map((run) => renderRun(font, run, line.baseline, laid.fontSize, colors))
+          .join('') + renderUnderlines(font, line, laid.fontSize, colors),
     )
     .join('');
 
   let taglineSvg = '';
   if (laid.tagline) {
-    const d = safePathData(font, laid.tagline.text, TAGLINE_FONT_SIZE);
+    const d = pathData(font, laid.tagline.text, TAGLINE_FONT_SIZE);
     const x = TEXT_BOX.x + (TEXT_BOX.width - laid.tagline.width) / 2;
     taglineSvg = `<g transform="translate(${x.toFixed(2)},${laid.tagline.baseline.toFixed(2)})"><path d="${d}" fill="${colors.inkSoft}"/></g>`;
   }

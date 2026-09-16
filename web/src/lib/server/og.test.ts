@@ -13,7 +13,7 @@ vi.mock('./ogAssets', () => ({
   }),
 }));
 
-const { phrasePng, defaultPhrase, layout, WIDTH, HEIGHT } = await import('./og.ts');
+const { phrasePng, defaultPhrase, layout, pathData, WIDTH, HEIGHT } = await import('./og.ts');
 
 const font = parseFont(readFileSync(FONT_PATH).buffer);
 
@@ -61,5 +61,16 @@ describe('layout', () => {
     expect(laid.tagline).toBeDefined();
     expect(laid.tagline!.top).toBeGreaterThanOrEqual(laid.box.top);
     expect(laid.tagline!.top + laid.tagline!.height).toBeLessThanOrEqual(laid.box.bottom);
+  });
+});
+
+describe('pathData', () => {
+  // opentype.js's own toPathData emits NaN for this font at these sizes.
+  it('never emits NaN', () => {
+    for (const size of [20, 24, 25]) {
+      expect(pathData(font, 'Simple, nuanced micro-reviewing is/not handy', size)).not.toContain(
+        'NaN',
+      );
+    }
   });
 });
