@@ -1,0 +1,117 @@
+{
+  "id": "buzz.bookhive.catalogBook",
+  "defs": {
+    "main": {
+      "key": "any",
+      "type": "record",
+      "record": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "authors",
+          "thumbnail",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The book's hive id"
+          },
+          "cover": {
+            "type": "string",
+            "description": "URL to full-size cover image"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "The title of the book"
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Genres of the book"
+          },
+          "rating": {
+            "type": "integer",
+            "maximum": 5000,
+            "minimum": 0,
+            "description": "Average rating (0-5000, where 1000 == 1.0)"
+          },
+          "series": {
+            "type": "string",
+            "description": "Series name if the book is part of a series"
+          },
+          "source": {
+            "type": "string",
+            "description": "The source service name (e.g. Goodreads)"
+          },
+          "authors": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "The authors of the book (tab separated)"
+          },
+          "sourceId": {
+            "type": "string",
+            "description": "ID of the book in the source service"
+          },
+          "coverBlob": {
+            "type": "blob",
+            "accept": [
+              "image/png",
+              "image/jpeg"
+            ],
+            "maxSize": 2000000,
+            "description": "Uploaded full-size cover image blob"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "sourceUrl": {
+            "type": "string",
+            "description": "URL to the book on the source service"
+          },
+          "thumbnail": {
+            "type": "string",
+            "description": "URL to thumbnail image"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000,
+            "description": "Book description/summary"
+          },
+          "identifiers": {
+            "ref": "buzz.bookhive.defs#bookIdentifiers",
+            "type": "ref",
+            "description": "External identifiers for the book"
+          },
+          "ratingsCount": {
+            "type": "integer",
+            "description": "Number of ratings"
+          },
+          "thumbnailBlob": {
+            "type": "blob",
+            "accept": [
+              "image/png",
+              "image/jpeg"
+            ],
+            "maxSize": 1000000,
+            "description": "Uploaded thumbnail image blob"
+          }
+        }
+      },
+      "description": "A canonical book record in the BookHive catalog"
+    }
+  },
+  "lexicon": 1
+}
