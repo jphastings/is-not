@@ -1,7 +1,7 @@
 import type { Actions, PageServerLoad } from './$types';
 import { importAction, importLoad } from '$lib/server/importers';
-import { previewAtstoreImport } from '$lib/server/atstore';
+import { previewBookhiveImport } from '$lib/server/bookhive';
 
-export const load: PageServerLoad = importLoad(previewAtstoreImport);
+export const load: PageServerLoad = importLoad(previewBookhiveImport);
 
 export const actions: Actions = { import: importAction };
