@@ -6,7 +6,6 @@
   import { m } from '$lib/paraglide/messages.js';
   import { getLocale } from '$lib/paraglide/runtime.js';
   import { resolveSubject } from '$lib/lenses';
-  import Login from '$lib/Login.svelte';
   import Sentence from '$lib/Sentence.svelte';
   import TagRow from '$lib/TagRow.svelte';
   import type { PageProps } from './$types';
@@ -188,8 +187,6 @@
   {#if !data.current}
     <p class="intro">{m.import_signin({ domain })}</p>
     <button type="button" class="pill" popovertarget="login-popover">{m.sign_in()}</button>
-    <div id="login-popover" popover="auto"><Login /></div>
-    <form id="login-form" method="POST" action="/oauth/login" hidden></form>
   {:else if data.error}
     <p class="error" role="alert">{(errors[data.error] ?? (() => data.error))()}</p>
   {:else if data.rows.length === 0 || (!loading && visible.length === 0)}

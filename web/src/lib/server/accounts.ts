@@ -84,3 +84,35 @@ export async function agentFor(did: string): Promise<Agent | null> {
   const session = await sessionFor(did);
   return session ? new Agent(session) : null;
 }
+
+// ponytail: process-lifetime cache, no TTL
+const avatarCache = new Map<string, Promise<string | null>>();
+
+export function avatarFor(did: string): Promise<string | null> {
+  const cached = avatarCache.get(did);
+  if (cached) return cached;
+
+  const promise = (async () => {
+    try {
+      const res = await fetch(
+        `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`,
+        { signal: AbortSignal.timeout(5000) },
+      );
+      const profile = (await res.json()) as { avatar?: unknown };
+      return typeof profile.avatar === 'string' ? profile.avatar : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  // A transient failure or a not-yet-set avatar shouldn't stick for the process lifetime.
+  promise.then(
+    (result) => {
+      if (!result) avatarCache.delete(did);
+    },
+    () => avatarCache.delete(did),
+  );
+
+  avatarCache.set(did, promise);
+  return promise;
+}

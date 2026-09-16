@@ -5,7 +5,6 @@
   import { m } from '$lib/paraglide/messages.js';
   import { getLocale } from '$lib/paraglide/runtime.js';
   import { validateReview } from '$lib/review';
-  import Login from '$lib/Login.svelte';
   import TagRow from '$lib/TagRow.svelte';
   import SubjectField from '$lib/SubjectField.svelte';
 
@@ -191,40 +190,6 @@
   {/if}
 </form>
 
-<div id="login-popover" popover="auto"><Login /></div>
-
-{#if current}
-  <div id="accounts-popover" popover="auto">
-    <ul class="accounts">
-      {#each accounts as account (account.did)}
-        <li class:current={account.did === current.did}>
-          <button form="switch-form" name="did" value={account.did} class="account">
-            @{account.handle || account.did}
-          </button>
-          <button
-            form="logout-form"
-            name="did"
-            value={account.did}
-            class="signout"
-            aria-label={m.sign_out()}
-          >
-            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-              <path d="M4 4 12 12M12 4 4 12" />
-            </svg>
-          </button>
-        </li>
-      {/each}
-      <li class="another">
-        <button type="button" popovertarget="login-popover">{m.sign_in()}</button>
-      </li>
-    </ul>
-  </div>
-{/if}
-
-<form id="login-form" method="POST" action="/oauth/login" hidden></form>
-<form id="switch-form" method="POST" action="/oauth/switch" hidden></form>
-<form id="logout-form" method="POST" action="/oauth/logout" hidden></form>
-
 <style>
   /* Laid out as text, not as flex items, so the browser can balance the lines. */
   .sentence {
@@ -267,8 +232,8 @@
      its rule thickens the same way a field's does while the field is focused.
      No selector reaches an invoker from its popover, so this asks the ancestor
      both share whether the popover it contains is open. */
-  :global(main:has(#login-popover:popover-open)) .slot,
-  :global(main:has(#accounts-popover:popover-open)) .slot {
+  :global(body:has(#login-popover:popover-open)) .slot,
+  :global(body:has(#accounts-popover:popover-open)) .slot {
     background-image: linear-gradient(var(--moss-deep), var(--moss-deep));
     background-size: 100% 0.16em;
   }
@@ -303,120 +268,6 @@
   .handle {
     color: var(--ink);
     anchor-name: --who;
-  }
-
-  [popover] {
-    border: 0;
-    padding: 0;
-    background: none;
-    overflow: visible;
-  }
-
-  [popover]::backdrop {
-    background: oklch(22% 0.03 140 / 0.3);
-  }
-
-  /* Anchored to the handle, so opening it moves nothing else on the page. */
-  @supports (anchor-name: --a) {
-    #accounts-popover {
-      position: absolute;
-      position-anchor: --who;
-      position-area: bottom center;
-      position-try-fallbacks: flip-block;
-      margin: var(--space-2) 0 0;
-    }
-
-    #accounts-popover::backdrop {
-      background: none;
-    }
-  }
-
-  .accounts {
-    list-style: none;
-    margin: 0;
-    padding: var(--space-2);
-    display: grid;
-    gap: var(--space-1);
-    min-width: max-content;
-    background: var(--paper);
-    border: 1px solid var(--moss-tint);
-    border-radius: 14px;
-    box-shadow: var(--shadow);
-    font-family: var(--font-body);
-    font-size: var(--step-0);
-    font-weight: 400;
-    text-align: start;
-  }
-
-  /* One box per row: the outer corners are rounded and the halves inside it are
-     clipped flush against each other. */
-  .accounts li {
-    display: flex;
-    align-items: stretch;
-    min-height: 2.75rem;
-    border-radius: 10px;
-    overflow: hidden;
-  }
-
-  .accounts li.current {
-    background: var(--moss-tint);
-  }
-
-  .accounts button {
-    font: inherit;
-    letter-spacing: inherit;
-    color: inherit;
-    background: none;
-    border: 0;
-    padding: var(--space-2) var(--space-3);
-    cursor: pointer;
-  }
-
-  .accounts .account {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    text-align: start;
-  }
-
-  .accounts li.current .account {
-    font-weight: 700;
-  }
-
-  /* The whole right of the row. Square by explicit width rather than
-     aspect-ratio, which contributes nothing to the panel's intrinsic width and
-     so used to push the cross outside it. */
-  .accounts .signout {
-    display: grid;
-    place-items: center;
-    width: 2.75rem;
-    padding: 0;
-    color: var(--ink-soft);
-  }
-
-  /* A fraction of that square, so the cross sits the same distance from the
-     top, right and bottom edges. */
-  .accounts .signout svg {
-    width: 40%;
-    height: 40%;
-    fill: none;
-    stroke: currentcolor;
-    stroke-width: 2;
-    stroke-linecap: round;
-  }
-
-  /* Paper flips with the theme, so half of it over the row reads as lighter on
-     light and darker on dark. The tint this used to use is the selected row's
-     own colour, which left the cross invisible on exactly the row it matters. */
-  .accounts .signout:hover {
-    color: var(--ink);
-    background: color-mix(in oklch, var(--paper) 50%, transparent);
-  }
-
-  .accounts .another button {
-    color: var(--moss-deep);
-    width: 100%;
-    text-align: start;
   }
 
   .note {

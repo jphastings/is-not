@@ -5,7 +5,9 @@ import { oauthClient } from '$lib/server/oauth';
 import { removeAccount } from '$lib/server/sessions';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
-  const did = String((await request.formData().catch(() => new FormData())).get('did') ?? '');
+  const form = await request.formData().catch(() => new FormData());
+  const did = String(form.get('did') ?? '');
+  const next = String(form.get('next') ?? '');
   const browser = ensureBrowser(cookies);
   removeAccount(browser.id, did);
   try {
@@ -13,5 +15,5 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
   } catch {
     // ignore: the session may already be gone at the PDS
   }
-  redirect(303, '/review');
+  redirect(303, next.startsWith('/') && !next.startsWith('//') ? next : '/review');
 };
