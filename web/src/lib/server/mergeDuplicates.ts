@@ -7,7 +7,11 @@ const MAX_TAGS = 32;
 export type DupRecord = { rkey: string; value: ReviewRecord };
 export type MergeResult = { keeper: string; record: ReviewRecord; deletes: string[] } | null;
 
-type Candidate = { tag: Tag; updatedAt: string };
+type Candidate = { tag: Tag; updatedAt: number };
+
+// Other apps may write any valid datetime (offsets, no milliseconds), so
+// compare instants, never strings.
+const time = (datetime: string) => Date.parse(datetime);
 
 /** Later `updatedAt` wins; on a tie the direction nearer 0 wins; on a further
     tie (+1/-1, +2/-2) the positive direction wins. */
@@ -24,7 +28,7 @@ function mergeAllTags(records: DupRecord[]): Tag[] {
   const byAdjective = new Map<string, Candidate>();
   for (const record of records) {
     for (const tag of record.value.tags) {
-      const candidate = { tag, updatedAt: record.value.updatedAt };
+      const candidate = { tag, updatedAt: time(record.value.updatedAt) };
       if (beats(candidate, byAdjective.get(fold(tag.adjective)))) {
         byAdjective.set(fold(tag.adjective), candidate);
       }
@@ -36,15 +40,14 @@ function mergeAllTags(records: DupRecord[]): Tag[] {
 /** Earliest `createdAt`; ties broken by the smaller rkey. */
 function pickKeeper(records: DupRecord[]): DupRecord {
   return records.reduce((a, b) => {
-    if (a.value.createdAt !== b.value.createdAt) {
-      return a.value.createdAt < b.value.createdAt ? a : b;
-    }
+    const [ta, tb] = [time(a.value.createdAt), time(b.value.createdAt)];
+    if (ta !== tb) return ta < tb ? a : b;
     return a.rkey < b.rkey ? a : b;
   });
 }
 
 const latestOf = (records: DupRecord[]): DupRecord =>
-  records.reduce((a, b) => (b.value.updatedAt > a.value.updatedAt ? b : a));
+  records.reduce((a, b) => (time(b.value.updatedAt) > time(a.value.updatedAt) ? b : a));
 
 const deepEqual = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
 
@@ -68,14 +71,8 @@ export function mergeDuplicates(records: DupRecord[], normalizedUri: string): Me
 
   const keeper = pickKeeper(records);
   const latest = latestOf(records);
-  const createdAt = records.reduce(
-    (min, r) => (r.value.createdAt < min ? r.value.createdAt : min),
-    records[0].value.createdAt,
-  );
-  const updatedAt = records.reduce(
-    (max, r) => (r.value.updatedAt > max ? r.value.updatedAt : max),
-    records[0].value.updatedAt,
-  );
+  const createdAt = keeper.value.createdAt;
+  const updatedAt = latest.value.updatedAt;
 
   const record: ReviewRecord = {
     ...latest.value,

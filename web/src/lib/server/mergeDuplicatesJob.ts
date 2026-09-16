@@ -87,7 +87,7 @@ async function mergeAccount(did: string): Promise<void> {
     if (!result) continue;
 
     try {
-      await agent.com.atproto.repo.applyWrites({
+      const res = await agent.com.atproto.repo.applyWrites({
         repo: did,
         swapCommit,
         writes: [
@@ -104,8 +104,12 @@ async function mergeAccount(did: string): Promise<void> {
           })),
         ],
       });
+      // Each write moves the repo head; the next group swaps against the commit
+      // this one made, so only our own writes can come between listing and it.
+      if (res.data.commit) swapCommit = res.data.commit.cid;
     } catch (e) {
       console.error(`merge-duplicates: applyWrites failed for ${did} ${normalizedUri}`, e);
+      return; // the head has moved under us; later swaps would fail too, so retry next run
     }
   }
 }

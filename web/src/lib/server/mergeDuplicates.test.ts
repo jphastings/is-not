@@ -32,6 +32,20 @@ describe('mergeDuplicates', () => {
     expect(result?.record.tags).toEqual([{ adjective: 'loud', direction: -1 }]);
   });
 
+  it('compares datetimes as instants, whatever their format', () => {
+    const a = record('aaa', {
+      tags: [{ adjective: 'loud', direction: 1 }],
+      updatedAt: '2024-01-01T12:00:00+05:00',
+    });
+    const b = record('bbb', {
+      tags: [{ adjective: 'loud', direction: -1 }],
+      updatedAt: '2024-01-01T08:00:00Z',
+    });
+    expect(mergeDuplicates([a, b], URI)?.record.tags).toEqual([
+      { adjective: 'loud', direction: -1 },
+    ]);
+  });
+
   it('on equal updatedAt, the direction nearer zero wins', () => {
     const a = record('aaa', { tags: [{ adjective: 'loud', direction: 2 }] });
     const b = record('bbb', { tags: [{ adjective: 'loud', direction: -1 }] });
