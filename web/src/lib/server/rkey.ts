@@ -6,9 +6,9 @@ const SHA256_MULTIHASH_PREFIX = Uint8Array.from([0x12, 0x20]);
 
 /**
  * A review's rkey is derived from its subject, not chosen: base58btc (no
- * multibase prefix) of the sha2-256 multihash of the subject's at-uri. Same
- * subject, same reviewer's DID in that uri, always the same address — no
- * lookup needed to find a review, and at most one review per subject per repo.
+ * multibase prefix) of the sha2-256 multihash of the subject's DID-normalised
+ * at-uri. The same subject always gives the same rkey, so a review's address is
+ * the reviewer's DID plus this, and a repo holds at most one review per subject.
  */
 export function reviewRkey(subjectUri: string): string {
   const digest = createHash('sha256').update(subjectUri, 'utf8').digest();
