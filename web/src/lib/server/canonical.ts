@@ -85,9 +85,16 @@ type Fetched = { status: number; location: string | null; contentType: string; b
  * One GET over node's own http client, which takes the `lookup` that fetch has
  * no way to accept, never follows a redirect on its own, and lets the body be
  * abandoned once MAX_BYTES have arrived. Resolves to null for anything that
- * goes wrong, so no detail of the failure can reach the caller.
+ * goes wrong, so no detail of the failure can reach the caller. `accept`
+ * gates which content-types are worth reading the body of at all (an HTML
+ * page fetch has no use for a JSON error page, and vice versa); `signal`
+ * lets a caller impose its own deadline on top of the per-request timeout.
  */
-function get(url: URL): Promise<Fetched | null> {
+function get(
+  url: URL,
+  accept: (contentType: string) => boolean,
+  signal?: AbortSignal,
+): Promise<Fetched | null> {
   const send = url.protocol === 'https:' ? httpsRequest : httpRequest;
   return new Promise((resolve) => {
     let settled = false;
@@ -99,12 +106,12 @@ function get(url: URL): Promise<Fetched | null> {
     };
     const req = send(
       url,
-      { method: 'GET', lookup: guardedLookup, timeout: FETCH_TIMEOUT_MS },
+      { method: 'GET', lookup: guardedLookup, timeout: FETCH_TIMEOUT_MS, signal },
       (res) => {
         const status = res.statusCode ?? 0;
         const location = res.headers.location ?? null;
         const contentType = String(res.headers['content-type'] ?? '').toLowerCase();
-        if (status >= 300 || !contentType.includes('text/html')) {
+        if (status >= 300 || !accept(contentType)) {
           res.destroy();
           done({ status, location, contentType, body: '' });
           return;
@@ -171,7 +178,7 @@ export async function fetchCanonicalUris(rawUrl: string): Promise<string[]> {
   for (let hop = 0; hop < MAX_HOPS; hop++) {
     if (!(await isSafeUrl(current))) return [];
 
-    const res = await get(current);
+    const res = await get(current, (ct) => ct.includes('text/html'));
     if (!res) return [];
 
     if (res.status >= 300 && res.status < 400) {
@@ -189,4 +196,35 @@ export async function fetchCanonicalUris(rawUrl: string): Promise<string[]> {
     return extractCanonicalUris(res.body).filter((uri) => checkSubjectUri(uri) === null);
   }
   return [];
+}
+
+/**
+ * A guarded GET for a JSON API — the same address-guarded lookup as
+ * fetchCanonicalUris (DNS rebind resistant, private/link-local ranges
+ * blocked), but content-type agnostic and https-only. For callers reading an
+ * endpoint named by untrusted data (e.g. a PDS URL out of someone else's DID
+ * document), which is exactly the SSRF surface this guard exists for. No
+ * redirects: an XRPC or DID-doc endpoint has no business issuing one. Never
+ * throws; null on any failure, non-2xx status, or invalid JSON.
+ */
+export async function guardedFetchJson(
+  rawUrl: string,
+  signal?: AbortSignal,
+): Promise<unknown | null> {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== 'https:') return null;
+  if (!(await isSafeUrl(url))) return null;
+
+  const res = await get(url, () => true, signal);
+  if (!res || res.status < 200 || res.status >= 300) return null;
+  try {
+    return JSON.parse(res.body);
+  } catch {
+    return null;
+  }
 }
