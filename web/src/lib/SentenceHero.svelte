@@ -27,7 +27,7 @@
   {#if parts.length > 0}
     <p class="display sentence">
       {#key key}
-        <Sentence {parts} {animate} linkWho linkSubject />
+        <Sentence {parts} {animate} linkWho />
       {/key}
     </p>
   {:else}

@@ -87,8 +87,7 @@
     {#if editable}
       {#if who}<Sentence parts={whoParts} animate={false} linkWho />{/if}<a
         class="subject"
-        href={`https://pdsls.dev/${review.subject.uri}`}
-        rel="noreferrer"
+        href={`/reviews/${review.subject.uri}`}
       >
         {review.subject.title}
       </a>
