@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { parse as parseFont } from 'opentype.js';
 import { describe, expect, it, vi } from 'vite-plus/test';
-import { reviewSentence } from '@is-not/sentence';
+import { reviewSentence, type Tag } from '@is-not/sentence';
 
 const FONT_PATH = new URL('./fonts/Baloo2-Bold.ttf', import.meta.url);
 const RESVG_WASM_PATH = import.meta.resolve('@resvg/resvg-wasm/index_bg.wasm');
@@ -13,7 +13,8 @@ vi.mock('./ogAssets', () => ({
   }),
 }));
 
-const { phrasePng, defaultPhrase, layout, pathData, WIDTH, HEIGHT } = await import('./og.ts');
+const { phrasePng, defaultPhrase, layout, pathData, consensusTags, WIDTH, HEIGHT } =
+  await import('./og.ts');
 
 const font = parseFont(readFileSync(FONT_PATH).buffer);
 
@@ -61,6 +62,41 @@ describe('layout', () => {
     expect(laid.tagline).toBeDefined();
     expect(laid.tagline!.top).toBeGreaterThanOrEqual(laid.box.top);
     expect(laid.tagline!.top + laid.tagline!.height).toBeLessThanOrEqual(laid.box.bottom);
+  });
+});
+
+describe('consensusTags', () => {
+  const repeat = (tag: Tag, times: number): Tag[] => Array.from({ length: times }, () => tag);
+
+  it('keeps only the pairs tied for the highest count, in sortTags order', () => {
+    const tags = [
+      ...repeat({ direction: 1, adjective: 'good' }, 5),
+      ...repeat({ direction: 2, adjective: 'useful' }, 5),
+      ...repeat({ direction: -1, adjective: 'cheap' }, 2),
+    ];
+    expect(consensusTags(tags)).toEqual([
+      { direction: 2, adjective: 'useful' },
+      { direction: 1, adjective: 'good' },
+    ]);
+  });
+
+  it('caps the result at the limit when more pairs tie', () => {
+    const tags = ['a', 'b', 'c', 'd'].flatMap((adjective) =>
+      repeat({ direction: 1, adjective }, 3),
+    );
+    expect(consensusTags(tags)).toEqual([
+      { direction: 1, adjective: 'a' },
+      { direction: 1, adjective: 'b' },
+      { direction: 1, adjective: 'c' },
+    ]);
+  });
+
+  it('counts the same adjective in a different direction as a separate pair', () => {
+    const tags = [
+      ...repeat({ direction: 1, adjective: 'loud' }, 3),
+      ...repeat({ direction: -1, adjective: 'loud' }, 1),
+    ];
+    expect(consensusTags(tags)).toEqual([{ direction: 1, adjective: 'loud' }]);
   });
 });
 
