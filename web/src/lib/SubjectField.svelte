@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import type { Subject } from '@is-not/lenses';
   import { m } from '$lib/paraglide/messages.js';
   import { resolveSubject } from '$lib/lenses';
@@ -89,6 +90,20 @@
   });
 
   const showList = $derived(focused && !suppressed && rows.length > 0);
+
+  // The list is anchored to the field, so a field near the right edge would
+  // push it past the viewport and a phone widens the page to fit. Once it
+  // has rendered (and again as its rows change width), shift it back inside.
+  $effect(() => {
+    if (!showList || !listEl || rows.length === 0) return;
+    void tick().then(() => {
+      if (!listEl) return;
+      listEl.style.translate = '';
+      const gutter = 16;
+      const overflow = listEl.getBoundingClientRect().right - (document.documentElement.clientWidth - gutter);
+      if (overflow > 0) listEl.style.translate = `${-overflow}px`;
+    });
+  });
 
   // An at-uri is forty unreadable characters of infrastructure, and a pasted
   // URL is no more readable, so both sit in the field masked from the moment
@@ -427,6 +442,7 @@
       role="listbox"
       class="listbox"
       aria-label={placeholder}
+      onpointerdown={(e) => e.preventDefault()}
     >
       {#each rows as row, i (rowKey(row, i))}
         <li
@@ -570,7 +586,7 @@
     display: grid;
     gap: var(--space-1);
     min-width: max(100%, 14rem);
-    max-width: min(24rem, 90vw);
+    max-width: min(24rem, calc(100dvw - 2rem));
     max-height: 16rem;
     overflow-y: auto;
     background: var(--paper);

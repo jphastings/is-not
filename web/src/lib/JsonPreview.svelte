@@ -1,5 +1,12 @@
+<script module lang="ts">
+  /** Stands in for a value the record doesn't have yet: rendered as a bare `???`. */
+  export const MISSING = Symbol('missing');
+  /** Stands in for an object the record doesn't have yet: rendered as `{ ??? }`. */
+  export const MISSING_OBJECT = Symbol('missing object');
+</script>
+
 <script lang="ts">
-  type Kind = 'key' | 'string' | 'number' | 'literal' | 'punct' | 'ws';
+  type Kind = 'key' | 'string' | 'number' | 'literal' | 'punct' | 'ws' | 'invalid';
   type Token = { text: string; kind: Kind; path: string };
 
   let { value }: { value: unknown } = $props();
@@ -8,6 +15,10 @@
   const indent = (depth: number) => '  '.repeat(depth);
 
   function emit(v: unknown, path: string, depth: number, out: Token[]) {
+    if (v === MISSING || v === MISSING_OBJECT) {
+      out.push({ text: v === MISSING ? '???' : '{ ??? }', kind: 'invalid', path });
+      return;
+    }
     if (v === null || typeof v !== 'object') {
       const kind: Kind =
         typeof v === 'string' ? 'string' : typeof v === 'number' ? 'number' : 'literal';
@@ -141,6 +152,12 @@
   .number,
   .literal {
     color: var(--moss);
+  }
+
+  /* Deliberately not JSON: the record can't be written until this is filled in. */
+  .invalid {
+    color: var(--ink-soft);
+    font-style: italic;
   }
 
   .punct {

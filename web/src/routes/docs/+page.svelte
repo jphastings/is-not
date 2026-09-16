@@ -2,7 +2,7 @@
   import type { Subject, Tag } from '@is-not/lenses';
   import { m } from '$lib/paraglide/messages.js';
   import ReviewForm from '$lib/ReviewForm.svelte';
-  import JsonPreview from '$lib/JsonPreview.svelte';
+  import JsonPreview, { MISSING, MISSING_OBJECT } from '$lib/JsonPreview.svelte';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
@@ -15,8 +15,12 @@
 
   const record = $derived({
     $type: 'at.isnot.review',
-    subject: draft?.subject ?? null,
-    tags: draft?.tags ?? [{ direction: 1, adjective: '' }],
+    subject: draft?.subject ?? MISSING_OBJECT,
+    // A blank adjective is shown as ??? rather than "": the record can't be saved with it.
+    tags: (draft?.tags ?? [{ direction: 1, adjective: '' }]).map((t) => ({
+      direction: t.direction,
+      adjective: t.adjective.trim() === '' ? MISSING : t.adjective,
+    })),
     ...(draft?.locale ? { locale: draft.locale } : {}),
     createdAt: timestamp,
     updatedAt: timestamp,
