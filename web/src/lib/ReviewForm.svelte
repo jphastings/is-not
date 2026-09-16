@@ -255,7 +255,6 @@
 
   .handle {
     color: var(--moss-handle);
-    anchor-name: --who;
   }
 
   .note {
