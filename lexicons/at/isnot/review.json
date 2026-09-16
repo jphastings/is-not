@@ -4,8 +4,8 @@
   "defs": {
     "main": {
       "type": "record",
-      "key": "tid",
-      "description": "A person's review of one thing: which adjectives it is, and is not. One record per subject per repo; update it rather than creating another.",
+      "key": "any",
+      "description": "A person's review of one thing: which adjectives it is, and is not. One record per subject per repo; update it rather than creating another. The record key is derived, not chosen: base58btc (no multibase prefix) of the sha2-256 multihash of the subject's at-uri, with its authority normalised to a DID — so anyone can compute a review's address from a reviewer's DID and the subject alone.",
       "record": {
         "type": "object",
         "required": [
