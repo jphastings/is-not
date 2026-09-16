@@ -74,6 +74,21 @@
     return out;
   });
 
+  // Rendered as block-level lines, like a diff: a change tints the whole line.
+  const lines = $derived.by(() => {
+    const out: { tokens: Token[]; changed: boolean }[] = [{ tokens: [], changed: false }];
+    for (const token of tokens) {
+      if (token.kind === 'ws' && token.text.startsWith('\n')) {
+        out.push({ tokens: [{ ...token, text: token.text.slice(1) }], changed: false });
+        continue;
+      }
+      const line = out[out.length - 1];
+      line.tokens.push(token);
+      if (token.kind !== 'ws' && isChanged(token.path)) line.changed = true;
+    }
+    return out;
+  });
+
   // Plain (non-reactive) closure state: the previous value to diff against,
   // updated from the effect below rather than tracked by Svelte itself.
   let previous: unknown;
@@ -99,16 +114,15 @@
 </script>
 
 <pre><code
-  >{#each tokens as token, i (i)}<span
-      class={token.kind}
-      class:changed={token.kind !== 'ws' && isChanged(token.path)}>{token.text}</span
+  >{#each lines as line, i (i)}<span class="line" class:changed={line.changed}
+      >{#each line.tokens as token, j (j)}<span class={token.kind}>{token.text}</span>{/each}</span
     >{/each}</code
 ></pre>
 
 <style>
   pre {
     margin: 0;
-    padding: var(--space-4);
+    padding: var(--space-4) 0;
     background: var(--moss-tint);
     border-radius: 14px;
     overflow-x: auto;
@@ -133,10 +147,16 @@
     color: var(--ink-soft);
   }
 
-  .changed {
-    text-decoration: underline;
-    text-decoration-color: var(--moss);
-    text-decoration-thickness: 0.12em;
-    text-underline-offset: 0.15em;
+  .line {
+    display: block;
+    box-sizing: border-box;
+    min-width: 100%;
+    width: max-content;
+    padding-inline: var(--space-4);
+  }
+
+  /* A diff's added line: the tint says "this just changed" without touching the text. */
+  .line.changed {
+    background: color-mix(in oklch, var(--moss) 22%, var(--moss-tint));
   }
 </style>
