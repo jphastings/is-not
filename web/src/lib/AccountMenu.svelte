@@ -124,17 +124,18 @@
     background: oklch(22% 0.03 140 / 0.3);
   }
 
-  /* Anchored to the handle slot in ReviewForm's sentence (when one is on the
-     page), so opening it there moves nothing else on the page. Opened from
-     the corner avatar on a page with no such anchor, it falls back to normal
-     absolute positioning. */
+  /* Anchored to whichever button opened it (the corner avatar or the handle
+     slot in ReviewForm's sentence): a popover's invoker is its implicit anchor.
+     Centred beneath it, and slid back inside the viewport (less its margin)
+     when centring would push it off an edge. Without anchor positioning it
+     stays centred as a dialog. */
   @supports (anchor-name: --a) {
     #accounts-popover {
       position: absolute;
-      position-anchor: --who;
-      position-area: bottom center;
+      position-area: bottom span-all;
+      justify-self: anchor-center;
       position-try-fallbacks: flip-block;
-      margin: var(--space-2) 0 0;
+      margin: var(--space-2) var(--space-3) 0;
     }
 
     #accounts-popover::backdrop {
