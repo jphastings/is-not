@@ -20,6 +20,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
     return {
       id,
       heading: reviews[0]?.subject.title ?? id,
+      subjectType: reviews[0]?.subject.type ?? null,
       ofSubject: true,
       reviews,
       types: [],
@@ -38,6 +39,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
   return {
     id,
     heading: `@${id.startsWith('did:') ? await didHandle(id) : id}`,
+    subjectType: null,
     ofSubject: false,
     reviews: listReviews({ did: id }),
     types: subjectTypesFor(id),

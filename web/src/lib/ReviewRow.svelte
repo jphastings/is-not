@@ -6,7 +6,7 @@
 
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { reviewSentence } from '@is-not/sentence';
+  import { reviewSentence, sortTags } from '@is-not/sentence';
   import type { Tag } from '@is-not/lenses';
   import { m } from '$lib/paraglide/messages.js';
   import Sentence from '$lib/Sentence.svelte';
@@ -17,19 +17,22 @@
     review,
     editable,
     who = false,
+    showType = true,
   }: {
     review: ListedReview;
     editable: boolean;
     /** Name the reviewer in the sentence — for pages not already about them. */
     who?: boolean;
+    /** Off where every row is about the same subject, so its type is already said. */
+    showType?: boolean;
   } = $props();
 
   // Deliberate one-time snapshot: an editable draft the user works on locally
   // until they save, not a live mirror of the loaded review.
   // svelte-ignore state_referenced_locally
-  const prefilled = review.tags.map((t) => t.adjective);
-  // svelte-ignore state_referenced_locally
-  let tags = $state<Tag[]>(review.tags.map((t) => ({ ...t })));
+  const saved = sortTags(review.tags);
+  const prefilled = saved.map((t) => t.adjective);
+  let tags = $state<Tag[]>(saved.map((t) => ({ ...t })));
   let sending = $state(false);
   let deleteForm = $state<HTMLFormElement>();
 
@@ -50,10 +53,9 @@
   );
 
   const dirty = $derived(
-    tags.length !== review.tags.length ||
+    tags.length !== saved.length ||
       tags.some(
-        (t, i) =>
-          t.adjective !== review.tags[i]?.adjective || t.direction !== review.tags[i]?.direction,
+        (t, i) => t.adjective !== saved[i]?.adjective || t.direction !== saved[i]?.direction,
       ),
   );
   const saveable = $derived(dirty && tags.some((t) => t.adjective.trim() !== ''));
@@ -119,7 +121,7 @@
       <span class="sentence"><Sentence {parts} animate={false} linkWho /></span>
     {/if}
   </div>
-  <span class="type">{review.subject.type.replaceAll('-', ' ')}</span>
+  {#if showType}<span class="type">{review.subject.type.replaceAll('-', ' ')}</span>{/if}
 </li>
 
 <style>

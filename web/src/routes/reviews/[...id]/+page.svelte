@@ -66,7 +66,10 @@
 </svelte:head>
 
 <main>
-  <h1 class="display">{data.heading}</h1>
+  <h1 class="display">
+    {data.heading}
+    {#if data.subjectType}<small>({data.subjectType.replaceAll('-', ' ')})</small>{/if}
+  </h1>
 
   {#if data.adjectives.length === 0}
     <p class="empty display">{m.reviews_empty()}</p>
@@ -121,7 +124,7 @@
     {:else}
       <ul class="reviews">
         {#each shown as review (review.rkey)}
-          <ReviewRow {review} editable={review.did === data.viewer} who={data.ofSubject} />
+          <ReviewRow {review} editable={review.did === data.viewer} who={data.ofSubject} showType={!data.ofSubject} />
         {/each}
       </ul>
     {/if}
@@ -139,6 +142,15 @@
     font-size: var(--step-3);
     margin: 0 0 var(--space-5);
     overflow-wrap: anywhere;
+  }
+
+  h1 small {
+    font-family: var(--font-body);
+    font-size: var(--step--1);
+    font-weight: 400;
+    letter-spacing: normal;
+    color: var(--ink-soft);
+    white-space: nowrap;
   }
 
   .empty {
