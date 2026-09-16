@@ -7,10 +7,20 @@
 	import type { LayoutProps } from './$types';
 
 	let { children, data }: LayoutProps = $props();
+
+	const imagePath = $derived(page.data.ogImage ?? '/og.png');
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<meta property="og:site_name" content={m.site_title()} />
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content={`${page.data.origin}${page.url.pathname}`} />
+	<meta property="og:image" content={`${page.data.origin}${imagePath}`} />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	{#if page.data.ogDescription}<meta property="og:description" content={page.data.ogDescription} />{/if}
+	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
 <header class="site">

@@ -95,6 +95,7 @@
 
 <svelte:head>
   <title>{m.reviews_title({ who: heading })}</title>
+  <meta property="og:title" content={m.reviews_title({ who: heading })} />
 </svelte:head>
 
 {#if data.single}

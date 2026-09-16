@@ -1,10 +1,10 @@
 import { error, fail, redirect } from '@sveltejs/kit';
+import { reviewSentence, sentenceText } from '@is-not/sentence';
 import type { Actions, PageServerLoad } from './$types';
 import { accountsFor, didHandle, handleDid } from '$lib/server/accounts';
 import { adjectiveCounts, listReviews, subjectTypesFor } from '$lib/server/db';
 import { deleteReview } from '$lib/server/deleteReview';
-import { fetchLiveReview } from '$lib/server/liveReview';
-import { COLLECTION } from '$lib/server/reviews';
+import { COLLECTION, singleReview } from '$lib/server/reviews';
 import { RECORD_URI } from '$lib/review';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
@@ -30,27 +30,25 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
         redirect(302, `/reviews/at://${resolved}/${COLLECTION}/${rkey}${url.search}`);
       }
 
-      // ponytail: fetches every review by this did and filters in JS; a single
-      // `WHERE did = ? AND rkey = ?` query is the upgrade once this needs to scale.
-      // A miss falls back to a live PDS read: jetstream can be a second or two
-      // behind a just-completed save, and that's exactly when this link is followed.
-      const review =
-        listReviews({ did: authority }).find((r) => r.rkey === rkey) ??
-        (await fetchLiveReview(authority, rkey));
+      const adjective = url.searchParams.get('adjective');
+      const review = await singleReview(authority, rkey, adjective);
       if (!review) error(404);
 
-      const adjective = url.searchParams.get('adjective');
-      let tags = review.tags;
-      if (adjective) {
-        const matching = review.tags.filter((t) => t.adjective === adjective);
-        tags = matching.length > 0 ? matching : [{ direction: 0, adjective }];
-      }
+      const ogParams = new URLSearchParams({ review: id });
+      if (adjective) ogParams.set('adjective', adjective);
 
       return {
         id,
         single: true as const,
-        review: { ...review, tags },
+        review,
         heading: review.handle ? `@${review.handle}` : review.did,
+        ogImage: `/og.png?${ogParams}`,
+        ogDescription: sentenceText(
+          reviewSentence(
+            { subject: review.subject, tags: review.tags, locale: review.locale },
+            { who: { handle: review.handle || review.did, did: review.did } },
+          ),
+        ),
       };
     }
 

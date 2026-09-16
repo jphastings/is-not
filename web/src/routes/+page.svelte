@@ -29,6 +29,7 @@
 
 <svelte:head>
   <title>{m.site_title()}</title>
+  <meta property="og:title" content={m.site_title()} />
 </svelte:head>
 
 <SentenceHero

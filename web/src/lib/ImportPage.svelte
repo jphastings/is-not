@@ -188,6 +188,7 @@
 
 <svelte:head>
   <title>{m.import_title({ domain })}</title>
+  <meta property="og:title" content={m.import_title({ domain })} />
 </svelte:head>
 
 <main>

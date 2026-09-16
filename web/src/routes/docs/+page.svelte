@@ -29,6 +29,7 @@
 
 <svelte:head>
   <title>{m.docs_title()}</title>
+  <meta property="og:title" content={m.docs_title()} />
 </svelte:head>
 
 <main>
