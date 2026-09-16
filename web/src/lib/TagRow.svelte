@@ -101,8 +101,7 @@
     {#if complete && onRemove}
       <ClearButton label={m.remove()} onclick={onRemove} />
     {/if}
-  </span>
-  {#if separator === 'comma'}<span class="comma">,</span>{' '}{/if}
+  </span>{#if separator === 'comma'}<span class="comma">,</span>{' '}{/if}
   {#if separator === 'and'}{' '}<span class="conj">{m.and()}</span>{' '}{/if}
 </li>
 
@@ -240,8 +239,10 @@
     stroke-width: 2.75;
   }
 
+  /* Glued to the adjective's box — no whitespace before it in the markup — so a
+     wrapped line can never start with the comma. */
   .comma {
-    margin-inline-start: -0.25em;
+    margin: 0;
   }
 
   /* `font: inherit` carries the font shorthand's own line-height, not the one
