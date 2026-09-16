@@ -5,6 +5,7 @@ import { accountsFor, didHandle, handleDid } from '$lib/server/accounts';
 import { adjectiveCounts, listReviews, subjectTypesFor } from '$lib/server/db';
 import { deleteReview } from '$lib/server/deleteReview';
 import { COLLECTION, singleReview } from '$lib/server/reviews';
+import { subjectPhrase } from '$lib/server/og';
 import { RECORD_URI } from '$lib/review';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
@@ -63,6 +64,17 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
       types: [],
       adjectives: adjectiveCounts({ subjectUri: id }),
       viewer,
+      ...(reviews.length > 0
+        ? {
+            ogImage: `/og.png?subject=${encodeURIComponent(id)}`,
+            ogDescription: sentenceText(
+              subjectPhrase(
+                reviews[0].subject,
+                reviews.flatMap((r) => r.tags),
+              ),
+            ),
+          }
+        : {}),
     };
   }
 

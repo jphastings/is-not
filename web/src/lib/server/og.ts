@@ -1,6 +1,6 @@
 import type { Font } from 'opentype.js';
 import { Resvg, initWasm } from '@resvg/resvg-wasm';
-import { reviewSentence, type Part } from '@is-not/sentence';
+import { reviewSentence, sortTags, type Part, type Tag } from '@is-not/sentence';
 import faviconRaw from '$lib/assets/favicon.svg?raw';
 import { loadAssets } from './ogAssets';
 
@@ -58,6 +58,30 @@ export function defaultPhrase(): Part[] {
     subject: { uri: '', title: 'is/not' },
     tags: [{ direction: 1, adjective: 'useful' }],
   });
+}
+
+/** Counts every (direction, adjective) pair across every review of a subject,
+    keeps only the most-agreed-on pairs, and returns up to `limit` of them in
+    `sortTags` order — the tags a subject's listing page's card shows as its
+    consensus. */
+export function consensusTags(tags: Tag[], limit = 3): Tag[] {
+  const counts = new Map<string, { tag: Tag; count: number }>();
+  for (const tag of tags) {
+    const key = `${tag.direction}:${tag.adjective}`;
+    const entry = counts.get(key);
+    if (entry) entry.count++;
+    else counts.set(key, { tag, count: 1 });
+  }
+  const entries = [...counts.values()];
+  const maxCount = Math.max(0, ...entries.map((e) => e.count));
+  const top = entries.filter((e) => e.count === maxCount).map((e) => e.tag);
+  return sortTags(top).slice(0, limit);
+}
+
+/** A subject listing page's card: the subject's title with its consensus
+    tags, no `who` and no tagline. */
+export function subjectPhrase(subject: { uri: string; title: string }, tags: Tag[]): Part[] {
+  return reviewSentence({ subject, tags: consensusTags(tags) });
 }
 
 function pathD(svg: string, className: string): string {
