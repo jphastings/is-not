@@ -51,6 +51,13 @@ export function registerLocale(tag: string, messages: Messages): void {
   locales[tag.toLowerCase()] = messages;
 }
 
+/** Most positive first, then alphabetically: the order a review's tags are shown in. */
+export function sortTags<T extends { direction: number; adjective: string }>(tags: T[]): T[] {
+  return tags.toSorted(
+    (a, b) => b.direction - a.direction || a.adjective.localeCompare(b.adjective),
+  );
+}
+
 export function reviewSentence(review: Review, options: SentenceOptions = {}): Part[] {
   const locale = resolveLocale(review.locale, options);
   const m = locales[locale];
@@ -70,8 +77,9 @@ export function reviewSentence(review: Review, options: SentenceOptions = {}): P
     { kind: 'text', text: ' ' },
   );
 
+  const sorted = sortTags(review.tags);
   const groups = order
-    .map((direction) => ({ direction, tags: review.tags.filter((t) => t.direction === direction) }))
+    .map((direction) => ({ direction, tags: sorted.filter((t) => t.direction === direction) }))
     .filter((g) => g.tags.length > 0)
     .map(({ direction, tags }): Part[] => [
       {

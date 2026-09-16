@@ -1,5 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
+  import { sortTags } from '@is-not/sentence';
   import { page } from '$app/state';
   import type { Subject, Tag } from '@is-not/lenses';
   import { m } from '$lib/paraglide/messages.js';
@@ -104,7 +105,7 @@
     if (subject?.uri !== uri || !review) return;
     existing = true;
     prefilled = review.tags.map((t) => t.adjective);
-    tags = review.tags.length > 0 ? review.tags : tags;
+    tags = review.tags.length > 0 ? sortTags(review.tags) : tags;
   }
 </script>
 

@@ -1,14 +1,39 @@
 {
   "review": {
-    "subject": { "uri": "at://did:plc:x/app.bsky.feed.post/1", "title": "Dune: Part Two" },
+    "subject": {
+      "uri": "at://did:plc:x/app.bsky.feed.post/1",
+      "title": "Dune: Part Two"
+    },
     "tags": [
-      { "direction": 1, "adjective": "loud" },
-      { "direction": -1, "adjective": "long" },
-      { "direction": 0, "adjective": "funny" },
-      { "direction": 2, "adjective": "beautiful" },
-      { "direction": 1, "adjective": "sandy" },
-      { "direction": -2, "adjective": "boring" }
+      {
+        "direction": 1,
+        "adjective": "loud"
+      },
+      {
+        "direction": 1,
+        "adjective": "epic"
+      },
+      {
+        "direction": -1,
+        "adjective": "long"
+      },
+      {
+        "direction": 0,
+        "adjective": "funny"
+      },
+      {
+        "direction": 2,
+        "adjective": "beautiful"
+      },
+      {
+        "direction": 1,
+        "adjective": "sandy"
+      },
+      {
+        "direction": -2,
+        "adjective": "boring"
+      }
     ]
   },
-  "text": "Dune: Part Two is really beautiful, is loud and sandy, ??? funny, is not long, and really isn't boring"
+  "text": "Dune: Part Two is really beautiful, is epic, loud, and sandy, ??? funny, is not long, and really isn't boring"
 }
