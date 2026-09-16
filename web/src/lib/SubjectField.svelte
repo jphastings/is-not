@@ -524,25 +524,15 @@
     opacity: 0.7;
   }
 
-  /* Every part of the sentence is ruled on its own box, so they sit on one
-     line however the part is built. The rule is a background, not a border, so
-     thickening it on focus cannot change anyone's height; it sits a little
-     above the box's bottom, nearer the letters than the font's descent. */
-  .autosize {
-    background-image: linear-gradient(var(--moss), var(--moss));
-    background-repeat: no-repeat;
-    background-size: 100% 0.07em;
-    background-position: 0 calc(100% - 0.18em);
-  }
-
-  /* A box around a word would break the sentence, so focus thickens the rule. */
+  /* Keyboard focus needs its own visible indicator now nothing else marks the
+     field: an underline, not the default outline, which would draw a box
+     around a word and break the sentence. */
   textarea:focus-visible {
     outline: none;
-  }
-
-  .autosize:has(:focus-visible) {
-    background-image: linear-gradient(var(--moss-deep), var(--moss-deep));
-    background-size: 100% 0.16em;
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.15em;
   }
 
   /* `font: inherit` carries the font shorthand's own line-height, not the one

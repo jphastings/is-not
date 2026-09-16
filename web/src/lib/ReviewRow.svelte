@@ -1,5 +1,5 @@
 <script module lang="ts">
-  // The one row whose adornments (chevrons, ×, "and?") a touch screen shows:
+  // The one row whose adornments (×, "and?") a touch screen shows:
   // the last one tapped. Shared across rows so tapping one clears the rest.
   let adorned = $state<string | null>(null);
 </script>
@@ -131,7 +131,7 @@
 
   .row {
     font-size: var(--step-1);
-    line-height: 1.85;
+    line-height: 1.5;
   }
 
   .subject {

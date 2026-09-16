@@ -138,7 +138,7 @@
         {m.handle_placeholder()}
       </button>
     {/if}
-    <span>{m.thinks()}</span>
+    <span class="text">{m.thinks()}</span>
 
     <SubjectField
       bind:subject
@@ -194,7 +194,7 @@
   /* Laid out as text, not as flex items, so the browser can balance the lines. */
   .sentence {
     font-size: var(--sentence-size, var(--step-3));
-    line-height: 1.85;
+    line-height: 1.5;
     text-wrap: balance;
   }
 
@@ -205,37 +205,19 @@
     padding: 0;
   }
 
-  /* Every part of the sentence is ruled on its own box, so they sit on one
-     line however the part is built. The rule is a background, not a border, so
-     thickening it on focus cannot change anyone's height; it sits a little
-     above the box's bottom, nearer the letters than the font's descent. Subject and
-     adjective fields draw their own matching rule (SubjectField, TagRow):
-     Svelte scopes styles per-component, so this can't be shared here. */
-  .slot {
-    background-image: linear-gradient(var(--moss), var(--moss));
-    background-repeat: no-repeat;
-    background-size: 100% 0.07em;
-    background-position: 0 calc(100% - 0.18em);
+  .text {
+    color: var(--ink-soft);
   }
 
-  /* A box around a word would break the sentence, so focus thickens the rule. */
+  /* Keyboard focus needs its own visible indicator: an underline, not the
+     default outline, which would draw a box around a word and break the
+     sentence. */
   .sentence .slot:focus-visible {
     outline: none;
-  }
-
-  .slot:focus-visible {
-    background-image: linear-gradient(var(--moss-deep), var(--moss-deep));
-    background-size: 100% 0.16em;
-  }
-
-  /* A slot opens its list rather than holding focus, so while that list is up
-     its rule thickens the same way a field's does while the field is focused.
-     No selector reaches an invoker from its popover, so this asks the ancestor
-     both share whether the popover it contains is open. */
-  :global(body:has(#login-popover:popover-open)) .slot,
-  :global(body:has(#accounts-popover:popover-open)) .slot {
-    background-image: linear-gradient(var(--moss-deep), var(--moss-deep));
-    background-size: 100% 0.16em;
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.15em;
   }
 
   .plain {
@@ -266,7 +248,7 @@
   }
 
   .handle {
-    color: var(--ink);
+    color: var(--moss-handle);
     anchor-name: --who;
   }
 

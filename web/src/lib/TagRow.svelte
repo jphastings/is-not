@@ -22,18 +22,6 @@
     { value: -2, label: () => m.dir_m2() },
   ];
 
-  let directionSelect: HTMLSelectElement | undefined = $state();
-
-  function openDirection() {
-    if (!directionSelect) return;
-    // ponytail: showPicker() is missing/throws on some browsers (e.g. older Safari), fall back to focusing the select
-    try {
-      directionSelect.showPicker();
-    } catch {
-      directionSelect.focus();
-    }
-  }
-
   // The clear button only earns its place once the adjective is done, not
   // while it's still being typed: blurred and non-empty. A tag that arrives
   // filled in (an existing review being edited) is already done.
@@ -56,37 +44,11 @@
     class="autosize direction"
     data-value={directions.find((d) => d.value === tag.direction)?.label()}
   >
-    {#if tag.direction < 2}
-      <button
-        type="button"
-        tabindex="-1"
-        aria-hidden="true"
-        class="chevron chevron-up"
-        onclick={openDirection}
-      >
-        <svg viewBox="0 0 16 8" aria-hidden="true" focusable="false">
-          <path d="M2 7 8 1 14 7" />
-        </svg>
-      </button>
-    {/if}
-    <select bind:this={directionSelect} bind:value={tag.direction} aria-label={m.dir_1()}>
+    <select bind:value={tag.direction} aria-label={m.dir_1()}>
       {#each directions as direction (direction.value)}
         <option value={direction.value}>{direction.label()}</option>
       {/each}
     </select>
-    {#if tag.direction > -2}
-      <button
-        type="button"
-        tabindex="-1"
-        aria-hidden="true"
-        class="chevron chevron-down"
-        onclick={openDirection}
-      >
-        <svg viewBox="0 0 16 8" aria-hidden="true" focusable="false">
-          <path d="M2 1 8 7 14 1" />
-        </svg>
-      </button>
-    {/if}
   </span>
   <span class="autosize adjective" data-value={tag.adjective || m.adjective_placeholder()}>
     <textarea
@@ -174,83 +136,27 @@
   select {
     appearance: none;
     cursor: pointer;
+    color: var(--direction-ink);
   }
 
-  /* Every part of the sentence is ruled on its own box, so they sit on one
-     line however the part is built. The rule is a background, not a border, so
-     thickening it on focus cannot change anyone's height; it sits a little
-     above the box's bottom, nearer the letters than the font's descent. The direction
-     field is a chooser, not a piece of text, so it gets chevrons instead of
-     this underline. */
-  .autosize.adjective {
-    background-image: linear-gradient(var(--moss), var(--moss));
-    background-repeat: no-repeat;
-    background-size: 100% 0.07em;
-    background-position: 0 calc(100% - 0.18em);
+  .adjective textarea {
+    color: var(--adjective-ink);
   }
 
-  /* A box around a word would break the sentence, so focus thickens the rule. */
+  .comma,
+  .conj {
+    color: var(--ink-soft);
+  }
+
+  /* Keyboard focus needs its own visible indicator now nothing else marks the
+     field: an underline, not the default outline, which would draw a box
+     around a word and break the sentence. */
   li :is(textarea, select):focus-visible {
     outline: none;
-  }
-
-  .autosize.adjective:has(:focus-visible) {
-    background-image: linear-gradient(var(--moss-deep), var(--moss-deep));
-    background-size: 100% 0.16em;
-  }
-
-  /* Drawn rather than typed, like ClearButton's cross: positioned off the
-     `.direction` box itself (already position:relative via .autosize) so
-     appearing/disappearing can never resize or reflow the sentence. */
-  .chevron {
-    position: absolute;
-    font: inherit;
-    line-height: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0.7em;
-    height: 0.4em;
-    padding: 0;
-    border: 0;
-    background: none;
-    cursor: pointer;
-  }
-
-  /* On touch, in a list of reviews, only the row last tapped shows them
-     (ReviewRow sets .adorned); the word itself still opens the select. */
-  @media (hover: none) {
-    :global(.review:not(.adorned)) .chevron {
-      opacity: 0;
-      pointer-events: none;
-    }
-  }
-
-  .chevron-up {
-    top: -0.2em;
-  }
-
-  .chevron-down {
-    bottom: -0.15em;
-  }
-
-  .chevron svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-    fill: none;
-    stroke: var(--moss);
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .chevron:hover svg {
-    stroke: var(--moss-deep);
-  }
-
-  .direction:has(:focus-visible) .chevron svg {
-    stroke: var(--moss-deep);
-    stroke-width: 2.75;
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.15em;
   }
 
   /* Glued to the adjective's box — no whitespace before it in the markup — so a

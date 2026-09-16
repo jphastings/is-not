@@ -21,7 +21,7 @@
 
 <span class="sentence">
   {#each parts as part, i (i)}
-    {#if part.kind === 'text'}<span>{part.text}</span>{:else if part.kind === 'subject'}<a
+    {#if part.kind === 'text'}<span class="text">{part.text}</span>{:else if part.kind === 'subject'}<a
         href={linkSubject ? `/reviews/${part.uri}` : `https://pdsls.dev/${part.uri}`}
         rel="noreferrer"
         class={part.kind}
@@ -40,7 +40,6 @@
         }}>{part.text}</a
       >{:else}<span
         class={part.kind}
-        class:not={part.kind === 'adjective' && part.direction < 0}
         in:fade|global={{
           duration: animate ? 420 : 160,
           delay: animate ? i * stagger : 0,
@@ -83,18 +82,15 @@
     text-decoration: underline;
   }
 
-  .adjective {
-    background: var(--moss-tint);
-    border-radius: 0.15em;
-    padding-inline: 0.12em;
+  .direction {
+    color: var(--direction-ink);
   }
 
-  /* "is not" carries the meaning; the underline only reinforces it. */
-  .adjective.not {
-    background: transparent;
-    text-decoration: underline;
-    text-decoration-color: var(--moss);
-    text-decoration-thickness: 0.07em;
-    text-underline-offset: 0.1em;
+  .adjective {
+    color: var(--adjective-ink);
+  }
+
+  .text {
+    color: var(--ink-soft);
   }
 </style>

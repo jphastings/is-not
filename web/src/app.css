@@ -11,6 +11,11 @@
   /* A small lift off --moss-deep, for the reviewer-handle link in a sentence
      next to the subject link: still green, one step lighter than it. */
   --moss-handle: oklch(43% 0.1 145);
+  /* Sentence parts get their meaning from colour, not chrome: same lightness
+     and chroma as the subject's moss, rotated round the hue wheel so both
+     follow --moss-deep (and its dark-mode redefinition) automatically. */
+  --direction-ink: oklch(from var(--moss-deep) l c calc(h + 60));
+  --adjective-ink: oklch(from var(--moss-deep) l c calc(h - 60));
   /* Fixed light backing for the PDS logos, which stay the same in both themes. */
   --plate: oklch(97% 0.02 95);
   --shadow: 0 10px 40px oklch(22% 0.03 140 / 0.12);
