@@ -39,8 +39,15 @@
   const parts = $derived(
     reviewSentence(
       { subject: review.subject, tags: review.tags, locale: review.locale },
-      who ? { who: { handle: review.handle || review.did, did: review.did } } : {},
+      who ? { who: { handle: review.handle || review.did, did: review.did, self: editable } } : {},
     ),
+  );
+
+  // Everything the sentence puts before the subject ("You think " / "@handle
+  // thinks "), so the editable branch can prefix its hand-built subject link
+  // with the same words instead of dropping them.
+  const whoParts = $derived(
+    who ? parts.slice(0, parts.findIndex((p) => p.kind === 'subject')) : [],
   );
 
   const payload = $derived(
@@ -78,7 +85,11 @@
 >
   <div class="row">
     {#if editable}
-      <a class="subject" href={`https://pdsls.dev/${review.subject.uri}`} rel="noreferrer">
+      {#if who}<Sentence parts={whoParts} animate={false} linkWho />{/if}<a
+        class="subject"
+        href={`https://pdsls.dev/${review.subject.uri}`}
+        rel="noreferrer"
+      >
         {review.subject.title}
       </a>
       <form
