@@ -1,23 +1,26 @@
 <script lang="ts">
+  import type { Subject, Tag } from '@is-not/lenses';
   import { m } from '$lib/paraglide/messages.js';
+  import ReviewForm from '$lib/ReviewForm.svelte';
+  import JsonPreview from '$lib/JsonPreview.svelte';
+  import type { PageData } from './$types';
 
-  const example = {
+  let { data }: { data: PageData } = $props();
+
+  // One timestamp, captured once, so editing the demo doesn't re-highlight
+  // createdAt/updatedAt on every keystroke.
+  const timestamp = new Date().toISOString();
+
+  let draft = $state<{ subject: Subject | null; tags: Tag[]; locale: string } | null>(null);
+
+  const record = $derived({
     $type: 'at.isnot.review',
-    subject: {
-      uri: 'at://did:plc:ephkzpinhaqcabtkugtbzrwu/buzz.bookhive.book/3mmodauih2s6w',
-      cid: 'bafyreid2jgowfxzdnnsyz5ui7pjlgheorjs7sh6udummcl4mmhgsp5xery',
-      title: 'Moon Over Brendle',
-      type: 'book',
-      identifiers: [{ key: 'isbn13', value: '9781836730309' }],
-    },
-    tags: [
-      { direction: 1, adjective: 'gentle' },
-      { direction: -2, adjective: 'a chore' },
-    ],
-    locale: 'en',
-    createdAt: '2026-09-15T12:00:00.000Z',
-    updatedAt: '2026-09-15T12:00:00.000Z',
-  };
+    subject: draft?.subject ?? null,
+    tags: draft?.tags ?? [{ direction: 1, adjective: '' }],
+    ...(draft?.locale ? { locale: draft.locale } : {}),
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  });
 </script>
 
 <svelte:head>
@@ -26,12 +29,25 @@
 
 <main>
   <h1 class="display">{m.docs()}</h1>
-  <p class="intro">{m.docs_intro()}</p>
 
-  <section>
-    <h2 class="display">{m.docs_record_heading()}</h2>
-    <p>{m.docs_record_note()}</p>
-    <pre><code>{JSON.stringify(example, null, 2)}</code></pre>
+  <!-- Our own copy, not user content: {@html} is safe here. -->
+  <p>{@html m.docs_p1()}</p>
+  <p>{@html m.docs_p2()}</p>
+  <p>{@html m.docs_p3()}</p>
+  <p>{@html m.docs_p4()}</p>
+
+  <section class="demo">
+    <div class="form-wrap">
+      <ReviewForm
+        demo
+        accounts={data.accounts}
+        current={data.current}
+        serverError={null}
+        saved={null}
+        ondraft={(d) => (draft = d)}
+      />
+    </div>
+    <JsonPreview value={record} />
   </section>
 
   <section>
@@ -61,7 +77,7 @@
 <style>
   main {
     padding: var(--space-5);
-    max-width: 44rem;
+    max-width: 60rem;
     margin-inline: auto;
     display: grid;
     gap: var(--space-6);
@@ -78,24 +94,21 @@
     margin: 0 0 var(--space-3);
   }
 
-  .intro {
+  main > p {
     font-size: var(--step-1);
     margin: 0;
-    max-width: 30ch;
+    max-width: 60ch;
   }
 
-  section p {
-    margin: 0 0 var(--space-4);
-    color: var(--ink-soft);
+  .demo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+    gap: var(--space-5);
+    align-items: start;
   }
 
-  pre {
-    margin: 0;
-    padding: var(--space-4);
-    background: var(--moss-tint);
-    border-radius: 14px;
-    overflow-x: auto;
-    font-size: var(--step--1);
+  .form-wrap {
+    --sentence-size: var(--step-1);
   }
 
   ul {

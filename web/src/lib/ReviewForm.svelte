@@ -17,11 +17,16 @@
     current,
     serverError,
     saved,
+    demo = false,
+    ondraft,
   }: {
     accounts: Account[];
     current: Account | null;
     serverError: string | null;
     saved: string | null;
+    /** No `?/save` action exists off `/review`: hides the save button, error and saved link. */
+    demo?: boolean;
+    ondraft?: (draft: { subject: Subject | null; tags: Tag[]; locale: string }) => void;
   } = $props();
 
   const errors: Record<string, () => string> = {
@@ -54,6 +59,14 @@
   const initialSubjectUri = page.url.searchParams.get('subject') ?? undefined;
 
   const locale = getLocale();
+
+  $effect(() => {
+    ondraft?.({
+      subject: subject ? { ...subject, title: subjectText.trim() } : null,
+      tags: tags.map((t) => ({ ...t })),
+      locale,
+    });
+  });
 
   const payload = $derived(
     JSON.stringify({
@@ -162,18 +175,20 @@
 
   {#if unsupported}<p class="note">{m.unsupported_note()}</p>{/if}
 
-  <div class="actions">
-    <button class="pill" class:hidden={!saveable} disabled={sending || !saveable}>
-      {existing ? m.update() : m.save()}
-    </button>
-    {#if error}<p class="error" role="alert">{(errors[error] ?? (() => error))()}</p>{/if}
-    {#if saved}
-      <p class="saved">
-        {m.saved()}
-        <a href={`https://pdsls.dev/${saved}`} rel="noreferrer">{m.view_record()}</a>
-      </p>
-    {/if}
-  </div>
+  {#if !demo}
+    <div class="actions">
+      <button class="pill" class:hidden={!saveable} disabled={sending || !saveable}>
+        {existing ? m.update() : m.save()}
+      </button>
+      {#if error}<p class="error" role="alert">{(errors[error] ?? (() => error))()}</p>{/if}
+      {#if saved}
+        <p class="saved">
+          {m.saved()}
+          <a href={`https://pdsls.dev/${saved}`} rel="noreferrer">{m.view_record()}</a>
+        </p>
+      {/if}
+    </div>
+  {/if}
 </form>
 
 <div id="login-popover" popover="auto"><Login /></div>
@@ -213,7 +228,7 @@
 <style>
   /* Laid out as text, not as flex items, so the browser can balance the lines. */
   .sentence {
-    font-size: var(--step-3);
+    font-size: var(--sentence-size, var(--step-3));
     text-wrap: balance;
   }
 
