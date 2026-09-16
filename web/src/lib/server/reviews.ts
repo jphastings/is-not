@@ -1,12 +1,32 @@
 import { TID } from '@atproto/common-web';
 import type { Tag } from '@is-not/lenses';
 import { agentFor } from './accounts.ts';
-import { findReview } from './db.ts';
+import { findReview, listReviews, type ListedReview } from './db.ts';
+import { fetchLiveReview } from './liveReview.ts';
 import { mergeTags, type ReviewInput } from '$lib/review';
 
 export const COLLECTION = 'at.isnot.review';
 
 export type SaveResult = { ok: true; uri: string } | { ok: false; status: number; error: string };
+
+/**
+ * Finds one person's review of one subject: jetstream's ingest first, then a
+ * live PDS read for one saved a moment before ingestion caught up (same
+ * fallback `saveReview`'s redirect relies on). When `adjective` narrows to
+ * tags the review doesn't have, a lone placeholder tag stands in so the page
+ * still has something to show rather than 404ing on a stale link.
+ */
+export async function singleReview(
+  did: string,
+  rkey: string,
+  adjective?: string | null,
+): Promise<ListedReview | null> {
+  const review =
+    listReviews({ did }).find((r) => r.rkey === rkey) ?? (await fetchLiveReview(did, rkey));
+  if (!review || !adjective) return review;
+  const matching = review.tags.filter((t) => t.adjective === adjective);
+  return { ...review, tags: matching.length > 0 ? matching : [{ direction: 0, adjective }] };
+}
 
 /**
  * Write one person's opinion of one subject, as the single record this site

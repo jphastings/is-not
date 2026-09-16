@@ -7,6 +7,7 @@
 
 <svelte:head>
   <title>{m.import_index_title()}</title>
+  <meta property="og:title" content={m.import_index_title()} />
 </svelte:head>
 
 <main>

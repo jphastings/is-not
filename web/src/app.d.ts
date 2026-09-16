@@ -6,7 +6,11 @@ declare global {
     interface Locals {
       browser: import('$lib/server/sessions').Browser | null;
     }
-    // interface PageData {}
+    interface PageData {
+      origin: string;
+      ogImage?: string;
+      ogDescription?: string;
+    }
     // interface PageState {}
     // interface Platform {}
   }
