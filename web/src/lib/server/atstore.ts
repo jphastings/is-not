@@ -1,4 +1,5 @@
 import type { Agent } from '@atproto/api';
+import type { Tag } from '@is-not/lenses';
 import { findReview } from './db.ts';
 
 const FAVORITE_COLLECTION = 'fyi.atstore.listing.favorite';
@@ -9,7 +10,8 @@ export type ImportSource = 'favourite' | '1' | '2' | '3' | '4' | '5';
 export type ImportRow = {
   subjectUri: string;
   sources: ImportSource[];
-  isUpdate: boolean;
+  /** This account's existing review of the subject, if it has one — null for a fresh import. */
+  existing: Tag[] | null;
   /** The oldest source record's own createdAt: an imported opinion is that old. */
   createdAt?: string;
 };
@@ -79,6 +81,6 @@ export async function previewAtstoreImport(did: string, agent: Agent): Promise<I
     subjectUri,
     sources,
     createdAt,
-    isUpdate: findReview(did, subjectUri) !== null,
+    existing: findReview(did, subjectUri)?.tags ?? null,
   }));
 }

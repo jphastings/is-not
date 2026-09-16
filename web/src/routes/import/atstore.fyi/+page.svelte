@@ -1,7 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { reviewSentence } from '@is-not/sentence';
-  import type { Resolution, Subject, Tag } from '@is-not/lenses';
+  import type { Subject, Tag } from '@is-not/lenses';
   import type { ImportSource } from '$lib/server/atstore';
   import { m } from '$lib/paraglide/messages.js';
   import { getLocale } from '$lib/paraglide/runtime.js';
@@ -69,16 +69,55 @@
 
   type Row = (typeof data.rows)[number] & {
     selected: boolean;
-    subject: Subject | null;
-    error: string | null;
+    subject: Subject;
   };
   let rows = $state<Row[]>([]);
   let loading = $state(false);
   let sending = $state(false);
 
   // Cached across reloads (e.g. the load re-running after an import) so already-resolved
-  // rows reappear instantly instead of refetching from the PDS.
-  const resolved = new Map<string, Promise<Resolution>>();
+  // rows reappear instantly instead of refetching from the PDS. Only successes are cached:
+  // a failed resolution isn't worth remembering across runs.
+  const resolved = new Map<string, Promise<Subject>>();
+
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  // A network/CORS failure (a PDS 429's response carries no CORS header, so it surfaces as
+  // this rather than an HTTP status) or an explicit 429/5xx is worth retrying; anything else
+  // (404, malformed record, unsupported lens, DID resolution failure) won't fix itself.
+  const isTransient = (e: unknown) =>
+    e instanceof TypeError || (e instanceof Error && /\b(429|5\d\d)$/.test(e.message));
+
+  const MAX_ATTEMPTS = 8;
+  const MAX_DELAY_MS = 30_000;
+
+  async function resolveWithRetry(uri: string, mine: number): Promise<Subject | null> {
+    const cached = resolved.get(uri);
+    if (cached) return cached;
+
+    let delay = 1000;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const resolution = await resolveSubject(uri);
+        if ('error' in resolution) {
+          console.warn(`skipping ${uri}: ${resolution.error}`);
+          return null;
+        }
+        const promise = Promise.resolve(resolution.subject);
+        resolved.set(uri, promise);
+        return resolution.subject;
+      } catch (e) {
+        if (!isTransient(e) || attempt === MAX_ATTEMPTS) {
+          console.warn(`skipping ${uri} after ${attempt} attempt(s):`, e);
+          return null;
+        }
+        await sleep(delay);
+        delay = Math.min(delay * 2, MAX_DELAY_MS);
+        if (mine !== run) return null;
+      }
+    }
+    return null;
+  }
 
   // Subjects are resolved client-side (the lenses' wasm only loads in the browser),
   // one row at a time — the PDS rate-limits a burst of requests. rows starts empty and
@@ -91,29 +130,9 @@
     loading = true;
     void (async () => {
       for (const row of data.rows) {
-        let promise = resolved.get(row.subjectUri);
-        if (!promise) {
-          promise = resolveSubject(row.subjectUri);
-          promise.catch(() => resolved.delete(row.subjectUri));
-          resolved.set(row.subjectUri, promise);
-        }
-        try {
-          const resolution = await promise;
-          if (mine !== run) return;
-          if ('error' in resolution) {
-            rows.push({ ...row, subject: null, error: resolution.error, selected: false });
-          } else {
-            rows.push({ ...row, subject: resolution.subject, error: null, selected: true });
-          }
-        } catch (e) {
-          if (mine !== run) return;
-          rows.push({
-            ...row,
-            subject: null,
-            error: e instanceof Error ? e.message : 'unresolved',
-            selected: false,
-          });
-        }
+        const subject = await resolveWithRetry(row.subjectUri, mine);
+        if (mine !== run) return;
+        if (subject) rows.push({ ...row, subject, selected: true });
       }
       if (mine === run) loading = false;
     })();
@@ -121,15 +140,29 @@
 
   type ImportResult = { uri: string; ok: boolean; error?: string; savedUri?: string };
 
-  const selected = $derived(rows.filter((row) => row.selected && row.subject));
-  const selectableRows = $derived(rows.filter((row) => row.subject !== null));
+  function sameTags(a: Tag[], b: Tag[]): boolean {
+    if (a.length !== b.length) return false;
+    const key = (t: Tag) => `${t.direction}\t${t.adjective}`;
+    const sa = [...a].sort((x, y) => key(x).localeCompare(key(y)));
+    const sb = [...b].sort((x, y) => key(x).localeCompare(key(y)));
+    return sa.every((t, i) => t.direction === sb[i].direction && t.adjective === sb[i].adjective);
+  }
+
+  const unchanged = (row: Row) => row.existing !== null && sameTags(row.existing, tagsFor(row));
+
+  const results = $derived(
+    new Map(((form as { results?: ImportResult[] } | null)?.results ?? []).map((r) => [r.uri, r])),
+  );
+
+  // A row that was just imported keeps showing its result rather than vanishing
+  // the moment the load re-runs and finds it now matches the existing review.
+  const visible = $derived(rows.filter((row) => !unchanged(row) || results.has(row.subjectUri)));
+  const selected = $derived(visible.filter((row) => row.selected));
+  const selectableRows = $derived(visible);
   const allSelected = $derived(
     selectableRows.length > 0 && selectableRows.every((row) => row.selected),
   );
   const someSelected = $derived(selectableRows.some((row) => row.selected));
-  const results = $derived(
-    new Map(((form as { results?: ImportResult[] } | null)?.results ?? []).map((r) => [r.uri, r])),
-  );
 
   const errors: Record<string, () => string> = {
     signin: () => m.error_signin(),
@@ -157,7 +190,7 @@
     <form id="login-form" method="POST" action="/oauth/login" hidden></form>
   {:else if data.error}
     <p class="error" role="alert">{(errors[data.error] ?? (() => data.error))()}</p>
-  {:else if data.rows.length === 0}
+  {:else if data.rows.length === 0 || (!loading && visible.length === 0)}
     <p class="empty">{m.import_empty()}</p>
   {:else}
     <div class="mapping">
@@ -188,7 +221,7 @@
         };
       }}
     >
-      {#if rows.length > 0}
+      {#if visible.length > 0}
         <div class="head">
           <label class="pill secondary select-all">
             <input
@@ -205,26 +238,17 @@
         </div>
       {/if}
       <ul class="rows">
-        {#each rows as row (row.subjectUri)}
+        {#each visible as row (row.subjectUri)}
           {@const result = results.get(row.subjectUri)}
           <li class="row" class:dim={!row.selected}>
-            <input
-              type="checkbox"
-              bind:checked={row.selected}
-              disabled={!row.subject}
-              aria-label={m.import_col_select()}
-            />
+            <input type="checkbox" bind:checked={row.selected} aria-label={m.import_col_select()} />
             <span class="sentence">
-              {#if row.subject}
-                <Sentence
-                  parts={reviewSentence({ subject: row.subject, tags: tagsFor(row), locale })}
-                  animate={false}
-                />
-              {:else if row.error}
-                <span class="error">{row.error}</span>
-              {/if}
+              <Sentence
+                parts={reviewSentence({ subject: row.subject, tags: tagsFor(row), locale })}
+                animate={false}
+              />
             </span>
-            {#if row.isUpdate}<span class="badge">{m.update()}</span>{/if}
+            {#if row.existing !== null}<span class="badge">{m.update()}</span>{/if}
             {#if result}
               <span class={result.ok ? 'ok' : 'error'}>
                 {result.ok

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('./db.ts', () => ({
   findReview: (_did: string, subjectUri: string) =>
-    subjectUri.includes('app2') ? { rkey: 'x' } : null,
+    subjectUri.includes('app2') ? { rkey: 'x', tags: [{ direction: 0, adjective: 'fine' }] } : null,
 }));
 
 const { previewAtstoreImport } = await import('./atstore.ts');
@@ -47,7 +47,7 @@ describe('previewAtstoreImport', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].subjectUri).toBe('at://did:plc:app1/fyi.atstore.listing.detail/a');
     expect(rows[0].sources).toEqual(['favourite', '5']);
-    expect(rows[0].isUpdate).toBe(false);
+    expect(rows[0].existing).toBeNull();
   });
 
   it('imports a 3-star review as an explicit direction 0, and flags an existing review as an update', async () => {
@@ -65,7 +65,7 @@ describe('previewAtstoreImport', () => {
     );
 
     expect(rows[0].sources).toEqual(['3']);
-    expect(rows[0].isUpdate).toBe(true);
+    expect(rows[0].existing).toEqual([{ direction: 0, adjective: 'fine' }]);
   });
 
   it('paginates listRecords until the cursor runs out', async () => {

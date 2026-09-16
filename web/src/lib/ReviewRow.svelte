@@ -162,10 +162,27 @@
     text-decoration: underline;
   }
 
+  /* An input prompt, not part of the sentence: hidden until the row is hovered
+     on desktop (ClearButton's idiom), always visible on touch, which has no
+     hover to reveal it. Opacity, not display, so revealing never reflows. */
   .and {
     color: var(--ink-soft);
     text-decoration: none;
     margin-inline-start: var(--space-2);
+    opacity: 0;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+
+  .review:hover .and,
+  .review:focus-within .and,
+  .and:focus-visible {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    .and {
+      opacity: 1;
+    }
   }
 
   .pill.small {

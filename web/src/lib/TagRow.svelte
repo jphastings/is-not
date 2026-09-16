@@ -23,8 +23,10 @@
   ];
 
   // The clear button only earns its place once the adjective is done, not
-  // while it's still being typed: blurred and non-empty.
-  let touched = $state(false);
+  // while it's still being typed: blurred and non-empty. A tag that arrives
+  // filled in (an existing review being edited) is already done.
+  // svelte-ignore state_referenced_locally
+  let touched = $state(tag.adjective.trim() !== '');
   const complete = $derived(touched && tag.adjective.trim() !== '');
 
   // The fields are textareas so long adjectives wrap with the sentence, but a
