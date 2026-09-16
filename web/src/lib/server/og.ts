@@ -14,7 +14,7 @@ const LINE_HEIGHT = 1.4;
 const MAX_FONT_SIZE = 88;
 const MIN_FONT_SIZE = 28;
 const FONT_STEP = 2;
-const TAGLINE_FONT_SIZE = 66;
+const TAGLINE_FONT_SIZE = 55;
 const TAGLINE_GAP = 20;
 const UNDERLINE_THICKNESS = 0.07;
 const UNDERLINE_OFFSET = 0.15;
@@ -56,7 +56,7 @@ const TEXT_BOX = {
 export function defaultPhrase(): Part[] {
   return reviewSentence({
     subject: { uri: '', title: 'is/not' },
-    tags: [{ direction: 1, adjective: 'handy' }],
+    tags: [{ direction: 1, adjective: 'useful' }],
   });
 }
 
