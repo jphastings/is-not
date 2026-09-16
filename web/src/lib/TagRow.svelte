@@ -213,11 +213,11 @@
   }
 
   .chevron-up {
-    top: -0.45em;
+    top: -0.3em;
   }
 
   .chevron-down {
-    bottom: -0.35em;
+    bottom: -0.25em;
   }
 
   .chevron svg {
