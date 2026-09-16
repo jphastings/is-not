@@ -121,6 +121,7 @@
 
   .row {
     font-size: var(--step-1);
+    line-height: 1.85;
   }
 
   .subject {

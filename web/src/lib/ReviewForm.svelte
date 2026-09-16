@@ -229,6 +229,7 @@
   /* Laid out as text, not as flex items, so the browser can balance the lines. */
   .sentence {
     font-size: var(--sentence-size, var(--step-3));
+    line-height: 1.85;
     text-wrap: balance;
   }
 
@@ -240,12 +241,16 @@
   }
 
   /* Every part of the sentence is ruled on its own box, so they sit on one
-     line however the part is built. The rule is a shadow, not a border, so
-     thickening it on focus cannot change anyone's height. Subject and
+     line however the part is built. The rule is a background, not a border, so
+     thickening it on focus cannot change anyone's height; it sits a little
+     above the box's bottom, nearer the letters than the font's descent. Subject and
      adjective fields draw their own matching rule (SubjectField, TagRow):
      Svelte scopes styles per-component, so this can't be shared here. */
   .slot {
-    box-shadow: inset 0 -0.07em 0 var(--moss);
+    background-image: linear-gradient(var(--moss), var(--moss));
+    background-repeat: no-repeat;
+    background-size: 100% 0.07em;
+    background-position: 0 calc(100% - 0.18em);
   }
 
   /* A box around a word would break the sentence, so focus thickens the rule. */
@@ -254,7 +259,8 @@
   }
 
   .slot:focus-visible {
-    box-shadow: inset 0 -0.16em 0 var(--moss-deep);
+    background-image: linear-gradient(var(--moss-deep), var(--moss-deep));
+    background-size: 100% 0.16em;
   }
 
   /* A slot opens its list rather than holding focus, so while that list is up
@@ -263,7 +269,8 @@
      both share whether the popover it contains is open. */
   :global(main:has(#login-popover:popover-open)) .slot,
   :global(main:has(#accounts-popover:popover-open)) .slot {
-    box-shadow: inset 0 -0.16em 0 var(--moss-deep);
+    background-image: linear-gradient(var(--moss-deep), var(--moss-deep));
+    background-size: 100% 0.16em;
   }
 
   .plain {
@@ -287,7 +294,7 @@
     font: inherit;
     letter-spacing: inherit;
     color: var(--ink-soft);
-    background: none;
+    background-color: transparent;
     border: 0;
     padding: 0;
     cursor: pointer;

@@ -177,12 +177,16 @@
   }
 
   /* Every part of the sentence is ruled on its own box, so they sit on one
-     line however the part is built. The rule is a shadow, not a border, so
-     thickening it on focus cannot change anyone's height. The direction
+     line however the part is built. The rule is a background, not a border, so
+     thickening it on focus cannot change anyone's height; it sits a little
+     above the box's bottom, nearer the letters than the font's descent. The direction
      field is a chooser, not a piece of text, so it gets chevrons instead of
      this underline. */
   .autosize.adjective {
-    box-shadow: inset 0 -0.07em 0 var(--moss);
+    background-image: linear-gradient(var(--moss), var(--moss));
+    background-repeat: no-repeat;
+    background-size: 100% 0.07em;
+    background-position: 0 calc(100% - 0.18em);
   }
 
   /* A box around a word would break the sentence, so focus thickens the rule. */
@@ -191,7 +195,8 @@
   }
 
   .autosize.adjective:has(:focus-visible) {
-    box-shadow: inset 0 -0.16em 0 var(--moss-deep);
+    background-image: linear-gradient(var(--moss-deep), var(--moss-deep));
+    background-size: 100% 0.16em;
   }
 
   /* Drawn rather than typed, like ClearButton's cross: positioned off the
@@ -212,11 +217,11 @@
   }
 
   .chevron-up {
-    top: -0.3em;
+    top: -0.2em;
   }
 
   .chevron-down {
-    bottom: -0.25em;
+    bottom: -0.15em;
   }
 
   .chevron svg {

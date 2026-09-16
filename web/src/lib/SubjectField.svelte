@@ -509,10 +509,14 @@
   }
 
   /* Every part of the sentence is ruled on its own box, so they sit on one
-     line however the part is built. The rule is a shadow, not a border, so
-     thickening it on focus cannot change anyone's height. */
+     line however the part is built. The rule is a background, not a border, so
+     thickening it on focus cannot change anyone's height; it sits a little
+     above the box's bottom, nearer the letters than the font's descent. */
   .autosize {
-    box-shadow: inset 0 -0.07em 0 var(--moss);
+    background-image: linear-gradient(var(--moss), var(--moss));
+    background-repeat: no-repeat;
+    background-size: 100% 0.07em;
+    background-position: 0 calc(100% - 0.18em);
   }
 
   /* A box around a word would break the sentence, so focus thickens the rule. */
@@ -521,7 +525,8 @@
   }
 
   .autosize:has(:focus-visible) {
-    box-shadow: inset 0 -0.16em 0 var(--moss-deep);
+    background-image: linear-gradient(var(--moss-deep), var(--moss-deep));
+    background-size: 100% 0.16em;
   }
 
   /* `font: inherit` carries the font shorthand's own line-height, not the one
