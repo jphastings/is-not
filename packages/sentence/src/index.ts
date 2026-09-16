@@ -55,6 +55,7 @@ export function reviewSentence(review: Review, options: SentenceOptions = {}): P
   const locale = resolveLocale(review.locale, options);
   const m = locales[locale];
   const list = new Intl.ListFormat(locale, { type: 'conjunction' });
+  const disjunctionList = new Intl.ListFormat(locale, { type: 'disjunction' });
   const parts: Part[] = [];
 
   if (options.who) {
@@ -80,7 +81,7 @@ export function reviewSentence(review: Review, options: SentenceOptions = {}): P
       },
       { kind: 'text', text: ' ' },
       ...joinParts(
-        list,
+        direction < 0 ? disjunctionList : list,
         tags.map(
           (t) =>
             ({ kind: 'adjective', text: t.adjective, adjective: t.adjective, direction }) as Part,

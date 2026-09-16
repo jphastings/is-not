@@ -144,6 +144,26 @@
     color: var(--paper);
   }
 
+  /* One control, not five: the pills butt up against each other with a hairline
+     of page between them, and only the group's outer corners are rounded. */
+  .directions {
+    gap: 1px;
+  }
+
+  .directions .pill {
+    border-radius: 0;
+  }
+
+  .directions .pill:first-child {
+    border-start-start-radius: var(--radius-pill);
+    border-end-start-radius: var(--radius-pill);
+  }
+
+  .directions .pill:last-child {
+    border-start-end-radius: var(--radius-pill);
+    border-end-end-radius: var(--radius-pill);
+  }
+
   .pill.small:focus-within {
     outline: 2px solid var(--moss);
     outline-offset: 2px;

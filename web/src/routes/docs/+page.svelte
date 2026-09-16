@@ -25,8 +25,6 @@
 </svelte:head>
 
 <main>
-  <a class="home display" href="/">{m.home()}</a>
-
   <h1 class="display">{m.docs()}</h1>
   <p class="intro">{m.docs_intro()}</p>
 
@@ -68,13 +66,6 @@
     display: grid;
     gap: var(--space-6);
     padding-block: var(--space-6) var(--space-8);
-  }
-
-  .home {
-    color: var(--moss-deep);
-    text-decoration: none;
-    font-size: var(--step-1);
-    justify-self: start;
   }
 
   h1 {

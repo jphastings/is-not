@@ -181,7 +181,7 @@
 </svelte:head>
 
 <main>
-  <h1 class="display"><a class="home" href="/">{m.home()}</a> {m.import_heading({ domain })}</h1>
+  <h1 class="display">{m.import_heading({ domain })}</h1>
 
   {#if !data.current}
     <p class="intro">{m.import_signin({ domain })}</p>
@@ -291,15 +291,6 @@
     display: grid;
     gap: var(--space-5);
     padding-block: var(--space-6) var(--space-8);
-  }
-
-  .home {
-    color: var(--moss-deep);
-    text-decoration: none;
-  }
-
-  .home:hover {
-    text-decoration: underline;
   }
 
   h1 {

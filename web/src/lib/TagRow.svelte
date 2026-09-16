@@ -22,6 +22,18 @@
     { value: -2, label: () => m.dir_m2() },
   ];
 
+  let directionSelect: HTMLSelectElement | undefined = $state();
+
+  function openDirection() {
+    if (!directionSelect) return;
+    // ponytail: showPicker() is missing/throws on some browsers (e.g. older Safari), fall back to focusing the select
+    try {
+      directionSelect.showPicker();
+    } catch {
+      directionSelect.focus();
+    }
+  }
+
   // The clear button only earns its place once the adjective is done, not
   // while it's still being typed: blurred and non-empty. A tag that arrives
   // filled in (an existing review being edited) is already done.
@@ -44,11 +56,37 @@
     class="autosize direction"
     data-value={directions.find((d) => d.value === tag.direction)?.label()}
   >
-    <select bind:value={tag.direction} aria-label={m.dir_1()}>
+    {#if tag.direction < 2}
+      <button
+        type="button"
+        tabindex="-1"
+        aria-hidden="true"
+        class="chevron chevron-up"
+        onclick={openDirection}
+      >
+        <svg viewBox="0 0 16 8" aria-hidden="true" focusable="false">
+          <path d="M2 7 8 1 14 7" />
+        </svg>
+      </button>
+    {/if}
+    <select bind:this={directionSelect} bind:value={tag.direction} aria-label={m.dir_1()}>
       {#each directions as direction (direction.value)}
         <option value={direction.value}>{direction.label()}</option>
       {/each}
     </select>
+    {#if tag.direction > -2}
+      <button
+        type="button"
+        tabindex="-1"
+        aria-hidden="true"
+        class="chevron chevron-down"
+        onclick={openDirection}
+      >
+        <svg viewBox="0 0 16 8" aria-hidden="true" focusable="false">
+          <path d="M2 1 8 7 14 1" />
+        </svg>
+      </button>
+    {/if}
   </span>
   <span class="autosize adjective" data-value={tag.adjective || m.adjective_placeholder()}>
     <textarea
@@ -89,6 +127,7 @@
   .autosize select {
     grid-area: 1 / 1;
     font: inherit;
+    letter-spacing: inherit;
   }
 
   /* The hidden twin alone sets the box: a form control's intrinsic height and
@@ -121,6 +160,7 @@
   textarea,
   select {
     font: inherit;
+    letter-spacing: inherit;
     color: inherit;
     background: none;
     border: 0;
@@ -139,8 +179,10 @@
 
   /* Every part of the sentence is ruled on its own box, so they sit on one
      line however the part is built. The rule is a shadow, not a border, so
-     thickening it on focus cannot change anyone's height. */
-  .autosize {
+     thickening it on focus cannot change anyone's height. The direction
+     field is a chooser, not a piece of text, so it gets chevrons instead of
+     this underline. */
+  .autosize.adjective {
     box-shadow: inset 0 -0.07em 0 var(--moss);
   }
 
@@ -149,8 +191,51 @@
     outline: none;
   }
 
-  .autosize:has(:focus-visible) {
+  .autosize.adjective:has(:focus-visible) {
     box-shadow: inset 0 -0.16em 0 var(--moss-deep);
+  }
+
+  /* Drawn rather than typed, like ClearButton's cross: positioned off the
+     `.direction` box itself (already position:relative via .autosize) so
+     appearing/disappearing can never resize or reflow the sentence. */
+  .chevron {
+    position: absolute;
+    font: inherit;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0.7em;
+    height: 0.4em;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+
+  .chevron-up {
+    top: -0.5em;
+  }
+
+  .chevron-down {
+    bottom: -0.5em;
+  }
+
+  .chevron svg {
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: var(--moss);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .chevron:hover svg {
+    stroke: var(--moss-deep);
+  }
+
+  .direction:has(:focus-visible) .chevron svg {
+    stroke: var(--moss-deep);
+    stroke-width: 2.75;
   }
 
   .comma {

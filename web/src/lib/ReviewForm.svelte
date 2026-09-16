@@ -253,6 +253,7 @@
 
   .plain {
     font: inherit;
+    letter-spacing: inherit;
     color: var(--moss-deep);
     background: none;
     border: 0;
@@ -269,6 +270,7 @@
   /* Wears the inputs' clothes: empty it opens sign-in, filled it opens accounts. */
   .slot {
     font: inherit;
+    letter-spacing: inherit;
     color: var(--ink-soft);
     background: none;
     border: 0;
@@ -340,6 +342,7 @@
 
   .accounts button {
     font: inherit;
+    letter-spacing: inherit;
     color: inherit;
     background: none;
     border: 0;

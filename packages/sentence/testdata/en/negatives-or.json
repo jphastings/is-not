@@ -1,0 +1,14 @@
+{
+  "review": {
+    "subject": { "uri": "at://did:plc:x/app.rpg.actor/1", "title": "rpg.actor" },
+    "tags": [
+      { "direction": 2, "adjective": "fun" },
+      { "direction": 2, "adjective": "cool" },
+      { "direction": 1, "adjective": "useful" },
+      { "direction": -1, "adjective": "bad" },
+      { "direction": -1, "adjective": "complex" },
+      { "direction": -1, "adjective": "boring" }
+    ]
+  },
+  "text": "rpg.actor is really fun and cool, is useful, and is not bad, complex, or boring"
+}

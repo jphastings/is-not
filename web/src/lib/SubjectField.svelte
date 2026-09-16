@@ -468,6 +468,7 @@
   .autosize textarea {
     grid-area: 1 / 1;
     font: inherit;
+    letter-spacing: inherit;
   }
 
   /* The hidden twin alone sets the box: a form control's intrinsic height and
@@ -495,6 +496,7 @@
 
   textarea {
     font: inherit;
+    letter-spacing: inherit;
     color: var(--moss-deep);
     background: none;
     border: 0;
@@ -544,6 +546,7 @@
     position: absolute;
     inset: 0;
     font: inherit;
+    letter-spacing: inherit;
     line-height: normal;
     color: var(--ink-soft);
     pointer-events: none;
@@ -583,6 +586,7 @@
     width: 100%;
     padding: var(--space-2) var(--space-3);
     font: inherit;
+    letter-spacing: inherit;
     color: inherit;
     text-align: start;
     background: none;

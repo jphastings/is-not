@@ -35,7 +35,9 @@ sentenceHTML(parts, {
 
 `reviewSentence` groups tags by direction (really/is/is not/really isn't),
 joins adjectives within a group and the groups themselves using the
-locale's `Intl.ListFormat`, and resolves the locale via `resolveLocale`
+locale's `Intl.ListFormat` — a negative group joins its adjectives with
+a disjunction ("bad, complex, or boring"), every other join is a
+conjunction — and resolves the locale via `resolveLocale`
 (review locale, then `options.locale`, falling back through the language
 subtag to `en`; pass `localeMode: 'override'` to force `options.locale`).
 
