@@ -13,20 +13,30 @@
   const type = $derived(page.url.searchParams.get('type'));
   const adjective = $derived(page.url.searchParams.get('adjective'));
 
-  // No reviews means the server has nothing to title the page with, so it
-  // falls back to the raw at-uri; resolve it client-side (lenses only load
-  // in the browser) and prefer that once it arrives.
+  // A subject with no reviews has no title on the server, and lenses only load in
+  // the browser, so resolve it here.
   let resolved: { title: string; type: string } | undefined = $state();
+  let failed = $state(false);
   $effect(() => {
     resolved = undefined;
-    if (!data.ofSubject || data.reviews.length > 0) return;
+    failed = false;
+    if (data.heading !== null) return;
     const uri = data.id;
-    resolveSubject(uri).then((r) => {
-      if ('error' in r || uri !== data.id) return;
-      resolved = { title: r.subject.title, type: r.subject.type };
-    }, () => {});
+    resolveSubject(uri).then(
+      (r) => {
+        if (uri !== data.id) return;
+        if ('error' in r) failed = true;
+        else resolved = { title: r.subject.title, type: r.subject.type };
+      },
+      () => {
+        if (uri === data.id) failed = true;
+      },
+    );
   });
-  const heading = $derived(resolved?.title ?? data.heading);
+  const unresolved = $derived(data.heading === null && !resolved);
+  const heading = $derived(
+    resolved?.title ?? data.heading ?? (failed ? m.subject_unknown() : m.subject_finding()),
+  );
   const subjectType = $derived(resolved?.type ?? data.subjectType);
 
   const directionOrder: Direction[] = [2, 1, 0, -1, -2];
@@ -83,7 +93,7 @@
 </svelte:head>
 
 <main>
-  <h1 class="display">
+  <h1 class="display" class:unresolved>
     {heading}
     {#if subjectType}<small>({subjectType.replaceAll('-', ' ')})</small>{/if}
   </h1>
@@ -164,6 +174,10 @@
     font-size: var(--step-3);
     margin: 0 0 var(--space-5);
     overflow-wrap: anywhere;
+  }
+
+  h1.unresolved {
+    color: var(--ink-soft);
   }
 
   h1 small {

@@ -19,7 +19,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
     const reviews = listReviews({ subjectUri: id });
     return {
       id,
-      heading: reviews[0]?.subject.title ?? id,
+      heading: reviews[0]?.subject.title ?? null,
       subjectType: reviews[0]?.subject.type ?? null,
       ofSubject: true,
       reviews,
