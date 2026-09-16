@@ -24,32 +24,39 @@
 <main>
   <h1>{title}</h1>
 
-  {#if parts.length > 0}
-    <p class="display sentence">
-      {#key key}
-        <Sentence {parts} {animate} linkWho />
-      {/key}
-    </p>
-  {:else}
-    <p class="display sentence">{empty}</p>
-  {/if}
+  <div class="stage">
+    {#if parts.length > 0}
+      <p class="display sentence">
+        {#key key}
+          <Sentence {parts} {animate} linkWho />
+        {/key}
+      </p>
+    {:else}
+      <p class="display sentence">{empty}</p>
+    {/if}
 
-  <div class="actions">
-    {@render children()}
+    <div class="actions">
+      {@render children()}
+    </div>
   </div>
 </main>
 
 <style>
+  /* The phrase, not the phrase-plus-buttons, sits at the viewport's centre:
+     equal flexible rows above and below it, with bottom padding matching the
+     header above so their midpoint is the viewport's. The rows shrink to
+     nothing before the phrase moves, so a long phrase starts just under the
+     header. */
   main {
-    padding: var(--space-5);
+    --pad: var(--space-5);
+    padding: var(--pad) var(--pad) calc(var(--pad) + var(--header-height));
     max-width: 58rem;
     margin-inline: auto;
-    min-height: 100dvh;
+    min-height: calc(100dvh - 2 * (var(--pad) + var(--header-height)));
     display: grid;
-    align-content: center;
+    grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
     justify-items: center;
     text-align: center;
-    gap: var(--space-6);
   }
 
   h1 {
@@ -60,12 +67,24 @@
     clip-path: inset(50%);
   }
 
+  .stage {
+    grid-row: 2;
+    position: relative;
+  }
+
   .sentence {
     font-size: var(--step-5);
     margin: 0;
   }
 
+  /* Out of flow, hanging below the phrase: in a grid row they would size the
+     lower flexible row, and the upper row matches it, pushing a long phrase
+     down. They run on past the fold instead. */
   .actions {
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    padding-block: var(--space-6) var(--space-5);
     display: flex;
     flex-wrap: wrap;
     justify-content: center;

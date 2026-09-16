@@ -36,7 +36,9 @@
 
 <style>
 	.site {
-		padding: var(--space-4) var(--space-5);
+		box-sizing: border-box;
+		height: var(--header-height);
+		padding: 0 var(--space-5);
 		display: flex;
 		justify-content: space-between;
 		align-items: center;

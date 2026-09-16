@@ -41,6 +41,10 @@
   --space-7: 4rem;
   --space-8: 6.5rem;
 
+  /* The site header's fixed height, so a full-screen hero can centre on the
+     viewport rather than on what the header leaves below it. */
+  --header-height: 4.5rem;
+
   --radius-pill: 999px;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --dur-fast: 180ms;
