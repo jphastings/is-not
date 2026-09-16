@@ -134,7 +134,7 @@ export function validateReview(input: unknown): Validated<ReviewInput> {
   };
 }
 
-const fold = (adjective: string) => adjective.trim().toLowerCase();
+export const fold = (adjective: string) => adjective.trim().toLowerCase();
 
 /** Matching is by trimmed, case-folded adjective; the offered spelling wins. */
 export function mergeTags(stored: Tag[], offered: Tag[], prefilled: string[]): Tag[] {
