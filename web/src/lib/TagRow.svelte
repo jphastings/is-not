@@ -201,6 +201,7 @@
   .chevron {
     position: absolute;
     font: inherit;
+    line-height: 0;
     left: 50%;
     transform: translateX(-50%);
     width: 0.7em;
@@ -220,6 +221,7 @@
   }
 
   .chevron svg {
+    display: block;
     width: 100%;
     height: 100%;
     fill: none;
