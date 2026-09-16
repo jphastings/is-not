@@ -58,6 +58,8 @@
   "error_handle": "That handle didn't resolve. Check it, or pick a service.",
   "sign_in": "Sign in",
   "account_menu": "Account",
+  "import_index_title": "Import · is/not",
+  "import_index_heading": "import",
   "import_title": "Import from {domain} · is/not",
   "import_heading": "import: {domain}",
   "import_signin": "Sign in to import your {domain} activity.",

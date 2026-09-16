@@ -1,51 +1,19 @@
 import type { Agent } from '@atproto/api';
-import type { Tag } from '@is-not/lenses';
 import { findReview } from './db.ts';
+import { earliest, listAll, type ImportRow, type ListedRecord } from './importers.ts';
 
 const FAVORITE_COLLECTION = 'fyi.atstore.listing.favorite';
 const REVIEW_COLLECTION = 'fyi.atstore.listing.review';
 
-export type ImportSource = 'favourite' | '1' | '2' | '3' | '4' | '5';
-
-export type ImportRow = {
-  subjectUri: string;
-  sources: ImportSource[];
-  /** This account's existing review of the subject, if it has one — null for a fresh import. */
-  existing: Tag[] | null;
-  /** The oldest source record's own createdAt: an imported opinion is that old. */
-  createdAt?: string;
-};
-
-type ListedRecord = { uri: string; value: Record<string, unknown> };
-
-const earliest = (a: string | undefined, b: unknown) =>
-  isString(b) && !Number.isNaN(Date.parse(b)) && (a === undefined || b < a) ? b : a;
-
 const isString = (v: unknown): v is string => typeof v === 'string';
-
-async function listAll(agent: Agent, did: string, collection: string): Promise<ListedRecord[]> {
-  const records: ListedRecord[] = [];
-  let cursor: string | undefined;
-  do {
-    const res = await agent.com.atproto.repo.listRecords({
-      repo: did,
-      collection,
-      cursor,
-      limit: 100,
-    });
-    records.push(...(res.data.records as ListedRecord[]));
-    cursor = res.data.cursor;
-  } while (cursor);
-  return records;
-}
 
 // A 1-5 star rating isn't enforced at the source PDS, so clamp defensively
 // rather than trust it (see docs/creating-a-lens.md on unvalidated records).
 // A missing one reads as neutral (3) rather than NaN, which would clamp to
 // NaN and only surface as a failed row at the end of the import.
-function ratingSource(rating: number): ImportSource {
+function ratingSource(rating: number): string {
   if (!Number.isFinite(rating)) return '3';
-  return String(Math.min(5, Math.max(1, Math.round(rating)))) as ImportSource;
+  return String(Math.min(5, Math.max(1, Math.round(rating))));
 }
 
 /**
@@ -59,9 +27,9 @@ export async function previewAtstoreImport(did: string, agent: Agent): Promise<I
     listAll(agent, did, REVIEW_COLLECTION),
   ]);
 
-  type Group = { sources: ImportSource[]; createdAt?: string };
+  type Group = { sources: string[]; createdAt?: string };
   const bySubject = new Map<string, Group>();
-  const add = (record: ListedRecord, source: ImportSource) => {
+  const add = (record: ListedRecord, source: string) => {
     const subjectUri = record.value.subject;
     if (!isString(subjectUri) || subjectUri === '') return;
     const entry = bySubject.get(subjectUri) ?? { sources: [] };
