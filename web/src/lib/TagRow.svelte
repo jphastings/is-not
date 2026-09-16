@@ -7,11 +7,14 @@
     tag,
     onRemove,
     separator = null,
+    onnext,
   }: {
     tag: Tag;
     onRemove?: () => void;
     /** What joins this tag to the next: a comma, or the final "and". */
     separator?: 'comma' | 'and' | null;
+    /** Tab out of the last, filled-in adjective: adds another tag instead of leaving the sentence. */
+    onnext?: () => void;
   } = $props();
 
   const directions = [
@@ -31,10 +34,13 @@
 
   // The fields are textareas so long adjectives wrap with the sentence, but a
   // review is one line: Enter submits rather than breaking it.
-  function oneLine(event: KeyboardEvent) {
+  function onkeydown(event: KeyboardEvent) {
     if (event.key === 'Enter') {
       event.preventDefault();
       (event.currentTarget as HTMLElement).closest('form')?.requestSubmit();
+    } else if (event.key === 'Tab' && !event.shiftKey && onnext) {
+      event.preventDefault();
+      onnext();
     }
   }
 </script>
@@ -54,7 +60,7 @@
     <textarea
       bind:value={tag.adjective}
       rows="1"
-      onkeydown={oneLine}
+      {onkeydown}
       onfocus={() => (touched = false)}
       onblur={() => (touched = true)}
       placeholder={m.adjective_placeholder()}

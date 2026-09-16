@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import { enhance } from '$app/forms';
   import { sortTags } from '@is-not/sentence';
   import { page } from '$app/state';
@@ -53,6 +54,7 @@
   let tags = $state<Tag[]>([{ direction: 1, adjective: '' }]);
   let clientError = $state<string | null>(null);
   let sending = $state(false);
+  let tagsEl = $state<HTMLUListElement>();
 
   // A subject shared as a link resolves the same way a typed or pasted one
   // does; only ever applied once, even if the field is cleared afterwards.
@@ -97,6 +99,16 @@
     existing = false;
     prefilled = [];
     tags = [{ direction: 1, adjective: '' }];
+  }
+
+  function addTag() {
+    tags = [...tags, { direction: 1, adjective: '' }];
+  }
+
+  async function addTagAndFocus() {
+    addTag();
+    await tick();
+    [...(tagsEl?.querySelectorAll('textarea') ?? [])].at(-1)?.focus();
   }
 
   async function loadExisting(uri: string) {
@@ -152,22 +164,19 @@
       onclear={onSubjectCleared}
     />
 
-    <ul class="tags">
+    <ul class="tags" bind:this={tagsEl}>
       {#each tags as tag, i (i)}
         <TagRow
           {tag}
           separator={i >= tags.length - 1 ? null : i === tags.length - 2 ? 'and' : 'comma'}
           onRemove={tags.length > 1 ? () => (tags = tags.filter((_, n) => n !== i)) : undefined}
+          onnext={i === tags.length - 1 && canAdd ? addTagAndFocus : undefined}
         />
       {/each}
     </ul>
 
     {#if canAdd}
-      <button
-        type="button"
-        class="plain and"
-        onclick={() => (tags = [...tags, { direction: 1, adjective: '' }])}
-      >
+      <button type="button" class="plain and" onclick={addTag}>
         {m.add_another()}
       </button>
     {/if}
