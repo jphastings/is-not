@@ -184,7 +184,7 @@
       {#if saved}
         <p class="saved">
           {m.saved()}
-          <a href={`https://pdsls.dev/${saved}`} rel="noreferrer">{m.view_record()}</a>
+          <a href={`/reviews/${saved}`}>{m.view_record()}</a>
         </p>
       {/if}
     </div>

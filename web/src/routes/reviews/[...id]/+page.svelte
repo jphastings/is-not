@@ -5,6 +5,7 @@
   import { pushState } from '$app/navigation';
   import { m } from '$lib/paraglide/messages.js';
   import ReviewRow from '$lib/ReviewRow.svelte';
+  import SingleReview from '$lib/SingleReview.svelte';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
@@ -21,10 +22,15 @@
     '-2': m.dir_m2,
   };
 
+  // Only the "reviews of a subject / of an author" branch needs any of the
+  // filtering state below; a single review (data.single) skips straight to
+  // SingleReview in the markup.
+  const listing = $derived(data.single ? null : data);
+
   // ponytail: client-side only, not in the URL — put it there if it ever needs sharing.
   let directions = $state(new SvelteSet<Direction>(directionOrder));
   const shown = $derived(
-    data.reviews.filter(
+    (listing?.reviews ?? []).filter(
       (r) =>
         r.tags.some((t) => directions.has(t.direction)) &&
         (!type || r.subject.type === type) &&
@@ -52,8 +58,8 @@
     pushState((event.currentTarget as HTMLAnchorElement).href, {});
   }
 
-  const minCount = $derived(Math.min(...data.adjectives.map((a) => a.count)));
-  const maxCount = $derived(Math.max(...data.adjectives.map((a) => a.count)));
+  const minCount = $derived(Math.min(...(listing?.adjectives ?? []).map((a) => a.count)));
+  const maxCount = $derived(Math.max(...(listing?.adjectives ?? []).map((a) => a.count)));
   function cloudSize(count: number) {
     if (maxCount === minCount) return '1rem';
     const t = (count - minCount) / (maxCount - minCount);
@@ -65,71 +71,80 @@
   <title>{m.reviews_title({ who: data.heading })}</title>
 </svelte:head>
 
-<main>
-  <h1 class="display">
-    {data.heading}
-    {#if data.subjectType}<small>({data.subjectType.replaceAll('-', ' ')})</small>{/if}
-  </h1>
+{#if data.single}
+  <SingleReview heading={data.heading} review={data.review} />
+{:else if listing}
+  <main>
+    <h1 class="display">
+      {listing.heading}
+      {#if listing.subjectType}<small>({listing.subjectType.replaceAll('-', ' ')})</small>{/if}
+    </h1>
 
-  {#if data.adjectives.length === 0}
-    <p class="empty display">{m.reviews_empty()}</p>
-  {:else}
-    {#if !data.ofSubject}<nav class="types" aria-label={m.filter_types()}>
-      <a class="pill secondary small" class:active={!type} href={href({ type: null })} onclick={shallow}>
-        {m.filter_all()}
-      </a>
-      {#each data.types as t (t)}
-        <a
-          class="pill secondary small"
-          class:active={type === t}
-          href={href({ type: type === t ? null : t })}
-          onclick={shallow}
-        >
-          {t.replaceAll('-', ' ')}
-        </a>
-      {/each}
-    </nav>{/if}
-
-    <ul class="cloud" aria-label={m.filter_adjectives()}>
-      {#each data.adjectives as { adjective: a, count } (a)}
-        <li>
-          <a
-            class:active={adjective === a}
-            style:font-size={cloudSize(count)}
-            href={href({ adjective: adjective === a ? null : a })}
-            onclick={shallow}
-          >
-            {a}
-          </a>
-        </li>
-      {/each}
-    </ul>
-
-    <nav class="directions" aria-label={m.filter_directions()}>
-      {#each directionOrder as d (d)}
-        <label class="pill secondary small" class:active={directions.has(d)}>
-          <input
-            type="checkbox"
-            class="sr-only"
-            checked={directions.has(d)}
-            onchange={() => (directions.has(d) ? directions.delete(d) : directions.add(d))}
-          />
-          {directionLabels[d]()}
-        </label>
-      {/each}
-    </nav>
-
-    {#if shown.length === 0}
+    {#if listing.adjectives.length === 0}
       <p class="empty display">{m.reviews_empty()}</p>
     {:else}
-      <ul class="reviews">
-        {#each shown as review (review.rkey)}
-          <ReviewRow {review} editable={review.did === data.viewer} who={data.ofSubject} showType={!data.ofSubject} />
+      {#if !listing.ofSubject}<nav class="types" aria-label={m.filter_types()}>
+        <a class="pill secondary small" class:active={!type} href={href({ type: null })} onclick={shallow}>
+          {m.filter_all()}
+        </a>
+        {#each listing.types as t (t)}
+          <a
+            class="pill secondary small"
+            class:active={type === t}
+            href={href({ type: type === t ? null : t })}
+            onclick={shallow}
+          >
+            {t.replaceAll('-', ' ')}
+          </a>
+        {/each}
+      </nav>{/if}
+
+      <ul class="cloud" aria-label={m.filter_adjectives()}>
+        {#each listing.adjectives as { adjective: a, count } (a)}
+          <li>
+            <a
+              class:active={adjective === a}
+              style:font-size={cloudSize(count)}
+              href={href({ adjective: adjective === a ? null : a })}
+              onclick={shallow}
+            >
+              {a}
+            </a>
+          </li>
         {/each}
       </ul>
+
+      <nav class="directions" aria-label={m.filter_directions()}>
+        {#each directionOrder as d (d)}
+          <label class="pill secondary small" class:active={directions.has(d)}>
+            <input
+              type="checkbox"
+              class="sr-only"
+              checked={directions.has(d)}
+              onchange={() => (directions.has(d) ? directions.delete(d) : directions.add(d))}
+            />
+            {directionLabels[d]()}
+          </label>
+        {/each}
+      </nav>
+
+      {#if shown.length === 0}
+        <p class="empty display">{m.reviews_empty()}</p>
+      {:else}
+        <ul class="reviews">
+          {#each shown as review (review.rkey)}
+            <ReviewRow
+              {review}
+              editable={review.did === listing.viewer}
+              who={listing.ofSubject}
+              showType={!listing.ofSubject}
+            />
+          {/each}
+        </ul>
+      {/if}
     {/if}
-  {/if}
-</main>
+  </main>
+{/if}
 
 <style>
   main {
