@@ -1,8 +1,6 @@
 <script lang="ts">
-  import { SvelteSet } from 'svelte/reactivity';
   import type { Direction } from '@is-not/lenses';
   import { page } from '$app/state';
-  import { pushState } from '$app/navigation';
   import { resolveSubject } from '$lib/lenses';
   import { m } from '$lib/paraglide/messages.js';
   import ReviewRow from '$lib/ReviewRow.svelte';
@@ -10,17 +8,6 @@
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
-
-  // A shallow filter click only sets page.state (SvelteKit 2.70 stopped updating
-  // page.url on pushState); a full load or a pasted link reads the query instead.
-  const filters = $derived(
-    page.state.filters ?? {
-      type: page.url.searchParams.get('type'),
-      adjective: page.url.searchParams.get('adjective'),
-    },
-  );
-  const type = $derived(filters.type);
-  const adjective = $derived(filters.adjective);
 
   // Only the listing branch needs the subject and filtering state below; a single review
   // (data.single) renders SingleReview instead.
@@ -61,38 +48,40 @@
     '-2': m.dir_m2,
   };
 
-  // ponytail: client-side only, not in the URL — put it there if it ever needs sharing.
-  let directions = $state(new SvelteSet<Direction>(directionOrder));
-  const shown = $derived(
-    (listing?.reviews ?? []).filter(
-      (r) =>
-        r.tags.some((t) => directions.has(t.direction)) &&
-        (!type || r.subject.type === type) &&
-        (!adjective || r.tags.some((t) => t.adjective === adjective)),
-    ),
-  );
+  type Filters = { type: string | null; adjective: string | null; directions: Direction[] };
 
-  // Toggling a filter: clicking the active one clears it, everything else
-  // preserves the other filter param.
-  function href(next: { type?: string | null; adjective?: string | null }) {
-    const t = next.type !== undefined ? next.type : type;
-    const a = next.adjective !== undefined ? next.adjective : adjective;
+  // Every filter/pagination link is an ordinary navigation carrying the whole
+  // filter state in its query string, so the server load re-runs scoped to it.
+  function buildHref(filters: Filters, cursor?: string | null) {
     const params = new URLSearchParams();
-    if (t) params.set('type', t);
-    if (a) params.set('adjective', a);
+    if (filters.type) params.set('type', filters.type);
+    if (filters.adjective) params.set('adjective', filters.adjective);
+    if (filters.directions.length < directionOrder.length) {
+      for (const d of directionOrder) if (filters.directions.includes(d)) params.append('direction', String(d));
+    }
+    if (cursor) params.set('cursor', cursor);
     const qs = params.toString();
-    return qs ? `?${qs}` : `/reviews/${data.id}`;
+    return qs ? `${page.url.pathname}?${qs}` : page.url.pathname;
   }
 
-  // Left-click on a filter link goes shallow (URL + page.state, no load
-  // re-run); modified clicks (new tab, etc.) keep native behaviour.
-  function shallow(event: MouseEvent) {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    event.preventDefault();
-    const href = (event.currentTarget as HTMLAnchorElement).href;
-    const params = new URL(href).searchParams;
-    pushState(href, { filters: { type: params.get('type'), adjective: params.get('adjective') } });
+  function typeHref(t: string | null) {
+    return buildHref({ ...listing!.filters, type: t });
   }
+  function adjectiveHref(a: string | null) {
+    return buildHref({ ...listing!.filters, adjective: a });
+  }
+  function directionHref(d: Direction) {
+    const current = listing!.filters.directions;
+    const has = current.includes(d);
+    // Never lands on an empty set: the query string can't tell "no directions"
+    // from "no filter", so toggling off the last one just clears the filter.
+    const next = has ? current.filter((x) => x !== d) : [...current, d];
+    return buildHref({ ...listing!.filters, directions: next.length ? next : directionOrder });
+  }
+  const nextHref = $derived(
+    listing?.nextCursor ? buildHref(listing.filters, listing.nextCursor) : null,
+  );
+  const firstPageHref = $derived(listing ? buildHref(listing.filters) : '');
 
   const minCount = $derived(Math.min(...(listing?.adjectives ?? []).map((a) => a.count)));
   const maxCount = $derived(Math.max(...(listing?.adjectives ?? []).map((a) => a.count)));
@@ -126,15 +115,22 @@
       {/if}
     {:else}
       {#if !listing.ofSubject}<nav class="types" aria-label={m.filter_types()}>
-        <a class="pill secondary small" class:active={!type} href={href({ type: null })} onclick={shallow}>
+        <a
+          class="pill secondary small"
+          class:active={!listing.filters.type}
+          href={typeHref(null)}
+          data-sveltekit-noscroll
+          data-sveltekit-keepfocus
+        >
           {m.filter_all()}
         </a>
         {#each listing.types as t (t)}
           <a
             class="pill secondary small"
-            class:active={type === t}
-            href={href({ type: type === t ? null : t })}
-            onclick={shallow}
+            class:active={listing.filters.type === t}
+            href={typeHref(listing.filters.type === t ? null : t)}
+            data-sveltekit-noscroll
+            data-sveltekit-keepfocus
           >
             {t.replaceAll('-', ' ')}
           </a>
@@ -145,10 +141,11 @@
         {#each listing.adjectives as { adjective: a, count } (a)}
           <li>
             <a
-              class:active={adjective === a}
+              class:active={listing.filters.adjective === a}
               style:font-size={cloudSize(count)}
-              href={href({ adjective: adjective === a ? null : a })}
-              onclick={shallow}
+              href={adjectiveHref(listing.filters.adjective === a ? null : a)}
+              data-sveltekit-noscroll
+              data-sveltekit-keepfocus
             >
               {a}
             </a>
@@ -158,26 +155,41 @@
 
       <nav class="directions" aria-label={m.filter_directions()}>
         {#each directionOrder as d (d)}
-          <label class="pill secondary small" class:active={directions.has(d)}>
-            <input
-              type="checkbox"
-              class="sr-only"
-              checked={directions.has(d)}
-              onchange={() => (directions.has(d) ? directions.delete(d) : directions.add(d))}
-            />
+          <a
+            class="pill secondary small"
+            class:active={listing.filters.directions.includes(d)}
+            href={directionHref(d)}
+            data-sveltekit-noscroll
+            data-sveltekit-keepfocus
+          >
             {directionLabels[d]()}
-          </label>
+          </a>
         {/each}
       </nav>
 
-      {#if shown.length === 0}
+      {#if listing.reviews.length === 0}
         <p class="empty display">{m.reviews_empty()}</p>
       {:else}
         <ul class="reviews">
-          {#each shown as review (review.rkey)}
-            <ReviewRow {review} editable={review.did === listing.viewer} who={listing.ofSubject} showType={!listing.ofSubject} />
+          {#each listing.reviews as review (review.rkey)}
+            <ReviewRow
+              {review}
+              editable={review.did === listing.viewer}
+              who={listing.showWho}
+              showType={listing.showType}
+            />
           {/each}
         </ul>
+        {#if listing.cursor || nextHref}
+          <nav class="pager" aria-label={m.pager_label()}>
+            {#if listing.cursor}
+              <a class="pill secondary small" href={firstPageHref}>{m.pager_first()}</a>
+            {/if}
+            {#if nextHref}
+              <a class="pill secondary small" href={nextHref} data-sveltekit-noscroll>{m.pager_next()}</a>
+            {/if}
+          </nav>
+        {/if}
       {/if}
     {/if}
   </main>
@@ -222,7 +234,8 @@
   }
 
   .types,
-  .directions {
+  .directions,
+  .pager {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
@@ -261,22 +274,9 @@
     border-end-end-radius: var(--radius-pill);
   }
 
-  .pill.small:focus-within {
+  .pill.small:focus-visible {
     outline: 2px solid var(--moss);
     outline-offset: 2px;
-  }
-
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    clip-path: inset(50%);
-    white-space: nowrap;
-    border: 0;
   }
 
   .cloud {
@@ -310,5 +310,10 @@
     list-style: none;
     margin: 0;
     padding: 0;
+  }
+
+  .pager {
+    margin-top: var(--space-5);
+    margin-bottom: 0;
   }
 </style>

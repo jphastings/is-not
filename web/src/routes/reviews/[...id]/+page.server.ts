@@ -1,13 +1,50 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { reviewSentence, sentenceText } from '@is-not/sentence';
+import { reviewSentence, sentenceText, type Direction } from '@is-not/sentence';
 import type { Actions, PageServerLoad } from './$types';
 import { accountsFor, didHandle, handleDid } from '$lib/server/accounts';
-import { adjectiveCounts, listReviews, subjectTypesFor } from '$lib/server/db';
+import {
+  adjectiveCounts,
+  decodeCursor,
+  listReviews,
+  listReviewsPage,
+  subjectTypesFor,
+  type ReviewFilters,
+} from '$lib/server/db';
 import { deleteReview } from '$lib/server/deleteReview';
 import { COLLECTION, singleReview } from '$lib/server/reviews';
 import { subjectPhrase } from '$lib/server/og';
 import { RECORD_URI } from '$lib/review';
 import { m } from '$lib/paraglide/messages.js';
+
+const ALL_DIRECTIONS: Direction[] = [2, 1, 0, -1, -2];
+
+type Filters = { type: string | null; adjective: string | null; directions: Direction[] };
+
+function parseDirections(url: URL): Direction[] {
+  const raw = url.searchParams.getAll('direction').map(Number);
+  const valid = raw.filter((n): n is Direction => (ALL_DIRECTIONS as number[]).includes(n));
+  return valid.length ? valid : ALL_DIRECTIONS;
+}
+
+function parseFilters(url: URL): Filters {
+  return {
+    type: url.searchParams.get('type'),
+    adjective: url.searchParams.get('adjective'),
+    directions: parseDirections(url),
+  };
+}
+
+/** The subset of `filters` worth sending to the query — an unset field, or every
+    direction enabled, means "no restriction" and is left out entirely. */
+function pageFilters(filters: Filters): ReviewFilters {
+  return {
+    ...(filters.type ? { type: filters.type } : {}),
+    ...(filters.adjective ? { adjective: filters.adjective } : {}),
+    ...(filters.directions.length < ALL_DIRECTIONS.length
+      ? { directions: filters.directions }
+      : {}),
+  };
+}
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
   const { current } = await accountsFor(locals.browser);
@@ -17,6 +54,31 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
   // slashes is dropped by some clients — so rebuild the at-uri from whatever
   // survived.
   const id = params.id.startsWith('at:') ? params.id.replace(/^at:\/*/, 'at://') : params.id;
+
+  const filters = parseFilters(url);
+  const cursor = decodeCursor(url.searchParams.get('cursor'));
+
+  // /reviews/ with nothing after it: every review in the database.
+  if (id === '') {
+    const { reviews, nextCursor } = listReviewsPage({ all: true }, pageFilters(filters), cursor);
+    return {
+      id,
+      single: false as const,
+      heading: m.reviews_all_heading(),
+      subjectType: null,
+      ofSubject: false,
+      showWho: true,
+      showType: true,
+      reviews,
+      types: subjectTypesFor({ all: true }),
+      adjectives: adjectiveCounts({ all: true }),
+      viewer,
+      filters,
+      cursor: url.searchParams.get('cursor'),
+      nextCursor,
+      description: m.meta_reviews_all(),
+    };
+  }
 
   if (id.startsWith('at://')) {
     const match = RECORD_URI.exec(id);
@@ -56,21 +118,33 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
       };
     }
 
-    const reviews = listReviews({ subjectUri: id });
+    // The consensus description/image need every review of the subject, not
+    // just the page being shown, so this is a separate, unpaginated query.
+    const allReviews = listReviews({ subjectUri: id });
+    const { reviews, nextCursor } = listReviewsPage(
+      { subjectUri: id },
+      pageFilters(filters),
+      cursor,
+    );
     return {
       id,
       single: false as const,
-      heading: reviews[0]?.subject.title ?? null,
-      subjectType: reviews[0]?.subject.type ?? null,
+      heading: allReviews[0]?.subject.title ?? null,
+      subjectType: allReviews[0]?.subject.type ?? null,
       ofSubject: true,
+      showWho: true,
+      showType: false,
       reviews,
       types: [],
       adjectives: adjectiveCounts({ subjectUri: id }),
       viewer,
-      ...(reviews.length > 0
+      filters,
+      cursor: url.searchParams.get('cursor'),
+      nextCursor,
+      ...(allReviews.length > 0
         ? {
             ogImage: `/og.png?subject=${encodeURIComponent(id)}`,
-            description: subjectDescription(reviews),
+            description: subjectDescription(allReviews),
           }
         : { description: m.meta_subject_empty() }),
     };
@@ -84,6 +158,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
   }
 
   const heading = `@${id.startsWith('did:') ? await didHandle(id) : id}`;
+  const { reviews, nextCursor } = listReviewsPage({ did: id }, pageFilters(filters), cursor);
   return {
     id,
     single: false as const,
@@ -91,10 +166,15 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
     description: m.meta_person({ who: heading }),
     subjectType: null,
     ofSubject: false,
-    reviews: listReviews({ did: id }),
-    types: subjectTypesFor(id),
+    showWho: false,
+    showType: true,
+    reviews,
+    types: subjectTypesFor({ did: id }),
     adjectives: adjectiveCounts({ did: id }),
     viewer,
+    filters,
+    cursor: url.searchParams.get('cursor'),
+    nextCursor,
   };
 };
 

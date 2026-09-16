@@ -90,15 +90,34 @@ export type ListedReview = {
   updatedAt: string;
 };
 
-export type ReviewFilters = { type?: string; adjective?: string };
+export type ReviewFilters = { type?: string; adjective?: string; directions?: Direction[] };
 
-/** Reviews are listed either by who wrote them or by what they are about. */
-export type ReviewScope = { did: string } | { subjectUri: string };
+/** Reviews are listed by who wrote them, what they are about, or (`all`) the whole database. */
+export type ReviewScope = { did: string } | { subjectUri: string } | { all: true };
 
 const scopeClause = (scope: ReviewScope): { sql: string; params: string[] } =>
   'did' in scope
     ? { sql: 'r.did = ?', params: [scope.did] }
-    : { sql: 'r.subject_uri = ?', params: [scope.subjectUri] };
+    : 'subjectUri' in scope
+      ? { sql: 'r.subject_uri = ?', params: [scope.subjectUri] }
+      : { sql: '1=1', params: [] };
+
+/** A review matches an adjective/direction filter only when the *same* tag
+    carries both — a review that "is not good" shouldn't match adjective=good
+    plus direction=+1 just because it also has some unrelated +1 tag. */
+function tagMatchClause(filters: ReviewFilters, params: (string | number)[]): string | null {
+  if (!filters.adjective && !filters.directions?.length) return null;
+  const conditions = ['x.did = r.did', 'x.rkey = r.rkey'];
+  if (filters.adjective) {
+    conditions.push('x.adjective = ?');
+    params.push(filters.adjective);
+  }
+  if (filters.directions?.length) {
+    conditions.push(`x.direction IN (${filters.directions.map(() => '?').join(',')})`);
+    params.push(...filters.directions);
+  }
+  return `EXISTS (SELECT 1 FROM review_tags x WHERE ${conditions.join(' AND ')})`;
+}
 
 type ListRow = {
   did: string;
@@ -122,17 +141,13 @@ export function listReviews(scope: ReviewScope, filters: ReviewFilters = {}): Li
 
   const scoped = scopeClause(scope);
   const conditions = [scoped.sql];
-  const params: string[] = [...scoped.params];
+  const params: (string | number)[] = [...scoped.params];
   if (filters.type) {
     conditions.push('r.subject_type = ?');
     params.push(filters.type);
   }
-  if (filters.adjective) {
-    conditions.push(
-      'EXISTS (SELECT 1 FROM review_tags x WHERE x.did = r.did AND x.rkey = r.rkey AND x.adjective = ?)',
-    );
-    params.push(filters.adjective);
-  }
+  const tagClause = tagMatchClause(filters, params);
+  if (tagClause) conditions.push(tagClause);
 
   const rows = conn
     .prepare(
@@ -174,19 +189,136 @@ export function listReviews(scope: ReviewScope, filters: ReviewFilters = {}): Li
   return [...byRecord.values()];
 }
 
-/** The distinct subject types this account has reviewed, for the type filter's options. */
-export function subjectTypesFor(did: string): string[] {
+export const REVIEWS_PAGE_SIZE = 50;
+
+export type Cursor = { updatedAt: string; did: string; rkey: string };
+
+export function encodeCursor(cursor: Cursor): string {
+  return Buffer.from(JSON.stringify(cursor)).toString('base64url');
+}
+
+/** Malformed or tampered cursors fall back to the first page rather than erroring. */
+export function decodeCursor(raw: string | null): Cursor | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
+    if (
+      parsed &&
+      typeof parsed.updatedAt === 'string' &&
+      typeof parsed.did === 'string' &&
+      typeof parsed.rkey === 'string'
+    ) {
+      return parsed as Cursor;
+    }
+  } catch {
+    // fall through to null
+  }
+  return null;
+}
+
+export type ReviewsPage = { reviews: ListedReview[]; nextCursor: string | null };
+
+/**
+ * One page of reviews in scope, newest update first, filtered (whole scope,
+ * not just the page) by type/adjective/direction. Keyset pagination on
+ * `(updated_at, did, rkey)` descending — never OFFSET — so paging stays
+ * correct as new reviews are ingested between requests. The record page is
+ * selected first (the subquery), then joined out to its tags, so a review
+ * with many tags never costs it more than one row of the page.
+ */
+export function listReviewsPage(
+  scope: ReviewScope,
+  filters: ReviewFilters = {},
+  cursor: Cursor | null = null,
+): ReviewsPage {
+  const conn = open();
+  if (!conn) return { reviews: [], nextCursor: null };
+
+  const scoped = scopeClause(scope);
+  const conditions = [scoped.sql];
+  const params: (string | number)[] = [...scoped.params];
+  if (filters.type) {
+    conditions.push('r.subject_type = ?');
+    params.push(filters.type);
+  }
+  const tagClause = tagMatchClause(filters, params);
+  if (tagClause) conditions.push(tagClause);
+  if (cursor) {
+    conditions.push('(r.updated_at, r.did, r.rkey) < (?, ?, ?)');
+    params.push(cursor.updatedAt, cursor.did, cursor.rkey);
+  }
+
+  const rows = conn
+    .prepare(
+      `SELECT sub.did, sub.rkey, COALESCE(a.handle, '') AS handle,
+              sub.subject_uri, sub.subject_cid, sub.subject_title, sub.subject_type,
+              sub.locale, sub.created_at, sub.updated_at, t.adjective, t.direction
+       FROM (
+         SELECT r.* FROM reviews r
+         WHERE ${conditions.join(' AND ')}
+         ORDER BY r.updated_at DESC, r.did DESC, r.rkey DESC
+         LIMIT ?
+       ) sub
+       LEFT JOIN accounts a ON a.did = sub.did
+       JOIN review_tags t ON t.did = sub.did AND t.rkey = sub.rkey
+       ORDER BY sub.updated_at DESC, sub.did DESC, sub.rkey DESC, t.adjective`,
+    )
+    .all(...params, REVIEWS_PAGE_SIZE + 1) as unknown as ListRow[];
+
+  const byRecord = new Map<string, ListedReview>();
+  for (const row of rows) {
+    const key = `${row.did}/${row.rkey}`;
+    let review = byRecord.get(key);
+    if (!review) {
+      review = {
+        did: row.did,
+        handle: row.handle,
+        rkey: row.rkey,
+        subject: {
+          uri: row.subject_uri,
+          cid: row.subject_cid,
+          title: row.subject_title,
+          type: row.subject_type,
+        },
+        tags: [],
+        locale: row.locale || undefined,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      };
+      byRecord.set(key, review);
+    }
+    review.tags.push({ adjective: row.adjective, direction: row.direction });
+  }
+
+  const all = [...byRecord.values()];
+  const hasMore = all.length > REVIEWS_PAGE_SIZE;
+  const reviews = hasMore ? all.slice(0, REVIEWS_PAGE_SIZE) : all;
+  const last = reviews[reviews.length - 1];
+  const nextCursor =
+    hasMore && last
+      ? encodeCursor({ updatedAt: last.updatedAt, did: last.did, rkey: last.rkey })
+      : null;
+  return { reviews, nextCursor };
+}
+
+/** The distinct subject types reviewed in scope, for the type filter's options. */
+export function subjectTypesFor(scope: { did: string } | { all: true }): string[] {
   const conn = open();
   if (!conn) return [];
+  const scoped = scopeClause(scope);
   const rows = conn
-    .prepare('SELECT DISTINCT subject_type FROM reviews WHERE did = ? ORDER BY subject_type')
-    .all(did) as unknown as { subject_type: string }[];
+    .prepare(
+      `SELECT DISTINCT subject_type FROM reviews r WHERE ${scoped.sql} ORDER BY subject_type`,
+    )
+    .all(...scoped.params) as unknown as { subject_type: string }[];
   return rows.map((r) => r.subject_type);
 }
 
 export type AdjectiveCount = { adjective: string; count: number };
 
-/** Every adjective used in scope and how often, for the adjective cloud. */
+const ADJECTIVE_CLOUD_SIZE = 25;
+
+/** The most-used adjectives in scope (up to `ADJECTIVE_CLOUD_SIZE`), for the adjective cloud. */
 export function adjectiveCounts(scope: ReviewScope): AdjectiveCount[] {
   const conn = open();
   if (!conn) return [];
@@ -195,7 +327,7 @@ export function adjectiveCounts(scope: ReviewScope): AdjectiveCount[] {
     .prepare(
       `SELECT t.adjective, COUNT(*) AS count FROM review_tags t
        JOIN reviews r ON r.did = t.did AND r.rkey = t.rkey
-       WHERE ${scoped.sql} GROUP BY t.adjective ORDER BY count DESC, t.adjective`,
+       WHERE ${scoped.sql} GROUP BY t.adjective ORDER BY count DESC, t.adjective LIMIT ${ADJECTIVE_CLOUD_SIZE}`,
     )
     .all(...scoped.params) as unknown as AdjectiveCount[];
 }
