@@ -131,7 +131,20 @@
       <span class="sentence"><Sentence {parts} animate={false} linkWho /></span>
     {/if}
   </div>
-  {#if showType}<span class="type">{review.subject.type.replaceAll('-', ' ')}</span>{/if}
+  <span class="meta">
+    {#if showType}<span class="type">{review.subject.type.replaceAll('-', ' ')}</span>{/if}
+    <a
+      class="permalink"
+      href={`/reviews/at://${review.did}/at.isnot.review/${review.rkey}`}
+      aria-label={m.review_permalink()}
+      title={m.review_permalink()}
+    >
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      </svg>
+    </a>
+  </span>
 </li>
 
 <style>
@@ -171,11 +184,34 @@
     text-decoration: underline;
   }
 
-  .type {
+  .meta {
     flex: none;
     margin-inline-start: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .type {
     font-size: var(--step--1);
     color: var(--ink-soft);
+  }
+
+  .permalink {
+    display: inline-flex;
+    padding: var(--space-1);
+    color: var(--ink-soft);
+  }
+
+  /* Gecko sits an inline SVG on the link's baseline, a line below Chrome. */
+  .permalink svg {
+    display: block;
+  }
+
+  @media (hover: hover) {
+    .permalink:hover {
+      color: var(--moss-deep);
+    }
   }
 
   .tags-form {
