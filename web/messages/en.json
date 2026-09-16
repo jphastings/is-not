@@ -72,6 +72,8 @@
   "import_done": "Imported.",
   "reviews_title": "{who} · is/not",
   "reviews_empty": "Nothing here yet.",
+  "subject_finding": "Finding…",
+  "subject_unknown": "Something unknown",
   "add_a_review": "Add a review",
   "filter_all": "All",
   "filter_types": "Filter by type",
