@@ -11,8 +11,16 @@
 
   let { data }: PageProps = $props();
 
-  const type = $derived(page.url.searchParams.get('type'));
-  const adjective = $derived(page.url.searchParams.get('adjective'));
+  // A shallow filter click only sets page.state (SvelteKit 2.70 stopped updating
+  // page.url on pushState); a full load or a pasted link reads the query instead.
+  const filters = $derived(
+    page.state.filters ?? {
+      type: page.url.searchParams.get('type'),
+      adjective: page.url.searchParams.get('adjective'),
+    },
+  );
+  const type = $derived(filters.type);
+  const adjective = $derived(filters.adjective);
 
   // Only the listing branch needs the subject and filtering state below; a single review
   // (data.single) renders SingleReview instead.
@@ -76,12 +84,14 @@
     return qs ? `?${qs}` : `/reviews/${data.id}`;
   }
 
-  // Left-click on a filter link goes shallow (URL + page.url update, no
-  // load re-run); modified clicks (new tab, etc.) keep native behaviour.
+  // Left-click on a filter link goes shallow (URL + page.state, no load
+  // re-run); modified clicks (new tab, etc.) keep native behaviour.
   function shallow(event: MouseEvent) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
-    pushState((event.currentTarget as HTMLAnchorElement).href, {});
+    const href = (event.currentTarget as HTMLAnchorElement).href;
+    const params = new URL(href).searchParams;
+    pushState(href, { filters: { type: params.get('type'), adjective: params.get('adjective') } });
   }
 
   const minCount = $derived(Math.min(...(listing?.adjectives ?? []).map((a) => a.count)));
@@ -235,8 +245,10 @@
     gap: 1px;
   }
 
+  /* Tighter than other small pills so all five fit one line on a phone. */
   .directions .pill {
     border-radius: 0;
+    padding-inline: var(--space-3);
   }
 
   .directions .pill:first-child {

@@ -11,7 +11,9 @@ declare global {
       ogImage?: string;
       ogDescription?: string;
     }
-    // interface PageState {}
+    interface PageState {
+      filters?: { type: string | null; adjective: string | null };
+    }
     // interface Platform {}
   }
 }
