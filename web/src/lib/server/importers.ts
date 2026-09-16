@@ -5,6 +5,7 @@ import type { Tag } from '@is-not/lenses';
 import { accountsFor, agentFor, type Account } from './accounts.ts';
 import { saveReview } from './reviews.ts';
 import { validateReview } from '$lib/review';
+import { m } from '$lib/paraglide/messages.js';
 
 export type ImportRow = {
   subjectUri: string;
@@ -57,6 +58,7 @@ export const IMPORTERS: { domain: string; collections: string[] }[] = [
 ];
 
 type LoadResult = {
+  description: string;
   accounts: Account[];
   current: Account | null;
   rows: ImportRow[];
@@ -65,20 +67,24 @@ type LoadResult = {
 
 /** Builds a route's `load`: sign-in and PDS-failure handling are identical
     across importers, only how a row is built from the records differs. */
-export function importLoad(preview: (did: string, agent: Agent) => Promise<ImportRow[]>) {
+export function importLoad(
+  domain: string,
+  preview: (did: string, agent: Agent) => Promise<ImportRow[]>,
+) {
   return async ({ locals }: ServerLoadEvent): Promise<LoadResult> => {
+    const description = m.meta_import_domain({ domain });
     const { accounts, current } = await accountsFor(locals.browser);
-    if (!current) return { accounts, current: null, rows: [], error: null };
+    if (!current) return { accounts, current: null, rows: [], error: null, description };
 
     const agent = await agentFor(current.did);
-    if (!agent) return { accounts, current: null, rows: [], error: null };
+    if (!agent) return { accounts, current: null, rows: [], error: null, description };
 
     try {
       const rows = await preview(current.did, agent);
-      return { accounts, current, rows, error: null };
+      return { accounts, current, rows, error: null, description };
     } catch (e) {
       console.error('import preview failed', e);
-      return { accounts, current, rows: [], error: 'pds' };
+      return { accounts, current, rows: [], error: 'pds', description };
     }
   };
 }

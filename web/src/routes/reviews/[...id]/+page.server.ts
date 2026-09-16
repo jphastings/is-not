@@ -7,6 +7,7 @@ import { deleteReview } from '$lib/server/deleteReview';
 import { COLLECTION, singleReview } from '$lib/server/reviews';
 import { subjectPhrase } from '$lib/server/og';
 import { RECORD_URI } from '$lib/review';
+import { m } from '$lib/paraglide/messages.js';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
   const { current } = await accountsFor(locals.browser);
@@ -44,12 +45,14 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
         review,
         heading: review.handle ? `@${review.handle}` : review.did,
         ogImage: `/og.png?${ogParams}`,
-        ogDescription: sentenceText(
-          reviewSentence(
-            { subject: review.subject, tags: review.tags, locale: review.locale },
-            { who: { handle: review.handle || review.did, did: review.did } },
+        description: m.meta_review({
+          sentence: sentenceText(
+            reviewSentence(
+              { subject: review.subject, tags: review.tags, locale: review.locale },
+              { who: { handle: review.handle || review.did, did: review.did } },
+            ),
           ),
-        ),
+        }),
       };
     }
 
@@ -67,14 +70,9 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
       ...(reviews.length > 0
         ? {
             ogImage: `/og.png?subject=${encodeURIComponent(id)}`,
-            ogDescription: sentenceText(
-              subjectPhrase(
-                reviews[0].subject,
-                reviews.flatMap((r) => r.tags),
-              ),
-            ),
+            description: subjectDescription(reviews),
           }
-        : {}),
+        : { description: m.meta_subject_empty() }),
     };
   }
 
@@ -85,10 +83,12 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
     if (resolved) redirect(302, `/reviews/${resolved}${url.search}`);
   }
 
+  const heading = `@${id.startsWith('did:') ? await didHandle(id) : id}`;
   return {
     id,
     single: false as const,
-    heading: `@${id.startsWith('did:') ? await didHandle(id) : id}`,
+    heading,
+    description: m.meta_person({ who: heading }),
     subjectType: null,
     ofSubject: false,
     reviews: listReviews({ did: id }),
@@ -97,6 +97,18 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
     viewer,
   };
 };
+
+function subjectDescription(reviews: ReturnType<typeof listReviews>): string {
+  const sentence = sentenceText(
+    subjectPhrase(
+      reviews[0].subject,
+      reviews.flatMap((r) => r.tags),
+    ),
+  );
+  return reviews.length === 1
+    ? m.meta_subject_one({ sentence })
+    : m.meta_subject_many({ sentence, count: reviews.length });
+}
 
 export const actions: Actions = {
   delete: async ({ request, locals }) => {
