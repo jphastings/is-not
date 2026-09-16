@@ -4,5 +4,5 @@ export const en: Messages = {
   thinks: 'thinks',
   self: 'You',
   selfThinks: 'think',
-  directions: { 2: 'is really', 1: 'is', 0: '???', '-1': 'is not', '-2': "really isn't" },
+  directions: { 2: 'is really', 1: 'is', 0: 'may be', '-1': 'is not', '-2': "really isn't" },
 };
