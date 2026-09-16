@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { accountsFor, didHandle, handleDid } from '$lib/server/accounts';
 import { adjectiveCounts, listReviews, subjectTypesFor } from '$lib/server/db';
 import { deleteReview } from '$lib/server/deleteReview';
+import { fetchLiveReview } from '$lib/server/liveReview';
 import { COLLECTION } from '$lib/server/reviews';
 import { RECORD_URI } from '$lib/review';
 
@@ -31,7 +32,11 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 
       // ponytail: fetches every review by this did and filters in JS; a single
       // `WHERE did = ? AND rkey = ?` query is the upgrade once this needs to scale.
-      const review = listReviews({ did: authority }).find((r) => r.rkey === rkey);
+      // A miss falls back to a live PDS read: jetstream can be a second or two
+      // behind a just-completed save, and that's exactly when this link is followed.
+      const review =
+        listReviews({ did: authority }).find((r) => r.rkey === rkey) ??
+        (await fetchLiveReview(authority, rkey));
       if (!review) error(404);
 
       const adjective = url.searchParams.get('adjective');

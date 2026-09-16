@@ -6,16 +6,30 @@ import { removeAccount, type Browser } from './sessions.ts';
 
 export type Account = { did: string; handle: string };
 
-export async function didHandle(did: string): Promise<string> {
-  const url = did.startsWith('did:web:')
+export type DidDoc = {
+  alsoKnownAs?: string[];
+  service?: { id?: string; type?: string; serviceEndpoint?: string }[];
+};
+
+const didDocUrl = (did: string) =>
+  did.startsWith('did:web:')
     ? `https://${did.slice(8)}/.well-known/did.json`
     : `https://plc.directory/${did}`;
+
+/** The DID document itself, for callers that need more than the handle —
+    e.g. the live-review PDS fallback needs the `#atproto_pds` service
+    endpoint. Same two resolution methods `didHandle` builds on. */
+export async function resolveDidDoc(did: string, signal?: AbortSignal): Promise<DidDoc | null> {
   try {
-    const doc = (await (await fetch(url)).json()) as { alsoKnownAs?: string[] };
-    return doc.alsoKnownAs?.find((a) => a.startsWith('at://'))?.slice(5) ?? '';
+    return (await (await fetch(didDocUrl(did), { signal })).json()) as DidDoc;
   } catch {
-    return '';
+    return null;
   }
+}
+
+export async function didHandle(did: string): Promise<string> {
+  const doc = await resolveDidDoc(did);
+  return doc?.alsoKnownAs?.find((a) => a.startsWith('at://'))?.slice(5) ?? '';
 }
 
 /**
