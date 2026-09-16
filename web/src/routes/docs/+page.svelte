@@ -104,10 +104,12 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
     gap: var(--space-5);
-    align-items: start;
+    align-items: center;
   }
 
+  /* Centred in its cell: beside the JSON when there is room, above it when not. */
   .form-wrap {
+    text-align: center;
     --sentence-size: var(--step-1);
   }
 
