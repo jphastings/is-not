@@ -1,6 +1,7 @@
 import { resolveTxt } from 'node:dns/promises';
 import { Agent } from '@atproto/api';
 import type { OAuthSession } from '@atproto/oauth-client-node';
+import { guardedFetchJson } from './canonical.ts';
 import { oauthClient } from './oauth.ts';
 import { removeAccount, type Browser } from './sessions.ts';
 
@@ -11,17 +12,19 @@ export type DidDoc = {
   service?: { id?: string; type?: string; serviceEndpoint?: string }[];
 };
 
-const didDocUrl = (did: string) =>
-  did.startsWith('did:web:')
-    ? `https://${did.slice(8)}/.well-known/did.json`
-    : `https://plc.directory/${did}`;
-
 /** The DID document itself, for callers that need more than the handle —
     e.g. the live-review PDS fallback needs the `#atproto_pds` service
-    endpoint. Same two resolution methods `didHandle` builds on. */
+    endpoint. Same two resolution methods `didHandle` builds on. A did:web
+    document lives at a host its own owner picks, so that branch goes
+    through the same guarded fetch a PDS endpoint does; plc.directory is a
+    fixed, trusted host and stays on a bare `fetch`. */
 export async function resolveDidDoc(did: string, signal?: AbortSignal): Promise<DidDoc | null> {
+  if (did.startsWith('did:web:')) {
+    const doc = await guardedFetchJson(`https://${did.slice(8)}/.well-known/did.json`, signal);
+    return typeof doc === 'object' && doc !== null ? (doc as DidDoc) : null;
+  }
   try {
-    return (await (await fetch(didDocUrl(did), { signal })).json()) as DidDoc;
+    return (await (await fetch(`https://plc.directory/${did}`, { signal })).json()) as DidDoc;
   } catch {
     return null;
   }
