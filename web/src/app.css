@@ -11,11 +11,11 @@
   /* A small lift off --moss-deep, for the reviewer-handle link in a sentence
      next to the subject link: still green, one step lighter than it. */
   --moss-handle: oklch(43% 0.1 145);
-  /* Sentence parts get their meaning from colour, not chrome: same lightness
-     and chroma as the subject's moss, rotated round the hue wheel so both
-     follow --moss-deep (and its dark-mode redefinition) automatically. */
-  --direction-ink: oklch(from var(--moss-deep) l c calc(h + 60));
-  --adjective-ink: oklch(from var(--moss-deep) l c calc(h - 60));
+  /* The direction word is the sentence's one green; subject and adjective are
+     ink, underlined, so the parts read from weight of line rather than hue. */
+  --subject-ink: var(--ink);
+  --direction-ink: var(--moss-deep);
+  --adjective-ink: var(--ink);
   /* Fixed light backing for the PDS logos, which stay the same in both themes. */
   --plate: oklch(97% 0.02 95);
   --shadow: 0 10px 40px oklch(22% 0.03 140 / 0.12);
@@ -112,6 +112,7 @@ body {
     background var(--dur-fast) var(--ease-out),
     transform var(--dur-fast) var(--ease-out);
 }
+
 /* Only where a pointer can hover. A touch screen leaves the tapped element in
    :hover until the next tap, and a secondary pill's hover look is its active
    look, so a toggled-off filter pill kept reading as on until the next tap. */
@@ -120,6 +121,7 @@ body {
     background: var(--moss-deep);
   }
 }
+
 .pill:active {
   transform: translateY(1px);
 }
@@ -149,6 +151,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

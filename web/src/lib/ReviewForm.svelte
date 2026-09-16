@@ -205,10 +205,6 @@
     padding: 0;
   }
 
-  .text {
-    color: var(--ink-soft);
-  }
-
   /* Keyboard focus needs its own visible indicator: an underline, not the
      default outline, which would draw a box around a word and break the
      sentence. */

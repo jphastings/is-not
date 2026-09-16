@@ -141,11 +141,9 @@
 
   .adjective textarea {
     color: var(--adjective-ink);
-  }
-
-  .comma,
-  .conj {
-    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-thickness: 0.07em;
+    text-underline-offset: 0.15em;
   }
 
   /* Keyboard focus needs its own visible indicator now nothing else marks the

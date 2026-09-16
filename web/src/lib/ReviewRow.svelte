@@ -137,8 +137,10 @@
   .subject {
     font-family: var(--font-display);
     font-weight: 700;
-    color: var(--moss-deep);
-    text-decoration: none;
+    color: var(--subject-ink);
+    text-decoration: underline;
+    text-decoration-thickness: 0.07em;
+    text-underline-offset: 0.15em;
   }
 
   .subject:hover {

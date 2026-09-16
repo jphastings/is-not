@@ -63,12 +63,10 @@
   }
 
   .subject {
-    color: var(--moss-deep);
-    text-decoration: none;
-  }
-
-  .subject:hover {
+    color: var(--subject-ink);
     text-decoration: underline;
+    text-decoration-thickness: 0.07em;
+    text-underline-offset: 0.15em;
   }
 
   /* One step lighter than .subject's moss-deep, so the reviewer reads as
@@ -88,9 +86,8 @@
 
   .adjective {
     color: var(--adjective-ink);
-  }
-
-  .text {
-    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-thickness: 0.07em;
+    text-underline-offset: 0.15em;
   }
 </style>

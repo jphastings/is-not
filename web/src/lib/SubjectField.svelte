@@ -513,7 +513,10 @@
   textarea {
     font: inherit;
     letter-spacing: inherit;
-    color: var(--moss-deep);
+    color: var(--subject-ink);
+    text-decoration: underline;
+    text-decoration-thickness: 0.07em;
+    text-underline-offset: 0.15em;
     background: none;
     border: 0;
     padding: 0;
