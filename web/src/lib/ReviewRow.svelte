@@ -129,7 +129,19 @@
     border-bottom: 1px solid var(--moss-tint);
   }
 
+  /* The sentence and its type share a line, the type pushed to the end and
+     dropping below only when the sentence leaves it no room. */
+  .review {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+  }
+
   .row {
+    flex: 1 1 auto;
+    min-width: 0;
     font-size: var(--step-1);
     line-height: 1.5;
   }
@@ -148,10 +160,10 @@
   }
 
   .type {
-    display: block;
+    flex: none;
+    margin-inline-start: auto;
     font-size: var(--step--1);
     color: var(--ink-soft);
-    margin-top: var(--space-1);
   }
 
   .tags-form {
