@@ -6,8 +6,6 @@ import { deleteReview } from '$lib/server/deleteReview';
 import { RECORD_URI } from '$lib/review';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
-  const type = url.searchParams.get('type') || undefined;
-  const adjective = url.searchParams.get('adjective') || undefined;
   const { current } = await accountsFor(locals.browser);
   const viewer = current?.did ?? null;
 
@@ -18,7 +16,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 
   if (id.startsWith('at://')) {
     if (!RECORD_URI.test(id)) redirect(302, '/');
-    const reviews = listReviews({ subjectUri: id }, { adjective });
+    const reviews = listReviews({ subjectUri: id });
     return {
       id,
       heading: reviews[0]?.subject.title ?? id,
@@ -26,7 +24,6 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
       reviews,
       types: [],
       adjectives: adjectiveCounts({ subjectUri: id }),
-      filters: { type: null, adjective: adjective ?? null },
       viewer,
     };
   }
@@ -42,10 +39,9 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
     id,
     heading: `@${id.startsWith('did:') ? await didHandle(id) : id}`,
     ofSubject: false,
-    reviews: listReviews({ did: id }, { type, adjective }),
+    reviews: listReviews({ did: id }),
     types: subjectTypesFor(id),
     adjectives: adjectiveCounts({ did: id }),
-    filters: { type: type ?? null, adjective: adjective ?? null },
     viewer,
   };
 };

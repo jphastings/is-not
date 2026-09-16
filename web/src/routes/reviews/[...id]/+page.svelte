@@ -1,11 +1,16 @@
 <script lang="ts">
   import { SvelteSet } from 'svelte/reactivity';
   import type { Direction } from '@is-not/lenses';
+  import { page } from '$app/state';
+  import { pushState } from '$app/navigation';
   import { m } from '$lib/paraglide/messages.js';
   import ReviewRow from '$lib/ReviewRow.svelte';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
+
+  const type = $derived(page.url.searchParams.get('type'));
+  const adjective = $derived(page.url.searchParams.get('adjective'));
 
   const directionOrder: Direction[] = [2, 1, 0, -1, -2];
   const directionLabels: Record<Direction, () => string> = {
@@ -18,18 +23,33 @@
 
   // ponytail: client-side only, not in the URL — put it there if it ever needs sharing.
   let directions = $state(new SvelteSet<Direction>(directionOrder));
-  const shown = $derived(data.reviews.filter((r) => r.tags.some((t) => directions.has(t.direction))));
+  const shown = $derived(
+    data.reviews.filter(
+      (r) =>
+        r.tags.some((t) => directions.has(t.direction)) &&
+        (!type || r.subject.type === type) &&
+        (!adjective || r.tags.some((t) => t.adjective === adjective)),
+    ),
+  );
 
   // Toggling a filter: clicking the active one clears it, everything else
   // preserves the other filter param.
   function href(next: { type?: string | null; adjective?: string | null }) {
-    const type = next.type !== undefined ? next.type : data.filters.type;
-    const adjective = next.adjective !== undefined ? next.adjective : data.filters.adjective;
+    const t = next.type !== undefined ? next.type : type;
+    const a = next.adjective !== undefined ? next.adjective : adjective;
     const params = new URLSearchParams();
-    if (type) params.set('type', type);
-    if (adjective) params.set('adjective', adjective);
+    if (t) params.set('type', t);
+    if (a) params.set('adjective', a);
     const qs = params.toString();
     return qs ? `?${qs}` : `/reviews/${data.id}`;
+  }
+
+  // Left-click on a filter link goes shallow (URL + page.url update, no
+  // load re-run); modified clicks (new tab, etc.) keep native behaviour.
+  function shallow(event: MouseEvent) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    pushState((event.currentTarget as HTMLAnchorElement).href, {});
   }
 
   const minCount = $derived(Math.min(...data.adjectives.map((a) => a.count)));
@@ -52,29 +72,31 @@
     <p class="empty display">{m.reviews_empty()}</p>
   {:else}
     {#if !data.ofSubject}<nav class="types" aria-label={m.filter_types()}>
-      <a class="pill secondary small" class:active={!data.filters.type} href={href({ type: null })}>
+      <a class="pill secondary small" class:active={!type} href={href({ type: null })} onclick={shallow}>
         {m.filter_all()}
       </a>
-      {#each data.types as type (type)}
+      {#each data.types as t (t)}
         <a
           class="pill secondary small"
-          class:active={data.filters.type === type}
-          href={href({ type: data.filters.type === type ? null : type })}
+          class:active={type === t}
+          href={href({ type: type === t ? null : t })}
+          onclick={shallow}
         >
-          {type.replaceAll('-', ' ')}
+          {t.replaceAll('-', ' ')}
         </a>
       {/each}
     </nav>{/if}
 
     <ul class="cloud" aria-label={m.filter_adjectives()}>
-      {#each data.adjectives as { adjective, count } (adjective)}
+      {#each data.adjectives as { adjective: a, count } (a)}
         <li>
           <a
-            class:active={data.filters.adjective === adjective}
+            class:active={adjective === a}
             style:font-size={cloudSize(count)}
-            href={href({ adjective: data.filters.adjective === adjective ? null : adjective })}
+            href={href({ adjective: adjective === a ? null : a })}
+            onclick={shallow}
           >
-            {adjective}
+            {a}
           </a>
         </li>
       {/each}
