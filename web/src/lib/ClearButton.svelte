@@ -57,5 +57,11 @@
       opacity: 1;
       pointer-events: auto;
     }
+
+    /* In a list of reviews, only on the row last tapped (ReviewRow sets .adorned). */
+    :global(.review:not(.adorned)) .clear {
+      opacity: 0;
+      pointer-events: none;
+    }
   }
 </style>

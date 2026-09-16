@@ -216,6 +216,15 @@
     cursor: pointer;
   }
 
+  /* On touch, in a list of reviews, only the row last tapped shows them
+     (ReviewRow sets .adorned); the word itself still opens the select. */
+  @media (hover: none) {
+    :global(.review:not(.adorned)) .chevron {
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+
   .chevron-up {
     top: -0.2em;
   }

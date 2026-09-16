@@ -1,3 +1,9 @@
+<script module lang="ts">
+  // The one row whose adornments (chevrons, ×, "and?") a touch screen shows:
+  // the last one tapped. Shared across rows so tapping one clears the rest.
+  let adorned = $state<string | null>(null);
+</script>
+
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { reviewSentence } from '@is-not/sentence';
@@ -63,7 +69,11 @@
   }
 </script>
 
-<li class="review">
+<li
+  class="review"
+  class:adorned={adorned === `${review.did}/${review.rkey}`}
+  onpointerdown={() => (adorned = `${review.did}/${review.rkey}`)}
+>
   <div class="row">
     {#if editable}
       <a class="subject" href={`https://pdsls.dev/${review.subject.uri}`} rel="noreferrer">
@@ -180,8 +190,10 @@
     opacity: 1;
   }
 
+  /* No hover to reveal it on touch, so it shows on the row last tapped only:
+     every row's adornments at once is clutter. */
   @media (hover: none) {
-    .and {
+    .review.adorned .and {
       opacity: 1;
     }
   }
