@@ -107,8 +107,13 @@ body {
     background var(--dur-fast) var(--ease-out),
     transform var(--dur-fast) var(--ease-out);
 }
-.pill:hover {
-  background: var(--moss-deep);
+/* Only where a pointer can hover. A touch screen leaves the tapped element in
+   :hover until the next tap, and a secondary pill's hover look is its active
+   look, so a toggled-off filter pill kept reading as on until the next tap. */
+@media (hover: hover) {
+  .pill:hover {
+    background: var(--moss-deep);
+  }
 }
 .pill:active {
   transform: translateY(1px);
@@ -119,9 +124,11 @@ body {
   color: var(--moss-deep);
 }
 
-.pill.secondary:hover {
-  background: var(--moss);
-  color: var(--paper);
+@media (hover: hover) {
+  .pill.secondary:hover {
+    background: var(--moss);
+    color: var(--paper);
+  }
 }
 
 .pill:disabled {
