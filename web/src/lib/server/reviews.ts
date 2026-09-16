@@ -1,8 +1,8 @@
+import { TID } from '@atproto/common-web';
 import type { Tag } from '@is-not/lenses';
 import { agentFor } from './accounts.ts';
 import { findReview, listReviews, type ListedReview } from './db.ts';
 import { fetchLiveReview } from './liveReview.ts';
-import { normaliseSubjectUri, reviewRkey } from './rkey.ts';
 import { mergeTags, type ReviewInput } from '$lib/review';
 
 export const COLLECTION = 'at.isnot.review';
@@ -30,17 +30,11 @@ export async function singleReview(
 
 /**
  * Write one person's opinion of one subject, as the single record this site
- * allows per subject per repo: an existing review is merged into and updated
- * in place, a new one is created. The rkey is derived from the subject
- * (`rkey.ts`), not chosen, so a legacy TID-keyed review found at the old rkey
- * is moved to the deterministic one rather than updated in place.
+ * allows per subject per repo: an existing review is merged into and updated in
+ * place, a new one is created.
  */
 export async function saveReview(did: string, input: ReviewInput): Promise<SaveResult> {
   const { subject, tags, locale, prefilled = [], createdAt } = input;
-  const normalisedUri = await normaliseSubjectUri(subject.uri);
-  if (!normalisedUri) return { ok: false, status: 400, error: 'subject' };
-  const rkey = reviewRkey(normalisedUri);
-
   const existing = findReview(did, subject.uri);
   // One review per subject per person: a new opinion joins the record already there.
   const merged: Tag[] = existing ? mergeTags(existing.tags, tags, prefilled) : tags;
@@ -57,31 +51,11 @@ export async function saveReview(did: string, input: ReviewInput): Promise<SaveR
   const agent = await agentFor(did);
   if (!agent) return { ok: false, status: 401, error: 'signin' };
   try {
-    if (existing && existing.rkey !== rkey) {
-      await agent.com.atproto.repo.applyWrites({
-        repo: did,
-        writes: [
-          {
-            $type: 'com.atproto.repo.applyWrites#create',
-            collection: COLLECTION,
-            rkey,
-            value: record,
-          },
-          {
-            $type: 'com.atproto.repo.applyWrites#delete',
-            collection: COLLECTION,
-            rkey: existing.rkey,
-          },
-        ],
-      });
-      return { ok: true, uri: `at://${did}/${COLLECTION}/${rkey}` };
-    }
-    const res = await agent.com.atproto.repo.putRecord({
-      repo: did,
-      collection: COLLECTION,
-      rkey,
-      record,
-    });
+    const rkey = existing?.rkey ?? TID.nextStr();
+    const write = { repo: did, collection: COLLECTION, rkey, record };
+    const res = existing
+      ? await agent.com.atproto.repo.putRecord(write)
+      : await agent.com.atproto.repo.createRecord(write);
     return { ok: true, uri: res.data.uri };
   } catch (e) {
     console.error('save failed', e);
