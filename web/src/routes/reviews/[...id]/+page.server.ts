@@ -58,7 +58,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
     return {
       id,
       single: false as const,
-      heading: reviews[0]?.subject.title ?? id,
+      heading: reviews[0]?.subject.title ?? null,
       subjectType: reviews[0]?.subject.type ?? null,
       ofSubject: true,
       reviews,

@@ -3,6 +3,7 @@
   import type { Direction } from '@is-not/lenses';
   import { page } from '$app/state';
   import { pushState } from '$app/navigation';
+  import { resolveSubject } from '$lib/lenses';
   import { m } from '$lib/paraglide/messages.js';
   import ReviewRow from '$lib/ReviewRow.svelte';
   import SingleReview from '$lib/SingleReview.svelte';
@@ -13,6 +14,36 @@
   const type = $derived(page.url.searchParams.get('type'));
   const adjective = $derived(page.url.searchParams.get('adjective'));
 
+  // Only the listing branch needs the subject and filtering state below; a single review
+  // (data.single) renders SingleReview instead.
+  const listing = $derived(data.single ? null : data);
+
+  // A subject with no reviews has no title on the server, and lenses only load in
+  // the browser, so resolve it here.
+  let resolved: { title: string; type: string } | undefined = $state();
+  let failed = $state(false);
+  $effect(() => {
+    resolved = undefined;
+    failed = false;
+    if (data.heading !== null) return;
+    const uri = data.id;
+    resolveSubject(uri).then(
+      (r) => {
+        if (uri !== data.id) return;
+        if ('error' in r) failed = true;
+        else resolved = { title: r.subject.title, type: r.subject.type };
+      },
+      () => {
+        if (uri === data.id) failed = true;
+      },
+    );
+  });
+  const unresolved = $derived(data.heading === null && !resolved);
+  const heading = $derived(
+    resolved?.title ?? data.heading ?? (failed ? m.subject_unknown() : m.subject_finding()),
+  );
+  const subjectType = $derived(resolved?.type ?? listing?.subjectType ?? null);
+
   const directionOrder: Direction[] = [2, 1, 0, -1, -2];
   const directionLabels: Record<Direction, () => string> = {
     2: m.dir_2,
@@ -21,11 +52,6 @@
     '-1': m.dir_m1,
     '-2': m.dir_m2,
   };
-
-  // Only the "reviews of a subject / of an author" branch needs any of the
-  // filtering state below; a single review (data.single) skips straight to
-  // SingleReview in the markup.
-  const listing = $derived(data.single ? null : data);
 
   // ponytail: client-side only, not in the URL — put it there if it ever needs sharing.
   let directions = $state(new SvelteSet<Direction>(directionOrder));
@@ -68,20 +94,25 @@
 </script>
 
 <svelte:head>
-  <title>{m.reviews_title({ who: data.heading })}</title>
+  <title>{m.reviews_title({ who: heading })}</title>
 </svelte:head>
 
 {#if data.single}
-  <SingleReview heading={data.heading} review={data.review} />
+  <SingleReview {heading} review={data.review} />
 {:else if listing}
   <main>
-    <h1 class="display">
-      {listing.heading}
-      {#if listing.subjectType}<small>({listing.subjectType.replaceAll('-', ' ')})</small>{/if}
+    <h1 class="display" class:unresolved>
+      {heading}
+      {#if subjectType}<small>({subjectType.replaceAll('-', ' ')})</small>{/if}
     </h1>
 
     {#if listing.adjectives.length === 0}
       <p class="empty display">{m.reviews_empty()}</p>
+      {#if listing.ofSubject}
+        <p class="empty-action">
+          <a class="pill" href={`/review?subject=${encodeURIComponent(listing.id)}`}>{m.add_a_review()}</a>
+        </p>
+      {/if}
     {:else}
       {#if !listing.ofSubject}<nav class="types" aria-label={m.filter_types()}>
         <a class="pill secondary small" class:active={!type} href={href({ type: null })} onclick={shallow}>
@@ -133,12 +164,7 @@
       {:else}
         <ul class="reviews">
           {#each shown as review (review.rkey)}
-            <ReviewRow
-              {review}
-              editable={review.did === listing.viewer}
-              who={listing.ofSubject}
-              showType={!listing.ofSubject}
-            />
+            <ReviewRow {review} editable={review.did === listing.viewer} who={listing.ofSubject} showType={!listing.ofSubject} />
           {/each}
         </ul>
       {/if}
@@ -159,6 +185,10 @@
     overflow-wrap: anywhere;
   }
 
+  h1.unresolved {
+    color: var(--ink-soft);
+  }
+
   h1 small {
     font-family: var(--font-body);
     font-size: var(--step--1);
@@ -173,6 +203,11 @@
     color: var(--ink-soft);
     text-align: center;
     margin: var(--space-7) 0;
+  }
+
+  .empty-action {
+    text-align: center;
+    margin: 0 0 var(--space-7);
   }
 
   .types,
