@@ -15,7 +15,7 @@
 
 <header class="site">
 	{#if page.url.pathname !== '/'}
-		<a class="home display" href="/">{m.home()}</a>
+		<a class="home display" href="/"><img class="logo" src={favicon} alt="" />{m.home()}</a>
 	{:else}
 		<span></span>
 	{/if}
@@ -33,6 +33,9 @@
 	}
 
 	.home {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
 		color: var(--moss-deep);
 		text-decoration: none;
 		font-size: var(--step-1);
@@ -40,5 +43,10 @@
 
 	.home:hover {
 		text-decoration: underline;
+	}
+
+	.logo {
+		height: 1.2em;
+		width: auto;
 	}
 </style>
