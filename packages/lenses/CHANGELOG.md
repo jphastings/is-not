@@ -1,5 +1,11 @@
 # @is-not/lenses
 
+## 0.6.0
+
+### Minor Changes
+
+- 34a90b2: Lens for buzz.bookhive.catalogBook, so a BookHive catalog record can be a review subject.
+
 ## 0.5.0
 
 ### Minor Changes
