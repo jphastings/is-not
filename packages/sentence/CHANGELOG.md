@@ -1,5 +1,11 @@
 # @is-not/sentence
 
+## 0.5.0
+
+### Minor Changes
+
+- 30cd15f: Direction 0 reads "may be" in English instead of "???".
+
 ## 0.4.0
 
 ### Minor Changes
