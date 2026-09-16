@@ -294,4 +294,9 @@
   .slot {
     line-height: normal;
   }
+  /* The grammar holding the sentence together, set apart from the parts that
+     carry the opinion. Baloo 2 has no italic face, so this is synthesised. */
+  .text {
+    font-style: italic;
+  }
 </style>
