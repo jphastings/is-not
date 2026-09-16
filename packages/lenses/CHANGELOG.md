@@ -1,5 +1,15 @@
 # @is-not/lenses
 
+## 0.5.0
+
+### Minor Changes
+
+- f69489b: Lens for fyi.atstore.listing.detail, so an AT Store app listing can be a review subject.
+
+### Patch Changes
+
+- 9cdb305: Cache DID-document lookups per DID, so resolving many records from one repo fetches its PDS once.
+
 ## 0.4.0
 
 ### Minor Changes
