@@ -3,6 +3,7 @@
   import type { Direction } from '@is-not/lenses';
   import { page } from '$app/state';
   import { pushState } from '$app/navigation';
+  import { resolveSubject } from '$lib/lenses';
   import { m } from '$lib/paraglide/messages.js';
   import ReviewRow from '$lib/ReviewRow.svelte';
   import type { PageProps } from './$types';
@@ -11,6 +12,22 @@
 
   const type = $derived(page.url.searchParams.get('type'));
   const adjective = $derived(page.url.searchParams.get('adjective'));
+
+  // No reviews means the server has nothing to title the page with, so it
+  // falls back to the raw at-uri; resolve it client-side (lenses only load
+  // in the browser) and prefer that once it arrives.
+  let resolved: { title: string; type: string } | undefined = $state();
+  $effect(() => {
+    resolved = undefined;
+    if (!data.ofSubject || data.reviews.length > 0) return;
+    const uri = data.id;
+    resolveSubject(uri).then((r) => {
+      if ('error' in r || uri !== data.id) return;
+      resolved = { title: r.subject.title, type: r.subject.type };
+    }, () => {});
+  });
+  const heading = $derived(resolved?.title ?? data.heading);
+  const subjectType = $derived(resolved?.type ?? data.subjectType);
 
   const directionOrder: Direction[] = [2, 1, 0, -1, -2];
   const directionLabels: Record<Direction, () => string> = {
@@ -62,17 +79,22 @@
 </script>
 
 <svelte:head>
-  <title>{m.reviews_title({ who: data.heading })}</title>
+  <title>{m.reviews_title({ who: heading })}</title>
 </svelte:head>
 
 <main>
   <h1 class="display">
-    {data.heading}
-    {#if data.subjectType}<small>({data.subjectType.replaceAll('-', ' ')})</small>{/if}
+    {heading}
+    {#if subjectType}<small>({subjectType.replaceAll('-', ' ')})</small>{/if}
   </h1>
 
   {#if data.adjectives.length === 0}
     <p class="empty display">{m.reviews_empty()}</p>
+    {#if data.ofSubject}
+      <p class="empty-action">
+        <a class="pill" href={`/review?subject=${encodeURIComponent(data.id)}`}>{m.add_a_review()}</a>
+      </p>
+    {/if}
   {:else}
     {#if !data.ofSubject}<nav class="types" aria-label={m.filter_types()}>
       <a class="pill secondary small" class:active={!type} href={href({ type: null })} onclick={shallow}>
@@ -158,6 +180,11 @@
     color: var(--ink-soft);
     text-align: center;
     margin: var(--space-7) 0;
+  }
+
+  .empty-action {
+    text-align: center;
+    margin: 0 0 var(--space-7);
   }
 
   .types,
