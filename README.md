@@ -126,3 +126,7 @@ goat account login -u isnot.at                 # once per machine
 goat lex publish ./lexicons
 goat lex status ./lexicons                      # green when the network matches the files
 ```
+
+## Credits
+
+The logo is derived from [Moon by Jajang Nurrahman](https://thenounproject.com/browse/icons/term/moon/) (CC BY 3.0).
