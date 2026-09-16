@@ -1,10 +1,24 @@
 <script lang="ts">
+  import { SvelteSet } from 'svelte/reactivity';
+  import type { Direction } from '@is-not/lenses';
   import { m } from '$lib/paraglide/messages.js';
   import ReviewRow from '$lib/ReviewRow.svelte';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
 
+  const directionOrder: Direction[] = [2, 1, 0, -1, -2];
+  const directionLabels: Record<Direction, () => string> = {
+    2: m.dir_2,
+    1: m.dir_1,
+    0: m.dir_0,
+    '-1': m.dir_m1,
+    '-2': m.dir_m2,
+  };
+
+  // ponytail: client-side only, not in the URL — put it there if it ever needs sharing.
+  let directions = $state(new SvelteSet<Direction>(directionOrder));
+  const shown = $derived(data.reviews.filter((r) => r.tags.some((t) => directions.has(t.direction))));
 
   // Toggling a filter: clicking the active one clears it, everything else
   // preserves the other filter param.
@@ -66,11 +80,25 @@
       {/each}
     </ul>
 
-    {#if data.reviews.length === 0}
+    <nav class="directions" aria-label={m.filter_directions()}>
+      {#each directionOrder as d (d)}
+        <label class="pill secondary small" class:active={directions.has(d)}>
+          <input
+            type="checkbox"
+            class="sr-only"
+            checked={directions.has(d)}
+            onchange={() => (directions.has(d) ? directions.delete(d) : directions.add(d))}
+          />
+          {directionLabels[d]()}
+        </label>
+      {/each}
+    </nav>
+
+    {#if shown.length === 0}
       <p class="empty display">{m.reviews_empty()}</p>
     {:else}
       <ul class="reviews">
-        {#each data.reviews as review (review.rkey)}
+        {#each shown as review (review.rkey)}
           <ReviewRow {review} editable={review.did === data.viewer} who={data.ofSubject} />
         {/each}
       </ul>
@@ -98,7 +126,8 @@
     margin: var(--space-7) 0;
   }
 
-  .types {
+  .types,
+  .directions {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
@@ -113,6 +142,24 @@
   .pill.active {
     background: var(--moss);
     color: var(--paper);
+  }
+
+  .pill.small:focus-within {
+    outline: 2px solid var(--moss);
+    outline-offset: 2px;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
   }
 
   .cloud {
