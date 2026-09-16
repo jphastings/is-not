@@ -67,6 +67,31 @@ describe('fetchRecord', () => {
   it('rejects non-record uris', async () => {
     await expect(fetchRecord('at://did:plc:example', stubFetch)).rejects.toThrow(/at-uri/);
   });
+
+  it('caches the DID document across records from the same repo', async () => {
+    const did = 'did:plc:cached';
+    let plcCalls = 0;
+    const fetchImpl = (async (url: string | URL | Request) => {
+      const u = String(url);
+      if (u === `https://plc.directory/${did}`) {
+        plcCalls++;
+        return Response.json({
+          service: [
+            {
+              id: '#atproto_pds',
+              type: 'AtprotoPersonalDataServer',
+              serviceEndpoint: 'https://pds.example',
+            },
+          ],
+        });
+      }
+      return Response.json({ uri: u, cid, value: { $type: 'com.example.thing' } });
+    }) as typeof fetch;
+
+    await fetchRecord(`at://${did}/com.example.thing/one`, fetchImpl);
+    await fetchRecord(`at://${did}/com.example.thing/two`, fetchImpl);
+    expect(plcCalls).toBe(1);
+  });
 });
 
 describe('buildReview', () => {

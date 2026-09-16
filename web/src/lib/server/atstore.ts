@@ -1,13 +1,14 @@
 import type { Agent } from '@atproto/api';
-import type { Tag } from '@is-not/lenses';
 import { findReview } from './db.ts';
 
 const FAVORITE_COLLECTION = 'fyi.atstore.listing.favorite';
 const REVIEW_COLLECTION = 'fyi.atstore.listing.review';
 
+export type ImportSource = 'favourite' | '1' | '2' | '3' | '4' | '5';
+
 export type ImportRow = {
   subjectUri: string;
-  tags: Tag[];
+  sources: ImportSource[];
   isUpdate: boolean;
   /** The oldest source record's own createdAt: an imported opinion is that old. */
   createdAt?: string;
@@ -38,17 +39,17 @@ async function listAll(agent: Agent, did: string, collection: string): Promise<L
 
 // A 1-5 star rating isn't enforced at the source PDS, so clamp defensively
 // rather than trust it (see docs/creating-a-lens.md on unvalidated records).
-// A missing one reads as no opinion rather than NaN, which would clamp to NaN
-// and only surface as a failed row at the end of the import.
-function ratingDirection(rating: number): Tag['direction'] {
-  if (!Number.isFinite(rating)) return 0;
-  return Math.min(2, Math.max(-2, Math.round(rating) - 3)) as Tag['direction'];
+// A missing one reads as neutral (3) rather than NaN, which would clamp to
+// NaN and only surface as a failed row at the end of the import.
+function ratingSource(rating: number): ImportSource {
+  if (!Number.isFinite(rating)) return '3';
+  return String(Math.min(5, Math.max(1, Math.round(rating)))) as ImportSource;
 }
 
 /**
  * Reads the signed-in account's atstore.fyi favourites and reviews, grouped by the app
  * (fyi.atstore.listing.detail record) they're about, so each becomes one at.isnot.review
- * with one tag per source record.
+ * with one source per source record — the tag each source maps to is a client-side choice.
  */
 export async function previewAtstoreImport(did: string, agent: Agent): Promise<ImportRow[]> {
   const [favorites, reviews] = await Promise.all([
@@ -56,28 +57,27 @@ export async function previewAtstoreImport(did: string, agent: Agent): Promise<I
     listAll(agent, did, REVIEW_COLLECTION),
   ]);
 
-  type Group = { tags: Tag[]; createdAt?: string };
+  type Group = { sources: ImportSource[]; createdAt?: string };
   const bySubject = new Map<string, Group>();
-  const add = (record: ListedRecord, tag: Tag) => {
+  const add = (record: ListedRecord, source: ImportSource) => {
     const subjectUri = record.value.subject;
     if (!isString(subjectUri) || subjectUri === '') return;
-    const entry = bySubject.get(subjectUri) ?? { tags: [] };
-    entry.tags.push(tag);
+    const entry = bySubject.get(subjectUri) ?? { sources: [] };
+    entry.sources.push(source);
     entry.createdAt = earliest(entry.createdAt, record.value.createdAt);
     bySubject.set(subjectUri, entry);
   };
 
   for (const record of favorites) {
-    add(record, { adjective: 'awesome', direction: 2 });
+    add(record, 'favourite');
   }
   for (const record of reviews) {
-    const rating = Number(record.value.rating);
-    add(record, { adjective: 'good', direction: ratingDirection(rating) });
+    add(record, ratingSource(Number(record.value.rating)));
   }
 
-  return [...bySubject.entries()].map(([subjectUri, { tags, createdAt }]) => ({
+  return [...bySubject.entries()].map(([subjectUri, { sources, createdAt }]) => ({
     subjectUri,
-    tags,
+    sources,
     createdAt,
     isUpdate: findReview(did, subjectUri) !== null,
   }));

@@ -46,10 +46,7 @@ describe('previewAtstoreImport', () => {
 
     expect(rows).toHaveLength(1);
     expect(rows[0].subjectUri).toBe('at://did:plc:app1/fyi.atstore.listing.detail/a');
-    expect(rows[0].tags).toEqual([
-      { adjective: 'awesome', direction: 2 },
-      { adjective: 'good', direction: 2 },
-    ]);
+    expect(rows[0].sources).toEqual(['favourite', '5']);
     expect(rows[0].isUpdate).toBe(false);
   });
 
@@ -67,7 +64,7 @@ describe('previewAtstoreImport', () => {
       }),
     );
 
-    expect(rows[0].tags).toEqual([{ adjective: 'good', direction: 0 }]);
+    expect(rows[0].sources).toEqual(['3']);
     expect(rows[0].isUpdate).toBe(true);
   });
 
@@ -148,6 +145,6 @@ describe('previewAtstoreImport', () => {
     );
 
     expect(row.createdAt).toBe('2023-01-05T00:00:00.000Z');
-    expect(row.tags).toContainEqual({ adjective: 'good', direction: 0 });
+    expect(row.sources).toContain('3');
   });
 });

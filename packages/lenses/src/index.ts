@@ -106,7 +106,22 @@ export async function fetchRecord(
   return { cid: body.cid, record: body.value };
 }
 
-async function pdsFor(did: string, fetchImpl: typeof fetch): Promise<string> {
+// ponytail: process-lifetime cache, no TTL — a PDS migration won't be picked up without a restart.
+const pdsCache = new Map<string, Promise<string>>();
+
+function pdsFor(did: string, fetchImpl: typeof fetch): Promise<string> {
+  let cached = pdsCache.get(did);
+  if (!cached) {
+    cached = resolvePds(did, fetchImpl).catch((err) => {
+      pdsCache.delete(did);
+      throw err;
+    });
+    pdsCache.set(did, cached);
+  }
+  return cached;
+}
+
+async function resolvePds(did: string, fetchImpl: typeof fetch): Promise<string> {
   let docUrl: string;
   if (did.startsWith('did:plc:')) docUrl = `https://plc.directory/${did}`;
   else if (did.startsWith('did:web:'))
