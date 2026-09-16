@@ -605,6 +605,8 @@
   .option {
     display: block;
     width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: anywhere;
     padding: var(--space-2) var(--space-3);
     font: inherit;
     letter-spacing: inherit;
@@ -626,6 +628,22 @@
     gap: var(--space-2);
     cursor: default;
     color: var(--ink-soft);
+  }
+
+  /* A grid item's automatic minimum is its content's width, so a URL with no
+     break points would widen the row past the list. Zero it: the row is as
+     wide as the list, and trims its own text. */
+  .listbox > li {
+    min-width: 0;
+  }
+
+  /* A URL has no break points, so it is the row that trims it — not the list's
+     edge, which would leave the text running into the border. */
+  .option.loading .uri {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .option.clipboard {
