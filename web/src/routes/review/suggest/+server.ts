@@ -6,6 +6,8 @@ import { env } from '$env/dynamic/private';
 // 8080), reachable at 127.0.0.1 without going through the public
 // api.isnot.at domain.
 const API_ORIGIN = env.API_ORIGIN ?? 'http://127.0.0.1:8080';
+// Matches the canonical-url fetch: a stalled API should read as no suggestions, not a hung field.
+const FETCH_TIMEOUT_MS = 5000;
 
 export const GET: RequestHandler = async ({ url, fetch }) => {
   const upstream = new URL('/xrpc/at.isnot.suggestSubjects', API_ORIGIN);
@@ -14,7 +16,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
   // rather than an error in the sentence. It still has to say so in the log,
   // or an outage is indistinguishable from an empty database.
   try {
-    const res = await fetch(upstream);
+    const res = await fetch(upstream, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (res.ok) return json(await res.json());
     console.error('suggest upstream', res.status, upstream.href);
   } catch (e) {

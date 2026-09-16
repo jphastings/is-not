@@ -86,7 +86,9 @@
   // this rather than an HTTP status) or an explicit 429/5xx is worth retrying; anything else
   // (404, malformed record, unsupported lens, DID resolution failure) won't fix itself.
   const isTransient = (e: unknown) =>
-    e instanceof TypeError || (e instanceof Error && /\b(429|5\d\d)$/.test(e.message));
+    e instanceof TypeError ||
+    (e instanceof DOMException && e.name === 'TimeoutError') ||
+    (e instanceof Error && /\b(429|5\d\d)$/.test(e.message));
 
   const MAX_ATTEMPTS = 8;
   const MAX_DELAY_MS = 30_000;
