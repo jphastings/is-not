@@ -1,5 +1,11 @@
 # @is-not/sentence
 
+## 0.4.0
+
+### Minor Changes
+
+- 5bcfd0b: Tags within a direction read alphabetically, and `sortTags` gives the same order (most positive first, then alphabetical) for showing tags anywhere else.
+
 ## 0.3.0
 
 ### Minor Changes
