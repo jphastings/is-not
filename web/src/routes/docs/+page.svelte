@@ -65,6 +65,11 @@
   </section>
 
   <section>
+    <h2 class="display">{m.docs_technical_heading()}</h2>
+    <p>{m.docs_technical_merge()}</p>
+  </section>
+
+  <section>
     <h2 class="display">{m.docs_links_heading()}</h2>
     <ul class="links">
       <li>

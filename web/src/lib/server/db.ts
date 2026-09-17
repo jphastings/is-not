@@ -333,16 +333,20 @@ export function adjectiveCounts(scope: ReviewScope): AdjectiveCount[] {
 }
 
 /** The reviewer's own review of a subject, if they have already reviewed it. */
-export function findReview(did: string, subjectUri: string): ExistingReview | null {
+/** A person's review of a subject in one locale (`''` for a review with none):
+    reviews of the same subject in different locales are separate reviews. */
+export function findReview(did: string, subjectUri: string, locale: string): ExistingReview | null {
   const conn = open();
   if (!conn) return null;
   const review = conn
     .prepare(
       `SELECT rkey, locale, created_at FROM reviews
-       WHERE did = ? AND subject_uri = ?
+       WHERE did = ? AND subject_uri = ? AND locale = ?
        ORDER BY updated_at DESC LIMIT 1`,
     )
-    .get(did, subjectUri) as { rkey: string; locale: string; created_at: string } | undefined;
+    .get(did, subjectUri, locale) as
+    | { rkey: string; locale: string; created_at: string }
+    | undefined;
   if (!review) return null;
   const tags = conn
     .prepare(

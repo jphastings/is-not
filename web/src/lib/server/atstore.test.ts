@@ -42,6 +42,7 @@ describe('previewAtstoreImport', () => {
           },
         ],
       }),
+      'en',
     );
 
     expect(rows).toHaveLength(1);
@@ -62,6 +63,7 @@ describe('previewAtstoreImport', () => {
           },
         ],
       }),
+      'en',
     );
 
     expect(rows[0].sources).toEqual(['3']);
@@ -111,7 +113,7 @@ describe('previewAtstoreImport', () => {
       },
     } as unknown as Agent;
 
-    const rows = await previewAtstoreImport('did:plc:me', agent);
+    const rows = await previewAtstoreImport('did:plc:me', agent, 'en');
 
     expect(calls).toBe(2);
     expect(rows.map((r) => r.subjectUri).sort()).toEqual([
@@ -142,6 +144,7 @@ describe('previewAtstoreImport', () => {
           },
         ],
       }),
+      'en',
     );
 
     expect(row.createdAt).toBe('2023-01-05T00:00:00.000Z');

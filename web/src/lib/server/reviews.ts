@@ -35,8 +35,8 @@ export async function singleReview(
  */
 export async function saveReview(did: string, input: ReviewInput): Promise<SaveResult> {
   const { subject, tags, locale, prefilled = [], createdAt } = input;
-  const existing = findReview(did, subject.uri);
-  // One review per subject per person: a new opinion joins the record already there.
+  const existing = findReview(did, subject.uri, locale ?? '');
+  // One review per subject and locale per person: a new opinion joins the record already there.
   const merged: Tag[] = existing ? mergeTags(existing.tags, tags, prefilled) : tags;
   if (merged.length > 32) return { ok: false, status: 400, error: 'tags' };
   const now = new Date().toISOString();

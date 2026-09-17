@@ -59,6 +59,8 @@
   "docs_link_lenses": "@is-not/lenses",
   "docs_link_sentence": "@is-not/sentence",
   "docs_link_source": "The source",
+  "docs_technical_heading": "Technical details",
+  "docs_technical_merge": "If a repo ever ends up holding more than one review of the same subject in the same locale, is/not merges them into the earliest-created record and deletes the rest: for each adjective, the tag from the most recently updated record wins, ties go to the direction nearer 0, and further ties go to the positive direction. The merged record keeps the oldest createdAt and the newest updatedAt. Reviews of the same subject in different locales stay separate.",
   "home": "is/not",
   "login_heading": "Your Atmosphere account",
   "login_placeholder": "eg. jcsalterego.bsky.social",

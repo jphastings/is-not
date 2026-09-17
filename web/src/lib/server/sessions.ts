@@ -49,6 +49,14 @@ function jsonStore<T>(table: string, key: string) {
 export const stateStore: NodeSavedStateStore = jsonStore('oauth_state', 'key');
 export const sessionStore: NodeSavedSessionStore = jsonStore('oauth_session', 'sub');
 
+/** Every DID the server holds an oauth session row for, regardless of which
+    browser (if any) still references it. `sessionFor`/`agentFor` still decide
+    whether that session actually restores. */
+export function allSessionDids(): string[] {
+  const rows = sessionsDB().prepare('SELECT sub FROM oauth_session').all() as { sub: string }[];
+  return rows.map((r) => r.sub);
+}
+
 function row(id: string): Browser | null {
   const r = sessionsDB().prepare(`SELECT id, dids, current FROM browser WHERE id = ?`).get(id) as
     | { id: string; dids: string; current: string | null }

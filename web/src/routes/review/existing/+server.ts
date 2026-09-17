@@ -7,5 +7,5 @@ export const GET: RequestHandler = ({ locals, url }) => {
   if (!did) return json(null);
   const uri = url.searchParams.get('uri');
   if (!uri) return json(null);
-  return json(findReview(did, uri));
+  return json(findReview(did, uri, url.searchParams.get('locale') ?? ''));
 };
