@@ -7,7 +7,7 @@
     "at.isnot": {
       "titleTemplate": { "base": "title", "detail": "artist" },
       "identifiers": {
-        "mbid": "mbid",
+        "musicbrainzRecordingId": "mbid",
         "spotifyTrackId": { "field": "spotifyLink", "urlSegmentAfter": "track" }
       }
     }

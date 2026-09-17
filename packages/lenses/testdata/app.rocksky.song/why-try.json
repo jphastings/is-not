@@ -29,7 +29,7 @@
       "title": "Why Try (feat. Kirstin Maldonado) (Forte A cappella, Kirstin Maldonado)",
       "type": "music-track",
       "identifiers": [
-        { "key": "mbid", "value": "e06593af-27be-4180-9952-c523921b544b" },
+        { "key": "musicbrainzRecordingId", "value": "e06593af-27be-4180-9952-c523921b544b" },
         { "key": "spotifyTrackId", "value": "7Ix78E0kjoC1WwAq8Yd7nX" }
       ]
     }
