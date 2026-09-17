@@ -47,7 +47,10 @@ type ingester struct {
 	db            *sql.DB
 	cat           *lexicon.Catalog
 	log           *slog.Logger
+	lenses        *lenses
 	resolveHandle func(ctx context.Context, did string) (string, error)
+	// fetchRecord reads a subject record from its author's PDS: the record's current cid and value.
+	fetchRecord func(ctx context.Context, uri string) (cid string, record map[string]any, err error)
 }
 
 func (in *ingester) run(ctx context.Context, client *jetstream.Client) error {
@@ -72,6 +75,10 @@ func (in *ingester) applyBatch(ctx context.Context, events []jetstream.Event, cu
 	if err != nil {
 		return err
 	}
+	subjects, err := in.resolveSubjects(ctx, events)
+	if err != nil {
+		return err
+	}
 	tx, err := in.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -80,6 +87,11 @@ func (in *ingester) applyBatch(ctx context.Context, events []jetstream.Event, cu
 	now := time.Now().UTC().Format(atmos.AtprotoDatetimeLayout)
 	for did, handle := range newAccounts {
 		if _, err := tx.Exec(`INSERT INTO accounts (did, handle, updated_at) VALUES (?, ?, ?) ON CONFLICT (did) DO NOTHING`, did, handle, now); err != nil {
+			return err
+		}
+	}
+	for _, s := range subjects {
+		if err := upsertSubject(tx, s, now); err != nil {
 			return err
 		}
 	}
@@ -126,6 +138,94 @@ func (in *ingester) resolveNewAccounts(ctx context.Context, events []jetstream.E
 		handles[evt.DID] = handle
 	}
 	return handles, nil
+}
+
+// resolveSubjects lenses the subject of every review created or updated in the batch,
+// keyed by subject uri, skipping any whose record version is already stored. Network
+// and lens failures are logged and skipped: the review still lands, on the poster's own
+// title, and the next review naming that subject tries again.
+func (in *ingester) resolveSubjects(ctx context.Context, events []jetstream.Event) (map[string]subject, error) {
+	out := map[string]subject{}
+	seen := map[string]bool{}
+	for _, evt := range events {
+		if evt.Kind != jetstream.KindCommit || evt.Commit.Collection != collection || evt.Commit.Operation == jetstream.OpDelete {
+			continue
+		}
+		subj, _ := evt.Commit.Record["subject"].(map[string]any)
+		uri, _ := subj["uri"].(string)
+		cid, _ := subj["cid"].(string)
+		if uri == "" || seen[uri] {
+			continue
+		}
+		seen[uri] = true
+		var known string
+		err := in.db.QueryRowContext(ctx, `SELECT cid FROM subjects WHERE uri = ?`, uri).Scan(&known)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return nil, err
+		}
+		if err == nil && known == cid {
+			continue
+		}
+		if s, ok := in.lensSubject(ctx, uri); ok {
+			out[uri] = s
+		}
+	}
+	return out, nil
+}
+
+// lensSubject fetches a subject record and runs the lenses over it. ok is false when
+// the fetch fails, the lens errors, or no lens supports the collection.
+func (in *ingester) lensSubject(ctx context.Context, uri string) (subject, bool) {
+	fetchCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	cid, record, err := in.fetchRecord(fetchCtx, uri)
+	cancel()
+	if err != nil {
+		in.log.Warn("subject fetch failed", "uri", uri, "err", err)
+		return subject{}, false
+	}
+	res, err := in.lenses.resolveSubject(ctx, uri, cid, record)
+	if err != nil || !res.Supported {
+		in.log.Warn("subject not lensed", "uri", uri, "supported", res.Supported, "err", err)
+		return subject{}, false
+	}
+	return res.Subject, true
+}
+
+// resolveAndStoreSubject lenses one subject and writes it in its own transaction.
+// The startup backfill uses it for subjects reviewed before subjects existed.
+func (in *ingester) resolveAndStoreSubject(ctx context.Context, uri string) error {
+	s, ok := in.lensSubject(ctx, uri)
+	if !ok {
+		return nil
+	}
+	tx, err := in.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := upsertSubject(tx, s, time.Now().UTC().Format(atmos.AtprotoDatetimeLayout)); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func upsertSubject(tx *sql.Tx, s subject, now string) error {
+	if _, err := tx.Exec(`
+		INSERT INTO subjects (uri, cid, title, type, resolved_at) VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT (uri) DO UPDATE SET
+			cid = excluded.cid, title = excluded.title, type = excluded.type, resolved_at = excluded.resolved_at`,
+		s.URI, s.CID, s.Title, s.Type, now); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM subject_identifiers WHERE uri = ?`, s.URI); err != nil {
+		return err
+	}
+	for _, id := range s.Identifiers {
+		if _, err := tx.Exec(`INSERT OR IGNORE INTO subject_identifiers (uri, key, value) VALUES (?, ?, ?)`, s.URI, id.Key, id.Value); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (in *ingester) apply(tx *sql.Tx, evt jetstream.Event) error {
@@ -202,18 +302,6 @@ func (in *ingester) applyCommit(tx *sql.Tx, did string, c *jetstream.Commit) err
 		if _, err := tx.Exec(`INSERT OR REPLACE INTO review_tags (did, rkey, adjective, direction) VALUES (?, ?, ?, ?)`,
 			did, c.Rkey, m["adjective"], m["direction"]); err != nil {
 			return err
-		}
-	}
-	if _, err := tx.Exec(`DELETE FROM review_identifiers WHERE did = ? AND rkey = ?`, did, c.Rkey); err != nil {
-		return err
-	}
-	if ids, ok := subject["identifiers"].([]any); ok {
-		for _, id := range ids {
-			m := id.(map[string]any)
-			if _, err := tx.Exec(`INSERT OR IGNORE INTO review_identifiers (did, rkey, key, value) VALUES (?, ?, ?, ?)`,
-				did, c.Rkey, m["key"], m["value"]); err != nil {
-				return err
-			}
 		}
 	}
 	return nil

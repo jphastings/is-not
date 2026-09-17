@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"io/fs"
 	"log/slog"
+	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/bluesky-social/jetstream"
@@ -27,9 +30,18 @@ func newTestIngester(t *testing.T) *ingester {
 	if err != nil {
 		t.Fatal(err)
 	}
+	ctx := context.Background()
+	l, err := loadLenses(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { l.Close(ctx) })
 	return &ingester{
-		db: db, cat: cat, log: slog.New(slog.DiscardHandler),
+		db: db, cat: cat, log: slog.New(slog.DiscardHandler), lenses: l,
 		resolveHandle: func(context.Context, string) (string, error) { return "", nil },
+		fetchRecord: func(context.Context, string) (string, map[string]any, error) {
+			return "", nil, errors.New("no network in tests")
+		},
 	}
 }
 
@@ -196,7 +208,10 @@ func TestOpenDBMigratesOnceAndIsRepeatable(t *testing.T) {
 		if _, err := db.Exec(`SELECT did, rkey, adjective, direction FROM review_tags`); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := db.Exec(`SELECT did, rkey, key, value FROM review_identifiers`); err != nil {
+		if _, err := db.Exec(`SELECT uri, cid, title, type, resolved_at FROM subjects`); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Exec(`SELECT uri, key, value FROM subject_identifiers`); err != nil {
 			t.Fatal(err)
 		}
 		db.Close()
@@ -344,9 +359,9 @@ func TestFoldEmptyBatchKeepsCursor(t *testing.T) {
 	}
 }
 
-func identifiers(t *testing.T, db *sql.DB, did, rkey string) [][2]string {
+func subjectIdentifiers(t *testing.T, db *sql.DB, uri string) [][2]string {
 	t.Helper()
-	rs, err := db.Query(`SELECT key, value FROM review_identifiers WHERE did = ? AND rkey = ? ORDER BY key, value`, did, rkey)
+	rs, err := db.Query(`SELECT key, value FROM subject_identifiers WHERE uri = ? ORDER BY key, value`, uri)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -362,70 +377,138 @@ func identifiers(t *testing.T, db *sql.DB, did, rkey string) [][2]string {
 	return out
 }
 
-func TestFoldStoresSubjectFields(t *testing.T) {
+// storedSubject returns the subjects row for uri, or ok=false when there is none.
+func storedSubject(t *testing.T, db *sql.DB, uri string) (s subject, ok bool) {
+	t.Helper()
+	err := db.QueryRow(`SELECT uri, cid, title, type FROM subjects WHERE uri = ?`, uri).Scan(&s.URI, &s.CID, &s.Title, &s.Type)
+	if errors.Is(err, sql.ErrNoRows) {
+		return s, false
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s, true
+}
+
+// songFixture is a real rocksky song record and what the lens makes of it.
+func songFixture(t *testing.T) (uri, cid string, record map[string]any, want subject) {
+	t.Helper()
+	data, err := os.ReadFile("packages/lenses/testdata/app.rocksky.song/why-try.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var f struct {
+		Input struct {
+			URI    string         `json:"uri"`
+			CID    string         `json:"cid"`
+			Record map[string]any `json:"record"`
+		} `json:"input"`
+		Expected struct {
+			Subject subject `json:"subject"`
+		} `json:"expected"`
+	}
+	if err := json.Unmarshal(data, &f); err != nil {
+		t.Fatal(err)
+	}
+	return f.Input.URI, f.Input.CID, f.Input.Record, f.Expected.Subject
+}
+
+func reviewOf(uri, cid string) map[string]any {
+	record := reviewRecord(oneTag("x", int64(1)), defaultCreatedAt, defaultUpdatedAt)
+	subject := record["subject"].(map[string]any)
+	subject["uri"] = uri
+	subject["cid"] = cid
+	return record
+}
+
+func TestFoldLensesSubjectFromFetchedRecordNotThePoster(t *testing.T) {
 	in := newTestIngester(t)
-	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewRecord(oneTag("x", int64(1)), defaultCreatedAt, defaultUpdatedAt)))
+	uri, cid, record, want := songFixture(t)
+	in.fetchRecord = func(_ context.Context, got string) (string, map[string]any, error) {
+		if got != uri {
+			t.Fatalf("fetched %q, want %q", got, uri)
+		}
+		return cid, record, nil
+	}
+	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewOf(uri, cid)))
 
-	var title, typ string
-	if err := in.db.QueryRow(`SELECT subject_title, subject_type FROM reviews WHERE did = ? AND rkey = ?`, "did:plc:a", "3k1").Scan(&title, &typ); err != nil {
+	got, ok := storedSubject(t, in.db, uri)
+	if !ok || got.Title != want.Title || got.Type != want.Type || got.CID != cid {
+		t.Fatalf("subject = %+v, ok=%v; want %+v", got, ok, want)
+	}
+	var ids [][2]string
+	for _, id := range want.Identifiers {
+		ids = append(ids, [2]string{id.Key, id.Value})
+	}
+	if got := subjectIdentifiers(t, in.db, uri); !reflect.DeepEqual(got, ids) {
+		t.Fatalf("identifiers = %v, want the lens's %v (never the poster's imdbId)", got, ids)
+	}
+	// The poster's own title stays on the review as the fallback.
+	var title string
+	if err := in.db.QueryRow(`SELECT subject_title FROM reviews WHERE rkey = '3k1'`).Scan(&title); err != nil {
 		t.Fatal(err)
 	}
-	if title != "A Post" || typ != "post" {
-		t.Fatalf("subject = %q %q", title, typ)
-	}
-	if got := identifiers(t, in.db, "did:plc:a", "3k1"); len(got) != 1 || got[0] != [2]string{"imdbId", "tt1"} {
-		t.Fatalf("identifiers after create = %v", got)
-	}
-
-	updateRecord := reviewRecord(oneTag("x", int64(1)), defaultCreatedAt, defaultUpdatedAt)
-	subject := updateRecord["subject"].(map[string]any)
-	subject["title"] = "Another Post"
-	subject["type"] = "movie"
-	subject["identifiers"] = []any{map[string]any{"key": "tmdbId", "value": "2"}}
-	apply(t, in, 3, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate, updateRecord))
-	if err := in.db.QueryRow(`SELECT subject_title, subject_type FROM reviews WHERE did = ? AND rkey = ?`, "did:plc:a", "3k1").Scan(&title, &typ); err != nil {
-		t.Fatal(err)
-	}
-	if title != "Another Post" || typ != "movie" {
-		t.Fatalf("updated subject = %q %q", title, typ)
-	}
-	if got := identifiers(t, in.db, "did:plc:a", "3k1"); len(got) != 1 || got[0] != [2]string{"tmdbId", "2"} {
-		t.Fatalf("identifiers after update = %v, want only tmdbId (old imdbId gone)", got)
-	}
-
-	record := reviewRecord(oneTag("y", int64(1)), defaultCreatedAt, defaultUpdatedAt)
-	delete(record["subject"].(map[string]any), "identifiers")
-	apply(t, in, 4, commitEvent("did:plc:a", "3k2", jetstream.OpCreate, record))
-	if got := identifiers(t, in.db, "did:plc:a", "3k2"); len(got) != 0 {
-		t.Fatalf("identifiers without any = %v, want none", got)
+	if title != "A Post" {
+		t.Fatalf("review's own title = %q, want the poster's", title)
 	}
 }
 
-func TestFoldDeletingReviewRemovesTagsAndIdentifiers(t *testing.T) {
+func TestFoldStoresReviewWithoutSubjectWhenFetchFails(t *testing.T) {
+	in := newTestIngester(t)
+	uri, cid, _, _ := songFixture(t)
+	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewOf(uri, cid)))
+	if !reviewExists(t, in.db, "did:plc:a", "3k1") {
+		t.Fatal("review missing after a failed subject fetch")
+	}
+	if _, ok := storedSubject(t, in.db, uri); ok {
+		t.Fatal("a failed fetch must not write a subjects row")
+	}
+}
+
+func TestFoldSkipsSubjectFetchForAKnownCid(t *testing.T) {
+	in := newTestIngester(t)
+	uri, cid, record, _ := songFixture(t)
+	calls := 0
+	in.fetchRecord = func(context.Context, string) (string, map[string]any, error) {
+		calls++
+		return cid, record, nil
+	}
+	apply(t, in, 1,
+		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewOf(uri, cid)),
+		commitEvent("did:plc:b", "3k1", jetstream.OpCreate, reviewOf(uri, cid)),
+	)
+	apply(t, in, 2, commitEvent("did:plc:c", "3k1", jetstream.OpCreate, reviewOf(uri, cid)))
+	if calls != 1 {
+		t.Fatalf("fetches = %d, want 1 (same cid, within and across batches)", calls)
+	}
+	apply(t, in, 3, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate, reviewOf(uri, "bafyreidifferentcid")))
+	if calls != 2 {
+		t.Fatalf("fetches = %d, want 2 (a new cid refetches)", calls)
+	}
+}
+
+func TestFoldWritesNoSubjectForUnsupportedCollection(t *testing.T) {
+	in := newTestIngester(t)
+	uri := "at://did:plc:subject/com.example.thing/3abc"
+	in.fetchRecord = func(context.Context, string) (string, map[string]any, error) {
+		return validCID, map[string]any{"$type": "com.example.thing", "name": "A Thing"}, nil
+	}
+	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewOf(uri, validCID)))
+	if _, ok := storedSubject(t, in.db, uri); ok {
+		t.Fatal("an unsupported collection must not write a subjects row")
+	}
+}
+
+func TestFoldDeletingReviewRemovesTags(t *testing.T) {
 	in := newTestIngester(t)
 	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewRecord(oneTag("x", int64(1)), defaultCreatedAt, defaultUpdatedAt)))
 	apply(t, in, 2, commitEvent("did:plc:a", "3k1", jetstream.OpDelete, nil))
-	var tagCount, idCount int
+	var tagCount int
 	if err := in.db.QueryRow(`SELECT COUNT(*) FROM review_tags`).Scan(&tagCount); err != nil {
 		t.Fatal(err)
 	}
-	if err := in.db.QueryRow(`SELECT COUNT(*) FROM review_identifiers`).Scan(&idCount); err != nil {
-		t.Fatal(err)
-	}
-	if tagCount != 0 || idCount != 0 {
-		t.Fatalf("review_tags = %d, review_identifiers = %d after delete, want 0, 0", tagCount, idCount)
-	}
-
-	apply(t, in, 3,
-		commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewRecord(oneTag("x", int64(1)), defaultCreatedAt, defaultUpdatedAt)),
-		commitEvent("did:plc:b", "3k1", jetstream.OpCreate, reviewRecord(oneTag("y", int64(1)), defaultCreatedAt, defaultUpdatedAt)),
-	)
-	apply(t, in, 4, jetstream.Event{DID: "did:plc:a", Kind: jetstream.KindAccount, Account: &jetstream.Account{DID: "did:plc:a", Active: false, Status: "deleted"}})
-	if got := identifiers(t, in.db, "did:plc:a", "3k1"); len(got) != 0 {
-		t.Fatalf("did:plc:a identifiers after account deletion = %v, want none", got)
-	}
-	if got := identifiers(t, in.db, "did:plc:b", "3k1"); len(got) != 1 {
-		t.Fatalf("did:plc:b identifiers after unrelated account deletion = %v, want 1", got)
+	if tagCount != 0 {
+		t.Fatalf("review_tags = %d after delete, want 0", tagCount)
 	}
 }
 
