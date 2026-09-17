@@ -47,12 +47,14 @@
   const icon = $derived(ICONS[brand]);
 </script>
 
-<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style:color={icon.color}>
+<svg viewBox="0 0 24 24" aria-hidden="true" style:color={icon.color}>
   <path d={icon.path} fill={icon.color === 'currentColor' ? 'none' : 'currentColor'} stroke={icon.color === 'currentColor' ? 'currentColor' : 'none'} stroke-width="1.6" stroke-linejoin="round" />
 </svg>
 
 <style>
   svg {
     display: block;
+    width: var(--icon-size, 20px);
+    height: var(--icon-size, 20px);
   }
 </style>
