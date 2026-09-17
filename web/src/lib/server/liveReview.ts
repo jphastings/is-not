@@ -34,6 +34,7 @@ export function toListedReview(did: string, rkey: string, record: unknown): List
     locale: parsed.value.locale,
     createdAt: typeof dates.createdAt === 'string' ? dates.createdAt : '',
     updatedAt: typeof dates.updatedAt === 'string' ? dates.updatedAt : '',
+    stale: false,
   };
 }
 

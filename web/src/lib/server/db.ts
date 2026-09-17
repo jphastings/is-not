@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { env } from '$env/dynamic/private';
+import type { Subject } from '@is-not/lenses';
 import type { Direction, Tag } from '@is-not/sentence';
 
 export type HomeReview = {
@@ -13,13 +14,51 @@ export type HomeReview = {
   updatedAt: string;
 };
 
+/** The subject as the lens saw it, falling back to what the poster wrote. `r` is
+    the reviews alias; the caller joins `subjects s`. */
+const SUBJECT_COLUMNS = `
+  r.subject_uri, r.subject_cid,
+  COALESCE(s.title, r.subject_title) AS subject_title,
+  COALESCE(s.type, r.subject_type) AS subject_type,
+  s.cid AS resolved_cid,
+  (SELECT json_group_array(json_object('key', i.key, 'value', i.value))
+     FROM (SELECT key, value FROM subject_identifiers WHERE uri = r.subject_uri ORDER BY key, value) i) AS identifiers`;
+const SUBJECT_JOIN = 'LEFT JOIN subjects s ON s.uri = r.subject_uri';
+const TYPE_FILTER = 'COALESCE(s.type, r.subject_type) = ?';
+
+type SubjectRow = {
+  subject_uri: string;
+  subject_cid: string;
+  subject_title: string;
+  subject_type: string;
+  resolved_cid: string | null;
+  identifiers: string;
+};
+
+function rowSubject(row: SubjectRow): { subject: Subject; stale: boolean } {
+  const identifiers = JSON.parse(row.identifiers) as Subject['identifiers'];
+  return {
+    subject: {
+      uri: row.subject_uri,
+      cid: row.subject_cid,
+      title: row.subject_title,
+      type: row.subject_type,
+      ...(identifiers?.length ? { identifiers } : {}),
+    },
+    stale: row.resolved_cid !== null && row.resolved_cid !== row.subject_cid,
+  };
+}
+
 const QUERY = `
   SELECT r.did, r.rkey, COALESCE(a.handle, '') AS handle,
-         r.subject_uri, r.subject_cid, r.subject_title, r.subject_type,
+         r.subject_uri, r.subject_cid,
+         COALESCE(s.title, r.subject_title) AS subject_title,
+         COALESCE(s.type, r.subject_type) AS subject_type,
          r.locale, r.created_at, r.updated_at,
          t.adjective, t.direction
   FROM review_tags t
   JOIN reviews r ON r.did = t.did AND r.rkey = t.rkey
+  ${SUBJECT_JOIN}
   LEFT JOIN accounts a ON a.did = r.did
   WHERE t.direction != 0
   ORDER BY random()
@@ -83,11 +122,13 @@ export type ListedReview = {
   did: string;
   handle: string;
   rkey: string;
-  subject: { uri: string; cid: string; title: string; type: string };
+  subject: Subject;
   tags: Tag[];
   locale?: string;
   createdAt: string;
   updatedAt: string;
+  /** The review named an older version of the subject than the one lensed. */
+  stale: boolean;
 };
 
 export type ReviewFilters = { type?: string; adjective?: string; directions?: Direction[] };
@@ -119,14 +160,10 @@ function tagMatchClause(filters: ReviewFilters, params: (string | number)[]): st
   return `EXISTS (SELECT 1 FROM review_tags x WHERE ${conditions.join(' AND ')})`;
 }
 
-type ListRow = {
+type ListRow = SubjectRow & {
   did: string;
   handle: string;
   rkey: string;
-  subject_uri: string;
-  subject_cid: string;
-  subject_title: string;
-  subject_type: string;
   locale: string;
   created_at: string;
   updated_at: string;
@@ -143,7 +180,7 @@ export function listReviews(scope: ReviewScope, filters: ReviewFilters = {}): Li
   const conditions = [scoped.sql];
   const params: (string | number)[] = [...scoped.params];
   if (filters.type) {
-    conditions.push('r.subject_type = ?');
+    conditions.push(TYPE_FILTER);
     params.push(filters.type);
   }
   const tagClause = tagMatchClause(filters, params);
@@ -151,10 +188,10 @@ export function listReviews(scope: ReviewScope, filters: ReviewFilters = {}): Li
 
   const rows = conn
     .prepare(
-      `SELECT r.did, COALESCE(a.handle, '') AS handle,
-              r.rkey, r.subject_uri, r.subject_cid, r.subject_title, r.subject_type,
+      `SELECT r.did, COALESCE(a.handle, '') AS handle, r.rkey, ${SUBJECT_COLUMNS},
               r.locale, r.created_at, r.updated_at, t.adjective, t.direction
        FROM reviews r
+       ${SUBJECT_JOIN}
        JOIN review_tags t ON t.did = r.did AND t.rkey = r.rkey
        LEFT JOIN accounts a ON a.did = r.did
        WHERE ${conditions.join(' AND ')}
@@ -171,12 +208,7 @@ export function listReviews(scope: ReviewScope, filters: ReviewFilters = {}): Li
         did: row.did,
         handle: row.handle,
         rkey: row.rkey,
-        subject: {
-          uri: row.subject_uri,
-          cid: row.subject_cid,
-          title: row.subject_title,
-          type: row.subject_type,
-        },
+        ...rowSubject(row),
         tags: [],
         locale: row.locale || undefined,
         createdAt: row.created_at,
@@ -238,7 +270,7 @@ export function listReviewsPage(
   const conditions = [scoped.sql];
   const params: (string | number)[] = [...scoped.params];
   if (filters.type) {
-    conditions.push('r.subject_type = ?');
+    conditions.push(TYPE_FILTER);
     params.push(filters.type);
   }
   const tagClause = tagMatchClause(filters, params);
@@ -250,18 +282,19 @@ export function listReviewsPage(
 
   const rows = conn
     .prepare(
-      `SELECT sub.did, sub.rkey, COALESCE(a.handle, '') AS handle,
-              sub.subject_uri, sub.subject_cid, sub.subject_title, sub.subject_type,
-              sub.locale, sub.created_at, sub.updated_at, t.adjective, t.direction
+      `SELECT r.did, r.rkey, COALESCE(a.handle, '') AS handle, ${SUBJECT_COLUMNS},
+              r.locale, r.created_at, r.updated_at, t.adjective, t.direction
        FROM (
          SELECT r.* FROM reviews r
+         ${SUBJECT_JOIN}
          WHERE ${conditions.join(' AND ')}
          ORDER BY r.updated_at DESC, r.did DESC, r.rkey DESC
          LIMIT ?
-       ) sub
-       LEFT JOIN accounts a ON a.did = sub.did
-       JOIN review_tags t ON t.did = sub.did AND t.rkey = sub.rkey
-       ORDER BY sub.updated_at DESC, sub.did DESC, sub.rkey DESC, t.adjective`,
+       ) r
+       ${SUBJECT_JOIN}
+       LEFT JOIN accounts a ON a.did = r.did
+       JOIN review_tags t ON t.did = r.did AND t.rkey = r.rkey
+       ORDER BY r.updated_at DESC, r.did DESC, r.rkey DESC, t.adjective`,
     )
     .all(...params, REVIEWS_PAGE_SIZE + 1) as unknown as ListRow[];
 
@@ -274,12 +307,7 @@ export function listReviewsPage(
         did: row.did,
         handle: row.handle,
         rkey: row.rkey,
-        subject: {
-          uri: row.subject_uri,
-          cid: row.subject_cid,
-          title: row.subject_title,
-          type: row.subject_type,
-        },
+        ...rowSubject(row),
         tags: [],
         locale: row.locale || undefined,
         createdAt: row.created_at,
@@ -308,7 +336,8 @@ export function subjectTypesFor(scope: { did: string } | { all: true }): string[
   const scoped = scopeClause(scope);
   const rows = conn
     .prepare(
-      `SELECT DISTINCT subject_type FROM reviews r WHERE ${scoped.sql} ORDER BY subject_type`,
+      `SELECT DISTINCT COALESCE(s.type, r.subject_type) AS subject_type
+       FROM reviews r ${SUBJECT_JOIN} WHERE ${scoped.sql} ORDER BY subject_type`,
     )
     .all(...scoped.params) as unknown as { subject_type: string }[];
   return rows.map((r) => r.subject_type);
