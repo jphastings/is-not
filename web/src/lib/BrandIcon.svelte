@@ -1,7 +1,5 @@
-<script lang="ts">
+<script module lang="ts">
   import type { Brand } from '$lib/identifierLinks';
-
-  let { brand }: { brand: Brand } = $props();
 
   // Simple Icons paths (CC0), 24x24 viewBox. Colours are each brand's own; the
   // ones that vanish on the dark ground get a light-dark() pair.
@@ -36,12 +34,16 @@
     },
     // No brand mark: a plain open book, in ink.
     openlibrary: {
-      path: 'M12 6.5C10.5 5 8.5 4.5 6 4.5H3v13h3c2.5 0 4.5.5 6 2 1.5-1.5 3.5-2 6-2h3v-13h-3c-2.5 0-4.5.5-6 2zm0 0v13',
+      path: 'M12 6.5C10.5 5 8.5 4.5 6 4.5H3v13h3c2.5 0 4.5.5 6 2 1.5-1.5 3.5-2 6-2h3v-13h-3c-2.5 0-4.5.5-6 2zm0 0v11',
       color: 'currentColor',
     },
     // No brand mark: a hexagon cell, in ink.
     bookhive: { path: 'M12 2l8.66 5v10L12 22l-8.66-5V7z', color: 'currentColor' },
   };
+</script>
+
+<script lang="ts">
+  let { brand }: { brand: Brand } = $props();
   const icon = $derived(ICONS[brand]);
 </script>
 
