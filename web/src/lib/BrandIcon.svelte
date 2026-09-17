@@ -34,7 +34,7 @@
     },
     // No brand mark: a plain open book, in ink.
     openlibrary: {
-      path: 'M12 6.5C10.5 5 8.5 4.5 6 4.5H3v13h3c2.5 0 4.5.5 6 2 1.5-1.5 3.5-2 6-2h3v-13h-3c-2.5 0-4.5.5-6 2zm0 0v11',
+      path: 'M12 6.5C10.5 5 8.5 4.5 6 4.5H3v13h3c2.5 0 4.5.5 6 2 1.5-1.5 3.5-2 6-2h3v-13h-3c-2.5 0-4.5.5-6 2zm0 0v13',
       color: 'currentColor',
     },
     // No brand mark: a hexagon cell, in ink.
