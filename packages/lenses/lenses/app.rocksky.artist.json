@@ -1,0 +1,13 @@
+{
+  "id": "at.isnot.lens.app-rocksky-artist",
+  "description": "A rocksky artist record names a musician or group; the tag subject is that artist.",
+  "source": "app.rocksky.artist",
+  "target": "at.isnot.review#subject",
+  "extensions": {
+    "at.isnot": { "identifiers": { "mbid": "mbid" } }
+  },
+  "steps": [
+    { "rename_field": { "old": "name", "new": "title" } },
+    { "add_field": { "name": "type", "kind": "string", "fallback": "music-artist" } }
+  ]
+}

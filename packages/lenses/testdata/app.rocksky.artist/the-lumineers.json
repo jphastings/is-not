@@ -1,0 +1,22 @@
+{
+  "input": {
+    "uri": "at://did:plc:2cxgdrgtsmrbqnjkwyplmp43/app.rocksky.artist/3mvokpw7enk22",
+    "cid": "bafyreih6mtj43f6krl4obdswmxa72d4jtwr4sojlnbi3oixgauha57vm2q",
+    "record": {
+      "name": "The Lumineers",
+      "tags": ["Alternative"],
+      "$type": "app.rocksky.artist",
+      "createdAt": "2026-09-17T02:02:07.208Z",
+      "pictureUrl": "https://i.scdn.co/image/ab6761610000e5eb0f882273183345499155d6ed"
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:2cxgdrgtsmrbqnjkwyplmp43/app.rocksky.artist/3mvokpw7enk22",
+      "cid": "bafyreih6mtj43f6krl4obdswmxa72d4jtwr4sojlnbi3oixgauha57vm2q",
+      "title": "The Lumineers",
+      "type": "music-artist"
+    }
+  }
+}

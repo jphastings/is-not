@@ -1,0 +1,16 @@
+{
+  "id": "at.isnot.lens.app-rocksky-song",
+  "description": "A rocksky song record names a track; the tag subject is that track.",
+  "source": "app.rocksky.song",
+  "target": "at.isnot.review#subject",
+  "extensions": {
+    "at.isnot": {
+      "titleTemplate": { "base": "title", "detail": "artist" },
+      "identifiers": {
+        "mbid": "mbid",
+        "spotifyTrackId": { "field": "spotifyLink", "urlSegmentAfter": "track" }
+      }
+    }
+  },
+  "steps": [{ "add_field": { "name": "type", "kind": "string", "fallback": "music-track" } }]
+}

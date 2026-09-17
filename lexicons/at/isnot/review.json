@@ -84,6 +84,7 @@
             "book-series",
             "album",
             "music-track",
+            "music-artist",
             "video-game",
             "post",
             "publication",
