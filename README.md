@@ -9,7 +9,8 @@ Lives at isnot.at, with its API at api.isnot.at.
 Two processes share one container and one SQLite file:
 
 - **API (Go, this repo's root):** follows jetstream v2 for `at.isnot.review` records and folds
-  them into SQLite (`reviews`, `review_tags`, `review_identifiers`, `accounts`, `cursor`).
+  them into SQLite (`reviews`, `review_tags`, `subjects`, `subject_identifiers`, `accounts`, `cursor`).
+  Each review's subject is fetched from its author's PDS and run through the lenses; `subjects` holds what the lens saw, and a review's own title is only the fallback when that fails.
   XRPC endpoints on their own port will front the same database. Writes the database.
 - **Site (SvelteKit, `web/`):** server-renders from the same SQLite file, opened read-only
   with Node's built-in `node:sqlite`, and calls the API for dynamic bits. Today it is the

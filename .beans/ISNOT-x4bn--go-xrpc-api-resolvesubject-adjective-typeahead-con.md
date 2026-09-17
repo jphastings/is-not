@@ -16,10 +16,7 @@ typeahead returning a large list (user's most used + ecosystem most popular)
 for client-side filtering/caching, random tags sample for the homepage (join review_tags to reviews).     
 Dockerfile for the API.                                                     
                                                                             
-Notes from the subject/accounts review (2026-09-13): subject metadata is per-
-tag and unnormalised, so any aggregate view of one subject_uri needs a      
-canonical rule for title/type/identifiers (e.g. most recent by updated_at)  
-decided in this spec. subject_identifiers is unindexed JSON text; add a     
+Notes from the subject/accounts review (2026-09-13): Subject metadata is canonical in the `subjects` table (lensed server-side at ingest, spec 2026-09-17); the XRPC resolveSubject endpoint can reuse `ingester.lensSubject`. subject_identifiers is unindexed JSON text; add a
 generated column or side table when identifier matching is needed. Add an   
 index on reviews(updated_at) with the first recent-tags feed. Keep the         
 invariant                                                                   
