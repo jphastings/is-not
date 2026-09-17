@@ -3,6 +3,7 @@ import { fail } from '@sveltejs/kit';
 import type { RequestEvent, ServerLoadEvent } from '@sveltejs/kit';
 import type { Tag } from '@is-not/lenses';
 import { accountsFor, agentFor, type Account } from './accounts.ts';
+import { findReview } from './db.ts';
 import { saveReview } from './reviews.ts';
 import { validateReview } from '$lib/review';
 import { m } from '$lib/paraglide/messages.js';
@@ -56,7 +57,41 @@ export const IMPORTERS: { domain: string; collections: string[] }[] = [
     collections: ['fyi.atstore.listing.favorite', 'fyi.atstore.listing.review'],
   },
   { domain: 'bookhive.buzz', collections: ['buzz.bookhive.book'] },
+  {
+    domain: 'gamesgamesgamesgames.games',
+    collections: ['games.gamesgamesgamesgames.graph.like'],
+  },
+  { domain: 'rocksky.app', collections: ['app.rocksky.like'] },
+  { domain: 'standard.site', collections: ['site.standard.graph.recommend'] },
+  { domain: 'popfeed.social', collections: ['social.popfeed.feed.review'] },
 ];
+
+/** Shared shape for a "did I do this to that subject" collection — a like, a
+    favourite, a recommend — where the record itself carries no opinion, just
+    presence. One row per distinct subject, sources always `[source]`, kept
+    to the earliest createdAt if the same subject appears more than once. */
+export async function previewPresenceImport(
+  did: string,
+  agent: Agent,
+  locale: string,
+  collection: string,
+  source: string,
+  subjectOf: (value: Record<string, unknown>) => string | undefined,
+): Promise<ImportRow[]> {
+  const records = await listAll(agent, did, collection);
+  const bySubject = new Map<string, string | undefined>();
+  for (const record of records) {
+    const subjectUri = subjectOf(record.value);
+    if (!subjectUri) continue;
+    bySubject.set(subjectUri, earliest(bySubject.get(subjectUri), record.value.createdAt));
+  }
+  return [...bySubject.entries()].map(([subjectUri, createdAt]) => ({
+    subjectUri,
+    sources: [source],
+    createdAt,
+    existing: findReview(did, subjectUri, locale)?.tags ?? null,
+  }));
+}
 
 type LoadResult = {
   description: string;
