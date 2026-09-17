@@ -18,6 +18,10 @@ import (
 
 const collection = "at.isnot.review"
 
+// ponytail: a batch fetches at most this many subjects; the rest wait for a later
+// update of their review. A queue drained outside the batch if that ever bites.
+const maxSubjectFetchesPerBatch = 20
+
 //go:embed lexicons
 var lexiconFS embed.FS
 
@@ -140,15 +144,21 @@ func (in *ingester) resolveNewAccounts(ctx context.Context, events []jetstream.E
 	return handles, nil
 }
 
-// resolveSubjects lenses the subject of every review created or updated in the batch,
-// keyed by subject uri, skipping any whose record version is already stored. Network
-// and lens failures are logged and skipped: the review still lands, on the poster's own
-// title, and the next review naming that subject tries again.
+// resolveSubjects lenses the subject of every valid review created or updated in the
+// batch, keyed by subject uri, skipping any whose record version is already stored and
+// stopping after maxSubjectFetchesPerBatch fetches. Network and lens failures are logged
+// and skipped: the review still lands, on the poster's own title, and the next review
+// naming that subject tries again.
 func (in *ingester) resolveSubjects(ctx context.Context, events []jetstream.Event) (map[string]subject, error) {
 	out := map[string]subject{}
 	seen := map[string]bool{}
+	fetches, skipped := 0, 0
 	for _, evt := range events {
 		if evt.Kind != jetstream.KindCommit || evt.Commit.Collection != collection || evt.Commit.Operation == jetstream.OpDelete {
+			continue
+		}
+		// A record the lexicon rejects is about to be dropped, so never fetch for it.
+		if err := lexval.ValidateRecord(in.cat, collection, evt.Commit.Record); err != nil {
 			continue
 		}
 		subj, _ := evt.Commit.Record["subject"].(map[string]any)
@@ -166,9 +176,17 @@ func (in *ingester) resolveSubjects(ctx context.Context, events []jetstream.Even
 		if err == nil && known == cid {
 			continue
 		}
+		if fetches == maxSubjectFetchesPerBatch {
+			skipped++
+			continue
+		}
+		fetches++
 		if s, ok := in.lensSubject(ctx, uri); ok {
 			out[uri] = s
 		}
+	}
+	if skipped > 0 {
+		in.log.Warn("subject fetches capped for this batch", "skipped", skipped, "cap", maxSubjectFetchesPerBatch)
 	}
 	return out, nil
 }
@@ -176,7 +194,7 @@ func (in *ingester) resolveSubjects(ctx context.Context, events []jetstream.Even
 // lensSubject fetches a subject record and runs the lenses over it. ok is false when
 // the fetch fails, the lens errors, or no lens supports the collection.
 func (in *ingester) lensSubject(ctx context.Context, uri string) (subject, bool) {
-	fetchCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	fetchCtx, cancel := context.WithTimeout(ctx, fetchTimeout)
 	cid, record, err := in.fetchRecord(fetchCtx, uri)
 	cancel()
 	if err != nil {
@@ -190,6 +208,12 @@ func (in *ingester) lensSubject(ctx context.Context, uri string) (subject, bool)
 	}
 	if !res.Supported {
 		in.log.Warn("subject collection unsupported", "uri", uri)
+		return subject{}, false
+	}
+	// The lens falls back to the uri when a record holds nothing name-like; an at-uri
+	// must never reach a reader as a title, and the poster's own is the better fallback.
+	if res.Subject.Title == uri {
+		in.log.Warn("subject has no title, keeping the poster's", "uri", uri)
 		return subject{}, false
 	}
 	return res.Subject, true
@@ -213,20 +237,28 @@ func (in *ingester) resolveAndStoreSubject(ctx context.Context, uri string) erro
 	return tx.Commit()
 }
 
-// backfillSubjects lenses every subject reviewed before the subjects table existed.
-// It runs once at startup, one subject at a time, and is a no-op thereafter.
+// backfillSubjects lenses every reviewed subject with no subjects row. It runs once at
+// startup, one subject at a time. Subjects that resolve are never looked at again; one
+// that cannot (no lens, dead PDS, deleted record) is retried on every boot.
 func (in *ingester) backfillSubjects(ctx context.Context) {
 	rows, err := in.db.QueryContext(ctx, `SELECT DISTINCT subject_uri FROM reviews r WHERE NOT EXISTS (SELECT 1 FROM subjects s WHERE s.uri = r.subject_uri)`)
 	if err != nil {
 		in.log.Warn("subject backfill query failed", "err", err)
 		return
 	}
+	// Collected before any write: the single connection cannot hold this cursor open
+	// while resolveAndStoreSubject wants a transaction.
 	var uris []string
 	for rows.Next() {
 		var uri string
-		if err := rows.Scan(&uri); err == nil {
-			uris = append(uris, uri)
+		if err := rows.Scan(&uri); err != nil {
+			in.log.Warn("subject backfill scan failed", "err", err)
+			continue
 		}
+		uris = append(uris, uri)
+	}
+	if err := rows.Err(); err != nil {
+		in.log.Warn("subject backfill query failed", "err", err)
 	}
 	rows.Close()
 	for _, uri := range uris {

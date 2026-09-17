@@ -28,7 +28,8 @@ export type Link = { href: string; brand: Brand; site: string };
 type Rule = { keys: string[]; brand: Brand; url: (value: string, type: string) => string };
 
 // One row per public page an identifier can address, in display order. Keys with
-// no id-addressable page (igdb, externalId, other, parentMbReleaseId) have no row.
+// no id-addressable page (igdb, igdbId, mbId, externalId, other, parentMbReleaseId)
+// have no row.
 const RULES: Rule[] = [
   { keys: ['spotifyTrackId'], brand: 'spotify', url: (v) => `https://open.spotify.com/track/${v}` },
   { keys: ['spotifyAlbumId'], brand: 'spotify', url: (v) => `https://open.spotify.com/album/${v}` },

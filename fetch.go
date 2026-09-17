@@ -18,6 +18,19 @@ import (
 // A subject record bigger than this never reaches the wasm allocator.
 const maxRecordBytes = 1 << 20
 
+// Two sequential cold HTTPS requests measure 600-800ms each, so a fetch that has
+// not answered in this long is not going to.
+const fetchTimeout = 5 * time.Second
+
+// pdsClient never follows redirects: getRecord has no reason to redirect, and following
+// one would let an attacker-authored DID document route the request past the https guard.
+func pdsClient() *http.Client {
+	return &http.Client{
+		Timeout:       fetchTimeout,
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}
+}
+
 // pdsResolver maps a DID to its PDS endpoint via its DID document. Handle
 // verification is skipped: only the service endpoint matters here.
 func pdsResolver() func(ctx context.Context, did string) (string, error) {
@@ -35,8 +48,8 @@ func pdsResolver() func(ctx context.Context, did string) (string, error) {
 		if pds == "" {
 			return "", errors.New("no PDS in DID document")
 		}
-		// The DID document is attacker-controlled; never point the ingester at a
-		// plain-http or internal service.
+		// The DID document is attacker-controlled; refuse a plain-http endpoint.
+		// This guards the scheme only: it does not block private addresses.
 		if !strings.HasPrefix(pds, "https://") {
 			return "", fmt.Errorf("PDS endpoint is not https: %s", pds)
 		}

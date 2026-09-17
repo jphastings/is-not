@@ -104,7 +104,8 @@ At startup `main.go` starts one goroutine: select every distinct `subject_uri` i
 function, writing each result in its own short transaction. It runs concurrently
 with ingest; the single connection serialises the writes and a backfill write only
 ever delays a batch by one small transaction. Sequential, no pause between subjects.
-It is a one-off on the live database and thereafter a no-op at every boot.
+Subjects that resolve are never looked at again; one that cannot (no lens, dead
+PDS, deleted record) is retried on every boot.
 
 ### Tests
 

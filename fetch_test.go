@@ -12,7 +12,7 @@ func fetcherAgainst(t *testing.T, handler http.HandlerFunc) func(ctx context.Con
 	t.Helper()
 	srv := httptest.NewServer(handler)
 	t.Cleanup(srv.Close)
-	return recordFetcher(func(context.Context, string) (string, error) { return srv.URL, nil }, srv.Client())
+	return recordFetcher(func(context.Context, string) (string, error) { return srv.URL, nil }, pdsClient())
 }
 
 func TestRecordFetcherReturnsCidAndValue(t *testing.T) {
@@ -30,6 +30,9 @@ func TestRecordFetcherReturnsCidAndValue(t *testing.T) {
 }
 
 func TestRecordFetcherRejectsMissingRecordsAndHugeBodies(t *testing.T) {
+	ok := fetcherAgainst(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"cid":"bafycid","value":{"$type":"app.rocksky.song","title":"Angela"}}`))
+	})
 	notFound := fetcherAgainst(t, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusBadRequest) })
 	if _, _, err := notFound(context.Background(), "at://did:plc:x/app.rocksky.song/3abc"); err == nil {
 		t.Fatal("want an error for a non-200 response")
@@ -40,7 +43,21 @@ func TestRecordFetcherRejectsMissingRecordsAndHugeBodies(t *testing.T) {
 	if _, _, err := huge(context.Background(), "at://did:plc:x/app.rocksky.song/3abc"); err == nil {
 		t.Fatal("want an error for a body over the limit")
 	}
-	if _, _, err := notFound(context.Background(), "not a uri"); err == nil {
-		t.Fatal("want an error for a malformed uri")
+	if _, _, err := ok(context.Background(), "not a uri"); err == nil {
+		t.Fatal("want an error for a malformed uri, from the uri check rather than the response")
+	}
+}
+
+// A redirect is the DID document author's way past the https-only guard in pdsResolver.
+func TestRecordFetcherRefusesToFollowRedirects(t *testing.T) {
+	fetch := fetcherAgainst(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/elsewhere" {
+			w.Write([]byte(`{"cid":"bafycid","value":{"$type":"app.rocksky.song","title":"Angela"}}`))
+			return
+		}
+		http.Redirect(w, r, "/elsewhere", http.StatusFound)
+	})
+	if _, _, err := fetch(context.Background(), "at://did:plc:x/app.rocksky.song/3abc"); err == nil {
+		t.Fatal("want an error rather than a followed redirect")
 	}
 }

@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -70,13 +70,14 @@ func run(ctx context.Context, log *slog.Logger) error {
 	in := &ingester{
 		db: db, cat: cat, log: log, lenses: lens,
 		resolveHandle: handleResolver(),
-		fetchRecord:   recordFetcher(pdsResolver(), &http.Client{Timeout: 10 * time.Second}),
+		fetchRecord:   recordFetcher(pdsResolver(), pdsClient()),
 	}
 
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	go in.backfillSubjects(runCtx)
+	var backfill sync.WaitGroup
+	backfill.Go(func() { in.backfillSubjects(runCtx) })
 
 	errs := make(chan error, 2)
 	go func() {
@@ -94,6 +95,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 			first = err
 		}
 	}
+	backfill.Wait()
 	return first
 }
 

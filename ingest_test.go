@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"log/slog"
 	"os"
@@ -18,6 +19,7 @@ import (
 )
 
 const validCID = "bafyreihffx5a2e7k5uwrmmd2szqjc5akl2tqjnpshq6pdinjhyi5s4rlnq"
+const otherValidCID = "bafyreihffx5a2e7k5uwrmmd2szqjc5akl2tqjnpshq6pdinjhyi5s4rlna"
 const defaultCreatedAt = "2026-09-13T11:00:00.000Z"
 const defaultUpdatedAt = "2026-09-13T12:00:00.000Z"
 
@@ -484,7 +486,7 @@ func TestFoldSkipsSubjectFetchForAKnownCid(t *testing.T) {
 	if calls != 1 {
 		t.Fatalf("fetches = %d, want 1 (same cid, within and across batches)", calls)
 	}
-	apply(t, in, 3, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate, reviewOf(uri, "bafyreidifferentcid")))
+	apply(t, in, 3, commitEvent("did:plc:a", "3k1", jetstream.OpUpdate, reviewOf(uri, otherValidCID)))
 	if calls != 2 {
 		t.Fatalf("fetches = %d, want 2 (a new cid refetches)", calls)
 	}
@@ -592,5 +594,71 @@ func TestAccountsResolvedOnFirstSightAndUpdatedByIdentityEvents(t *testing.T) {
 	apply(t, in, 4, identityEvent("did:plc:b", "handle.invalid"))
 	if got := handles(t, in.db); got["did:plc:b"] != "" {
 		t.Fatalf("did:plc:b handle after handle.invalid = %q, want empty", got["did:plc:b"])
+	}
+}
+
+func TestBackfillSubjectsLensesReviewedSubjectsWithoutARow(t *testing.T) {
+	in := newTestIngester(t)
+	uri, cid, record, want := songFixture(t)
+	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewOf(uri, cid))) // fetch fails: no row
+	if _, ok := storedSubject(t, in.db, uri); ok {
+		t.Fatal("precondition: no subjects row")
+	}
+	calls := 0
+	in.fetchRecord = func(context.Context, string) (string, map[string]any, error) { calls++; return cid, record, nil }
+	in.backfillSubjects(context.Background())
+	got, ok := storedSubject(t, in.db, uri)
+	if !ok || got.Title != want.Title {
+		t.Fatalf("subject after backfill = %+v, ok=%v", got, ok)
+	}
+	in.backfillSubjects(context.Background())
+	if calls != 1 {
+		t.Fatalf("fetches = %d, want 1 (a resolved subject is not refetched)", calls)
+	}
+}
+
+func TestFoldKeepsThePostersTitleWhenTheLensHasNone(t *testing.T) {
+	in := newTestIngester(t)
+	uri := "at://did:plc:subject/app.bsky.feed.post/3xyz"
+	in.fetchRecord = func(context.Context, string) (string, map[string]any, error) {
+		return validCID, map[string]any{"$type": "app.bsky.feed.post", "text": "", "createdAt": defaultCreatedAt}, nil
+	}
+	apply(t, in, 1, commitEvent("did:plc:a", "3k1", jetstream.OpCreate, reviewOf(uri, validCID)))
+	if _, ok := storedSubject(t, in.db, uri); ok {
+		t.Fatal("a subject the lens can only name by its uri must not be stored")
+	}
+	if !reviewExists(t, in.db, "did:plc:a", "3k1") {
+		t.Fatal("review missing")
+	}
+}
+
+func TestFoldCapsSubjectFetchesPerBatchAndSkipsInvalidRecords(t *testing.T) {
+	in := newTestIngester(t)
+	calls := 0
+	in.fetchRecord = func(context.Context, string) (string, map[string]any, error) {
+		calls++
+		return "", nil, errors.New("unreachable")
+	}
+	var events []jetstream.Event
+	for i := range maxSubjectFetchesPerBatch + 5 {
+		uri := fmt.Sprintf("at://did:plc:subject/app.bsky.feed.post/3a%d", i)
+		events = append(events, commitEvent("did:plc:a", fmt.Sprintf("r%d", i), jetstream.OpCreate, reviewOf(uri, validCID)))
+	}
+	apply(t, in, 1, events...)
+	if calls != maxSubjectFetchesPerBatch {
+		t.Fatalf("fetches = %d, want %d", calls, maxSubjectFetchesPerBatch)
+	}
+	for i := range len(events) {
+		if !reviewExists(t, in.db, "did:plc:a", fmt.Sprintf("r%d", i)) {
+			t.Fatalf("review r%d missing; every review lands whether or not its subject resolved", i)
+		}
+	}
+
+	calls = 0
+	invalid := reviewRecord(nil, defaultCreatedAt, defaultUpdatedAt)
+	invalid["subject"].(map[string]any)["uri"] = "at://did:plc:subject/app.bsky.feed.post/3invalid"
+	apply(t, in, 2, commitEvent("did:plc:b", "r1", jetstream.OpCreate, invalid))
+	if calls != 0 {
+		t.Fatalf("fetches = %d for a record the lexicon rejects, want 0", calls)
 	}
 }

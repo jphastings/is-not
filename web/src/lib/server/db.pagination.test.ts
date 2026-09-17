@@ -146,6 +146,21 @@ beforeAll(() => {
     tag.run('did:plc:cloud', rkey, `bot${pad(i)}`, 1);
   }
 
+  // The lens resolved book-new's subject to a newer record than the review names,
+  // so that review reads as stale and takes the lens's title and identifiers.
+  setup
+    .prepare('INSERT INTO subjects (uri, cid, title, type, resolved_at) VALUES (?, ?, ?, ?, ?)')
+    .run(
+      'at://did:plc:x/app.bsky.feed.book/1',
+      'bafy-newer',
+      'A Book, As The Lens Reads It',
+      'book',
+      NEWER,
+    );
+  setup
+    .prepare('INSERT INTO subject_identifiers (uri, key, value) VALUES (?, ?, ?)')
+    .run('at://did:plc:x/app.bsky.feed.book/1', 'isbn13', '9780000000001');
+
   setup.close();
 });
 
@@ -175,6 +190,16 @@ describe('listReviewsPage', () => {
 
     expect(reviews.map((r) => r.rkey).sort()).toEqual(['book-new', 'book-old']);
     expect(nextCursor).toBeNull();
+
+    const lensed = reviews.find((r) => r.rkey === 'book-new')!;
+    expect(lensed.subject.title).toBe('A Book, As The Lens Reads It');
+    expect(lensed.subject.identifiers).toEqual([{ key: 'isbn13', value: '9780000000001' }]);
+    expect(lensed.stale).toBe(true);
+
+    const unresolved = reviews.find((r) => r.rkey === 'book-old')!;
+    expect(unresolved.subject.title).toBe('another book');
+    expect(unresolved.subject.identifiers).toBeUndefined();
+    expect(unresolved.stale).toBe(false);
   });
 
   it('requires adjective and direction to match the same tag', async () => {
