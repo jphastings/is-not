@@ -216,8 +216,10 @@
 
   .subject-links {
     display: flex;
-    justify-content: center;
-    margin-block: calc(-1 * var(--space-3)) var(--space-5);
+    /* Sits just under the title, its first icon flush with the title's left edge
+       (each link carries --space-1 of padding). */
+    margin-block: calc(-1 * var(--space-4)) var(--space-5);
+    margin-inline-start: calc(-1 * var(--space-1));
   }
 
   h1 small {
