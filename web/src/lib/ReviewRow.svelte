@@ -133,6 +133,11 @@
   </div>
   <span class="meta">
     {#if showType}<span class="type">{review.subject.type.replaceAll('-', ' ')}</span>{/if}
+    {#if review.stale}
+      <span class="stale" role="img" aria-label={m.review_earlier_version()} title={m.review_earlier_version()}>
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 2 21h20zM12 10v5m0 3v.5" /></svg>
+      </span>
+    {/if}
     <a
       class="permalink"
       href={`/reviews/at://${review.did}/at.isnot.review/${review.rkey}`}
@@ -201,6 +206,14 @@
     display: inline-flex;
     padding: var(--space-1);
     color: var(--ink-soft);
+  }
+
+  .stale {
+    color: var(--ink-soft);
+    line-height: 0;
+  }
+  .stale svg {
+    display: block;
   }
 
   /* Gecko sits an inline SVG on the link's baseline, a line below Chrome. */

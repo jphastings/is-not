@@ -28,7 +28,9 @@
       "cid": "bafyreig6v5de7qrfk6xt4fkpybqvdvwe36glavyxd6xfjikr3gm5bmm6ei",
       "title": "Angela (The Lumineers)",
       "type": "music-track",
-      "identifiers": [{ "key": "mbid", "value": "9c182cc2-f949-4c9d-bd44-9d00dafa8338" }]
+      "identifiers": [
+        { "key": "musicbrainzRecordingId", "value": "9c182cc2-f949-4c9d-bd44-9d00dafa8338" }
+      ]
     }
   }
 }

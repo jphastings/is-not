@@ -4,7 +4,7 @@
   "source": "app.rocksky.artist",
   "target": "at.isnot.review#subject",
   "extensions": {
-    "at.isnot": { "identifiers": { "mbid": "mbid" } }
+    "at.isnot": { "identifiers": { "musicbrainzArtistId": "mbid" } }
   },
   "steps": [
     { "rename_field": { "old": "name", "new": "title" } },

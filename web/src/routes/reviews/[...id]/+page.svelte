@@ -5,6 +5,7 @@
   import { m } from '$lib/paraglide/messages.js';
   import ReviewRow from '$lib/ReviewRow.svelte';
   import SingleReview from '$lib/SingleReview.svelte';
+  import SubjectLinks from '$lib/SubjectLinks.svelte';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
@@ -105,6 +106,7 @@
       {heading}
       {#if subjectType}<small>({subjectType.replaceAll('-', ' ')})</small>{/if}
     </h1>
+    {#if listing.subject}<div class="subject-links"><SubjectLinks subject={listing.subject} /></div>{/if}
 
     {#if listing.adjectives.length === 0}
       <p class="empty display">{m.reviews_empty()}</p>
@@ -210,6 +212,12 @@
 
   h1.unresolved {
     color: var(--ink-soft);
+  }
+
+  .subject-links {
+    display: flex;
+    justify-content: center;
+    margin-block: calc(-1 * var(--space-3)) var(--space-5);
   }
 
   h1 small {

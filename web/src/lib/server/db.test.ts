@@ -76,6 +76,14 @@ beforeAll(() => {
   tag.run('did:plc:known', 'neutral-only', 'unremarkable', 0);
   tag.run('did:plc:unknown', 'one-tag', 'boring', -1);
   tag.run('did:plc:unknown', 'same-subject', 'delicious', 1);
+  setup
+    .prepare('INSERT INTO subjects (uri, cid, title, type, resolved_at) VALUES (?, ?, ?, ?, ?)')
+    .run('at://did:plc:x/app.bsky.feed.post/1', 'bafy1-newer', 'A Sandwich', 'meal', when);
+  const identifier = setup.prepare(
+    'INSERT INTO subject_identifiers (uri, key, value) VALUES (?, ?, ?)',
+  );
+  identifier.run('at://did:plc:x/app.bsky.feed.post/1', 'isbn13', '9780000000002');
+  identifier.run('at://did:plc:x/app.bsky.feed.post/1', 'goodreadsId', '42');
   setup.close();
 });
 
@@ -101,8 +109,8 @@ describe('randomSentences', () => {
     expect(known?.subject).toEqual({
       uri: 'at://did:plc:x/app.bsky.feed.post/1',
       cid: 'bafy1',
-      title: 'a sandwich',
-      type: 'post',
+      title: 'A Sandwich',
+      type: 'meal',
     });
 
     const unknown = sentences.find((s) => s.tags[0].adjective === 'boring');
@@ -148,8 +156,8 @@ describe('listReviews', () => {
     const { listReviews } = await import('./db');
     const reviews = listReviews({ did: 'did:plc:known' });
 
-    expect(reviews.map((r) => r.subject.title).sort()).toEqual(['a rock', 'a sandwich']);
-    const sandwich = reviews.find((r) => r.subject.title === 'a sandwich');
+    expect(reviews.map((r) => r.subject.title).sort()).toEqual(['A Sandwich', 'a rock']);
+    const sandwich = reviews.find((r) => r.subject.title === 'A Sandwich');
     expect(sandwich?.tags.sort((a, b) => a.adjective.localeCompare(b.adjective))).toEqual([
       { adjective: 'delicious', direction: 1 },
       { adjective: 'filling', direction: 2 },
@@ -175,14 +183,43 @@ describe('listReviews', () => {
   it('filters by subject type', async () => {
     const { listReviews } = await import('./db');
     expect(listReviews({ did: 'did:plc:known' }, { type: 'does-not-exist' })).toEqual([]);
-    expect(listReviews({ did: 'did:plc:known' }, { type: 'post' })).toHaveLength(2);
+    expect(listReviews({ did: 'did:plc:known' }, { type: 'post' })).toHaveLength(1);
+  });
+
+  it('shows the lensed subject, its identifiers, and whether the review predates it', async () => {
+    const { listReviews } = await import('./db');
+    const lensed = listReviews({ subjectUri: 'at://did:plc:x/app.bsky.feed.post/1' });
+    expect(lensed.every((r) => r.subject.title === 'A Sandwich' && r.subject.type === 'meal')).toBe(
+      true,
+    );
+    expect(lensed[0].subject.identifiers).toEqual([
+      { key: 'goodreadsId', value: '42' },
+      { key: 'isbn13', value: '9780000000002' },
+    ]);
+    // The review's own cid (bafy1) is older than the version lensed (bafy1-newer).
+    expect(lensed.every((r) => r.stale)).toBe(true);
+
+    const [unlensed] = listReviews({ subjectUri: 'at://did:plc:x/app.bsky.feed.post/3' });
+    expect(unlensed.subject.title).toBe('a chair');
+    expect(unlensed.subject.identifiers).toBeUndefined();
+    expect(unlensed.stale).toBe(false);
+  });
+
+  it('filters by the lensed type, not the poster’s', async () => {
+    const { listReviews } = await import('./db');
+    expect(
+      listReviews({ subjectUri: 'at://did:plc:x/app.bsky.feed.post/1' }, { type: 'post' }),
+    ).toEqual([]);
+    expect(
+      listReviews({ subjectUri: 'at://did:plc:x/app.bsky.feed.post/1' }, { type: 'meal' }),
+    ).toHaveLength(2);
   });
 });
 
 describe('subjectTypesFor', () => {
   it('returns the distinct subject types for the account', async () => {
     const { subjectTypesFor } = await import('./db');
-    expect(subjectTypesFor({ did: 'did:plc:known' })).toEqual(['post']);
+    expect(subjectTypesFor({ did: 'did:plc:known' })).toEqual(['meal', 'post']);
     expect(subjectTypesFor({ did: 'did:plc:nobody' })).toEqual([]);
   });
 });

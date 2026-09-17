@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -37,6 +38,12 @@ func run(ctx context.Context, log *slog.Logger) error {
 		return err
 	}
 
+	lens, err := loadLenses(ctx)
+	if err != nil {
+		return err
+	}
+	defer lens.Close(ctx)
+
 	var cursor uint64
 	if err := db.QueryRow(`SELECT seq FROM cursor WHERE id = 1`).Scan(&cursor); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
@@ -60,10 +67,17 @@ func run(ctx context.Context, log *slog.Logger) error {
 	defer client.Close()
 	log.Info("following jetstream", "host", host, "collection", collection, "cursor", cursor)
 
-	in := &ingester{db: db, cat: cat, log: log, resolveHandle: handleResolver()}
+	in := &ingester{
+		db: db, cat: cat, log: log, lenses: lens,
+		resolveHandle: handleResolver(),
+		fetchRecord:   recordFetcher(pdsResolver(), pdsClient()),
+	}
 
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
+
+	var backfill sync.WaitGroup
+	backfill.Go(func() { in.backfillSubjects(runCtx) })
 
 	errs := make(chan error, 2)
 	go func() {
@@ -81,6 +95,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 			first = err
 		}
 	}
+	backfill.Wait()
 	return first
 }
 

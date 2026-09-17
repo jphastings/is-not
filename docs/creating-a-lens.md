@@ -124,7 +124,7 @@ collection has no identifiers object.
 
 `identifiers` also takes a map, for collections whose identifiers are separate top-level
 fields rather than one pre-built object: `{"<outputKey>": "<sourceField>"}` reads that
-field's value as-is (`lenses/app.rocksky.artist.json` uses `{"mbid": "mbid"}`). A source
+field's value as-is (`lenses/app.rocksky.artist.json` uses `{"musicbrainzArtistId": "mbid"}`). A source
 field that's a URL with the id embedded in its path — a Spotify track link, say — takes the
 long form `{"<outputKey>": {"field": "<sourceField>", "urlSegmentAfter": "<segment>"}}`:
 the value is the URL's last path segment (query string stripped) *if* the segment before it
@@ -133,6 +133,9 @@ matches `urlSegmentAfter`, otherwise that identifier is omitted rather than bein
 `lenses/app.rocksky.album.json` reads a `spotifyAlbumId` the same way with `"album"`, since
 plenty of real album records carry a `/track/` link and that must not be misread as the
 album's own id.
+Name the output key after what the id addresses, not what the source calls it —
+`musicbrainzRecordingId`, not `mbid` — and add a row to `web/src/lib/identifierLinks.ts`
+so the site can link it.
 
 **The `extensions["at.isnot"]["titleTemplate"]` convention.** `apply_expr` only sees the one
 field's own value, so it can't build a title out of two source fields (a song's title and its

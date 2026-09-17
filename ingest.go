@@ -18,6 +18,10 @@ import (
 
 const collection = "at.isnot.review"
 
+// ponytail: a batch fetches at most this many subjects; the rest wait for a later
+// update of their review. A queue drained outside the batch if that ever bites.
+const maxSubjectFetchesPerBatch = 20
+
 //go:embed lexicons
 var lexiconFS embed.FS
 
@@ -47,7 +51,10 @@ type ingester struct {
 	db            *sql.DB
 	cat           *lexicon.Catalog
 	log           *slog.Logger
+	lenses        *lenses
 	resolveHandle func(ctx context.Context, did string) (string, error)
+	// fetchRecord reads a subject record from its author's PDS: the record's current cid and value.
+	fetchRecord func(ctx context.Context, uri string) (cid string, record map[string]any, err error)
 }
 
 func (in *ingester) run(ctx context.Context, client *jetstream.Client) error {
@@ -72,6 +79,10 @@ func (in *ingester) applyBatch(ctx context.Context, events []jetstream.Event, cu
 	if err != nil {
 		return err
 	}
+	subjects, err := in.resolveSubjects(ctx, events)
+	if err != nil {
+		return err
+	}
 	tx, err := in.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -80,6 +91,11 @@ func (in *ingester) applyBatch(ctx context.Context, events []jetstream.Event, cu
 	now := time.Now().UTC().Format(atmos.AtprotoDatetimeLayout)
 	for did, handle := range newAccounts {
 		if _, err := tx.Exec(`INSERT INTO accounts (did, handle, updated_at) VALUES (?, ?, ?) ON CONFLICT (did) DO NOTHING`, did, handle, now); err != nil {
+			return err
+		}
+	}
+	for _, s := range subjects {
+		if err := upsertSubject(tx, s, now); err != nil {
 			return err
 		}
 	}
@@ -126,6 +142,155 @@ func (in *ingester) resolveNewAccounts(ctx context.Context, events []jetstream.E
 		handles[evt.DID] = handle
 	}
 	return handles, nil
+}
+
+// resolveSubjects lenses the subject of every valid review created or updated in the
+// batch, keyed by subject uri, skipping any whose record version is already stored and
+// stopping after maxSubjectFetchesPerBatch fetches. Network and lens failures are logged
+// and skipped: the review still lands, on the poster's own title, and the next review
+// naming that subject tries again.
+func (in *ingester) resolveSubjects(ctx context.Context, events []jetstream.Event) (map[string]subject, error) {
+	out := map[string]subject{}
+	seen := map[string]bool{}
+	fetches, skipped := 0, 0
+	for _, evt := range events {
+		if evt.Kind != jetstream.KindCommit || evt.Commit.Collection != collection || evt.Commit.Operation == jetstream.OpDelete {
+			continue
+		}
+		// A record the lexicon rejects is about to be dropped, so never fetch for it.
+		if err := lexval.ValidateRecord(in.cat, collection, evt.Commit.Record); err != nil {
+			continue
+		}
+		subj, _ := evt.Commit.Record["subject"].(map[string]any)
+		uri, _ := subj["uri"].(string)
+		cid, _ := subj["cid"].(string)
+		if uri == "" || seen[uri] {
+			continue
+		}
+		seen[uri] = true
+		var known string
+		err := in.db.QueryRowContext(ctx, `SELECT cid FROM subjects WHERE uri = ?`, uri).Scan(&known)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return nil, err
+		}
+		if err == nil && known == cid {
+			continue
+		}
+		if fetches == maxSubjectFetchesPerBatch {
+			skipped++
+			continue
+		}
+		fetches++
+		if s, ok := in.lensSubject(ctx, uri); ok {
+			out[uri] = s
+		}
+	}
+	if skipped > 0 {
+		in.log.Warn("subject fetches capped for this batch", "skipped", skipped, "cap", maxSubjectFetchesPerBatch)
+	}
+	return out, nil
+}
+
+// lensSubject fetches a subject record and runs the lenses over it. ok is false when
+// the fetch fails, the lens errors, or no lens supports the collection.
+func (in *ingester) lensSubject(ctx context.Context, uri string) (subject, bool) {
+	fetchCtx, cancel := context.WithTimeout(ctx, fetchTimeout)
+	cid, record, err := in.fetchRecord(fetchCtx, uri)
+	cancel()
+	if err != nil {
+		in.log.Warn("subject fetch failed", "uri", uri, "err", err)
+		return subject{}, false
+	}
+	res, err := in.lenses.resolveSubject(ctx, uri, cid, record)
+	if err != nil {
+		in.log.Warn("subject lens failed", "uri", uri, "err", err)
+		return subject{}, false
+	}
+	if !res.Supported {
+		in.log.Warn("subject collection unsupported", "uri", uri)
+		return subject{}, false
+	}
+	// The lens falls back to the uri when a record holds nothing name-like; an at-uri
+	// must never reach a reader as a title, and the poster's own is the better fallback.
+	if res.Subject.Title == uri {
+		in.log.Warn("subject has no title, keeping the poster's", "uri", uri)
+		return subject{}, false
+	}
+	return res.Subject, true
+}
+
+// resolveAndStoreSubject lenses one subject and writes it in its own transaction.
+// The startup backfill uses it for subjects reviewed before subjects existed.
+func (in *ingester) resolveAndStoreSubject(ctx context.Context, uri string) error {
+	s, ok := in.lensSubject(ctx, uri)
+	if !ok {
+		return nil
+	}
+	tx, err := in.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := upsertSubject(tx, s, time.Now().UTC().Format(atmos.AtprotoDatetimeLayout)); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// backfillSubjects lenses every reviewed subject with no subjects row. It runs once at
+// startup, one subject at a time. Subjects that resolve are never looked at again; one
+// that cannot (no lens, dead PDS, deleted record) is retried on every boot.
+func (in *ingester) backfillSubjects(ctx context.Context) {
+	rows, err := in.db.QueryContext(ctx, `SELECT DISTINCT subject_uri FROM reviews r WHERE NOT EXISTS (SELECT 1 FROM subjects s WHERE s.uri = r.subject_uri)`)
+	if err != nil {
+		in.log.Warn("subject backfill query failed", "err", err)
+		return
+	}
+	// Collected before any write: the single connection cannot hold this cursor open
+	// while resolveAndStoreSubject wants a transaction.
+	var uris []string
+	for rows.Next() {
+		var uri string
+		if err := rows.Scan(&uri); err != nil {
+			in.log.Warn("subject backfill scan failed", "err", err)
+			continue
+		}
+		uris = append(uris, uri)
+	}
+	if err := rows.Err(); err != nil {
+		in.log.Warn("subject backfill query failed", "err", err)
+	}
+	rows.Close()
+	for _, uri := range uris {
+		if ctx.Err() != nil {
+			return
+		}
+		if err := in.resolveAndStoreSubject(ctx, uri); err != nil {
+			in.log.Warn("subject backfill write failed", "uri", uri, "err", err)
+		}
+	}
+	if len(uris) > 0 {
+		in.log.Info("subject backfill done", "subjects", len(uris))
+	}
+}
+
+func upsertSubject(tx *sql.Tx, s subject, now string) error {
+	if _, err := tx.Exec(`
+		INSERT INTO subjects (uri, cid, title, type, resolved_at) VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT (uri) DO UPDATE SET
+			cid = excluded.cid, title = excluded.title, type = excluded.type, resolved_at = excluded.resolved_at`,
+		s.URI, s.CID, s.Title, s.Type, now); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM subject_identifiers WHERE uri = ?`, s.URI); err != nil {
+		return err
+	}
+	for _, id := range s.Identifiers {
+		if _, err := tx.Exec(`INSERT OR IGNORE INTO subject_identifiers (uri, key, value) VALUES (?, ?, ?)`, s.URI, id.Key, id.Value); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (in *ingester) apply(tx *sql.Tx, evt jetstream.Event) error {
@@ -202,18 +367,6 @@ func (in *ingester) applyCommit(tx *sql.Tx, did string, c *jetstream.Commit) err
 		if _, err := tx.Exec(`INSERT OR REPLACE INTO review_tags (did, rkey, adjective, direction) VALUES (?, ?, ?, ?)`,
 			did, c.Rkey, m["adjective"], m["direction"]); err != nil {
 			return err
-		}
-	}
-	if _, err := tx.Exec(`DELETE FROM review_identifiers WHERE did = ? AND rkey = ?`, did, c.Rkey); err != nil {
-		return err
-	}
-	if ids, ok := subject["identifiers"].([]any); ok {
-		for _, id := range ids {
-			m := id.(map[string]any)
-			if _, err := tx.Exec(`INSERT OR IGNORE INTO review_identifiers (did, rkey, key, value) VALUES (?, ?, ?, ?)`,
-				did, c.Rkey, m["key"], m["value"]); err != nil {
-				return err
-			}
 		}
 	}
 	return nil
