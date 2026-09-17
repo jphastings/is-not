@@ -260,7 +260,7 @@ fn apply_lens(p: &Prepared, uri: &str, nsid: &str, record: &Map<String, Value>) 
     let title = p
         .title_template
         .as_ref()
-        .and_then(|t| render_title_template(t, record))
+        .and_then(|t| render_title_template(t, uri, record))
         .or_else(|| view.get("title").and_then(Value::as_str).map(str::to_owned))
         .or_else(|| p.title_paths.iter().find_map(|path| title_at(uri, record, path)))
         .or_else(|| title_candidate(record))
@@ -270,11 +270,11 @@ fn apply_lens(p: &Prepared, uri: &str, nsid: &str, record: &Map<String, Value>) 
     Ok((title, kind, identifiers))
 }
 
-fn render_title_template(t: &TitleTemplate, record: &Map<String, Value>) -> Option<String> {
-    let base = record.get(&t.base).and_then(Value::as_str)?;
-    match record.get(&t.detail).and_then(Value::as_str) {
+fn render_title_template(t: &TitleTemplate, uri: &str, record: &Map<String, Value>) -> Option<String> {
+    let base = title_at(uri, record, &t.base)?;
+    match title_at(uri, record, &t.detail) {
         Some(detail) if !detail.trim().is_empty() => Some(format!("{base} ({detail})")),
-        _ => Some(base.to_owned()),
+        _ => Some(base),
     }
 }
 
