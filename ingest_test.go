@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/bluesky-social/jetstream"
@@ -440,6 +442,7 @@ func TestFoldLensesSubjectFromFetchedRecordNotThePoster(t *testing.T) {
 	for _, id := range want.Identifiers {
 		ids = append(ids, [2]string{id.Key, id.Value})
 	}
+	slices.SortFunc(ids, func(a, b [2]string) int { return strings.Compare(a[0], b[0]) })
 	if got := subjectIdentifiers(t, in.db, uri); !reflect.DeepEqual(got, ids) {
 		t.Fatalf("identifiers = %v, want the lens's %v (never the poster's imdbId)", got, ids)
 	}

@@ -184,8 +184,12 @@ func (in *ingester) lensSubject(ctx context.Context, uri string) (subject, bool)
 		return subject{}, false
 	}
 	res, err := in.lenses.resolveSubject(ctx, uri, cid, record)
-	if err != nil || !res.Supported {
-		in.log.Warn("subject not lensed", "uri", uri, "supported", res.Supported, "err", err)
+	if err != nil {
+		in.log.Warn("subject lens failed", "uri", uri, "err", err)
+		return subject{}, false
+	}
+	if !res.Supported {
+		in.log.Warn("subject collection unsupported", "uri", uri)
 		return subject{}, false
 	}
 	return res.Subject, true
@@ -207,6 +211,35 @@ func (in *ingester) resolveAndStoreSubject(ctx context.Context, uri string) erro
 		return err
 	}
 	return tx.Commit()
+}
+
+// backfillSubjects lenses every subject reviewed before the subjects table existed.
+// It runs once at startup, one subject at a time, and is a no-op thereafter.
+func (in *ingester) backfillSubjects(ctx context.Context) {
+	rows, err := in.db.QueryContext(ctx, `SELECT DISTINCT subject_uri FROM reviews r WHERE NOT EXISTS (SELECT 1 FROM subjects s WHERE s.uri = r.subject_uri)`)
+	if err != nil {
+		in.log.Warn("subject backfill query failed", "err", err)
+		return
+	}
+	var uris []string
+	for rows.Next() {
+		var uri string
+		if err := rows.Scan(&uri); err == nil {
+			uris = append(uris, uri)
+		}
+	}
+	rows.Close()
+	for _, uri := range uris {
+		if ctx.Err() != nil {
+			return
+		}
+		if err := in.resolveAndStoreSubject(ctx, uri); err != nil {
+			in.log.Warn("subject backfill write failed", "uri", uri, "err", err)
+		}
+	}
+	if len(uris) > 0 {
+		in.log.Info("subject backfill done", "subjects", len(uris))
+	}
 }
 
 func upsertSubject(tx *sql.Tx, s subject, now string) error {
