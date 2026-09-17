@@ -5,7 +5,7 @@
     "main": {
       "type": "record",
       "key": "tid",
-      "description": "A person's review of one thing: which adjectives it is, and is not. One record per subject per repo; update it rather than creating another. If a repo ever holds more than one review of the same subject, merge them into the earliest-created one (tag conflicts: latest updatedAt wins, then direction nearer 0, then positive) and delete the rest.",
+      "description": "A person's review of one thing: which adjectives it is, and is not. One record per subject and locale per repo; update it rather than creating another. If a repo ever holds more than one review of the same subject in the same locale, merge them into the earliest-created one (tag conflicts: latest updatedAt wins, then direction nearer 0, then positive) and delete the rest.",
       "record": {
         "type": "object",
         "required": [

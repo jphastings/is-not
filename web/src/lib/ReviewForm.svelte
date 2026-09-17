@@ -112,7 +112,7 @@
   }
 
   async function loadExisting(uri: string) {
-    const res = await fetch(`/review/existing?uri=${encodeURIComponent(uri)}`);
+    const res = await fetch(`/review/existing?${new URLSearchParams({ uri, locale })}`);
     const review = (await res.json()) as ExistingReview | null;
     if (subject?.uri !== uri || !review) return;
     existing = true;

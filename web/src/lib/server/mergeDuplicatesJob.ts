@@ -20,16 +20,21 @@ async function normalizeSubjectUri(uri: string): Promise<string | null> {
   return did ? `at://${did}/${collection}/${rkey}` : null;
 }
 
-async function groupBySubject(records: DupRecord[]): Promise<Map<string, DupRecord[]>> {
-  const groups = new Map<string, DupRecord[]>();
+type Group = { normalizedUri: string; records: DupRecord[] };
+
+/** Duplicates share a subject *and* a locale: reviews of one thing written in
+    different locales are separate reviews, never merged. */
+async function groupBySubject(records: DupRecord[]): Promise<Group[]> {
+  const groups = new Map<string, Group>();
   for (const record of records) {
-    const normalized = await normalizeSubjectUri(record.value.subject.uri);
-    if (!normalized) continue; // can't resolve authority; leave this record alone
-    const group = groups.get(normalized) ?? [];
-    group.push(record);
-    groups.set(normalized, group);
+    const normalizedUri = await normalizeSubjectUri(record.value.subject.uri);
+    if (!normalizedUri) continue; // can't resolve authority; leave this record alone
+    const key = JSON.stringify([normalizedUri, record.value.locale ?? '']);
+    const group = groups.get(key) ?? { normalizedUri, records: [] };
+    group.records.push(record);
+    groups.set(key, group);
   }
-  return groups;
+  return [...groups.values()];
 }
 
 async function listOwnReviews(
@@ -79,7 +84,7 @@ async function mergeAccount(did: string): Promise<void> {
   }
 
   const groups = await groupBySubject(records);
-  for (const [normalizedUri, group] of groups) {
+  for (const { normalizedUri, records: group } of groups) {
     const needsHandling = group.length > 1 || group[0].value.subject.uri !== normalizedUri;
     if (!needsHandling) continue;
 

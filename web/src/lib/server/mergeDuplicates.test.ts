@@ -60,14 +60,14 @@ describe('mergeDuplicates', () => {
     expect(result?.record.tags).toEqual([{ adjective: 'loud', direction: 1 }]);
   });
 
-  it('keeps the earliest-created record, dated to the earliest createdAt and latest updatedAt', () => {
+  it('keeps the earliest-created record, with the oldest createdAt and the newest updatedAt of any record replaced', () => {
     const aaa = record('aaa', {
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-03-01T00:00:00.000Z',
     });
     const bbb = record('bbb', {
       createdAt: '2024-01-05T00:00:00.000Z',
-      updatedAt: '2024-01-05T00:00:00.000Z',
+      updatedAt: '2024-04-01T00:00:00.000Z',
     });
     const ccc = record('ccc', {
       // Ties aaa on createdAt; aaa wins the tie on rkey.
@@ -77,7 +77,7 @@ describe('mergeDuplicates', () => {
     const result = mergeDuplicates([bbb, ccc, aaa], URI);
     expect(result?.keeper).toBe('aaa');
     expect(result?.record.createdAt).toBe('2024-01-01T00:00:00.000Z');
-    expect(result?.record.updatedAt).toBe('2024-03-01T00:00:00.000Z');
+    expect(result?.record.updatedAt).toBe('2024-04-01T00:00:00.000Z');
     expect(result?.deletes.sort()).toEqual(['bbb', 'ccc']);
   });
 

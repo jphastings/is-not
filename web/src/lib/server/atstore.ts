@@ -21,7 +21,11 @@ function ratingSource(rating: number): string {
  * (fyi.atstore.listing.detail record) they're about, so each becomes one at.isnot.review
  * with one source per source record — the tag each source maps to is a client-side choice.
  */
-export async function previewAtstoreImport(did: string, agent: Agent): Promise<ImportRow[]> {
+export async function previewAtstoreImport(
+  did: string,
+  agent: Agent,
+  locale: string,
+): Promise<ImportRow[]> {
   const [favorites, reviews] = await Promise.all([
     listAll(agent, did, FAVORITE_COLLECTION),
     listAll(agent, did, REVIEW_COLLECTION),
@@ -49,6 +53,6 @@ export async function previewAtstoreImport(did: string, agent: Agent): Promise<I
     subjectUri,
     sources,
     createdAt,
-    existing: findReview(did, subjectUri)?.tags ?? null,
+    existing: findReview(did, subjectUri, locale)?.tags ?? null,
   }));
 }

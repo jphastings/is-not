@@ -34,6 +34,7 @@ describe('previewBookhiveImport', () => {
           value: { title: 'Unread', status: 'buzz.bookhive.defs#wantToRead' },
         },
       ]),
+      'en',
     );
 
     expect(rows).toHaveLength(0);
@@ -50,6 +51,7 @@ describe('previewBookhiveImport', () => {
           value: { title: 'Rounds down', stars: 7.4 },
         },
       ]),
+      'en',
     );
 
     expect(rows.map((r) => r.sources)).toEqual([['10'], ['1'], ['7']]);
@@ -64,6 +66,7 @@ describe('previewBookhiveImport', () => {
           value: { title: 'Read before', stars: 8, createdAt: '2024-03-01T00:00:00.000Z' },
         },
       ]),
+      'en',
     );
 
     expect(rows).toHaveLength(1);

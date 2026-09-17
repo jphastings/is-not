@@ -119,7 +119,7 @@ describe('randomSentences', () => {
 describe('findReview', () => {
   it('returns the stored review with its tags', async () => {
     const { findReview } = await import('./db');
-    expect(findReview('did:plc:known', 'at://did:plc:x/app.bsky.feed.post/1')).toEqual({
+    expect(findReview('did:plc:known', 'at://did:plc:x/app.bsky.feed.post/1', 'en')).toEqual({
       rkey: 'two-tags',
       createdAt: when,
       tags: [
@@ -130,10 +130,15 @@ describe('findReview', () => {
     });
   });
 
+  it('treats a review of the same subject in another locale as a different review', async () => {
+    const { findReview } = await import('./db');
+    expect(findReview('did:plc:known', 'at://did:plc:x/app.bsky.feed.post/1', 'fr')).toBeNull();
+  });
+
   it('returns null for an unknown subject', async () => {
     const { findReview } = await import('./db');
     expect(
-      findReview('did:plc:known', 'at://did:plc:x/app.bsky.feed.post/does-not-exist'),
+      findReview('did:plc:known', 'at://did:plc:x/app.bsky.feed.post/does-not-exist', 'en'),
     ).toBeNull();
   });
 });

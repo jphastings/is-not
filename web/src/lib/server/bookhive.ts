@@ -16,7 +16,11 @@ function starsSource(stars: number): string {
  * atstore.fyi's cross-collection grouping, each book record already is the
  * review subject, so it's one row per record.
  */
-export async function previewBookhiveImport(did: string, agent: Agent): Promise<ImportRow[]> {
+export async function previewBookhiveImport(
+  did: string,
+  agent: Agent,
+  locale: string,
+): Promise<ImportRow[]> {
   const records = await listAll(agent, did, COLLECTION);
   const rows: ImportRow[] = [];
   for (const record of records) {
@@ -26,7 +30,7 @@ export async function previewBookhiveImport(did: string, agent: Agent): Promise<
       subjectUri: record.uri,
       sources: [starsSource(stars)],
       createdAt: earliest(undefined, record.value.createdAt),
-      existing: findReview(did, record.uri)?.tags ?? null,
+      existing: findReview(did, record.uri, locale)?.tags ?? null,
     });
   }
   return rows;

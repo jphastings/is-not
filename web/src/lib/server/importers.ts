@@ -6,6 +6,7 @@ import { accountsFor, agentFor, type Account } from './accounts.ts';
 import { saveReview } from './reviews.ts';
 import { validateReview } from '$lib/review';
 import { m } from '$lib/paraglide/messages.js';
+import { getLocale } from '$lib/paraglide/runtime.js';
 
 export type ImportRow = {
   subjectUri: string;
@@ -69,7 +70,7 @@ type LoadResult = {
     across importers, only how a row is built from the records differs. */
 export function importLoad(
   domain: string,
-  preview: (did: string, agent: Agent) => Promise<ImportRow[]>,
+  preview: (did: string, agent: Agent, locale: string) => Promise<ImportRow[]>,
 ) {
   return async ({ locals }: ServerLoadEvent): Promise<LoadResult> => {
     const description = m.meta_import_domain({ domain });
@@ -80,7 +81,8 @@ export function importLoad(
     if (!agent) return { accounts, current: null, rows: [], error: null, description };
 
     try {
-      const rows = await preview(current.did, agent);
+      // Rows are saved in the page's locale, so that's the review they'd join.
+      const rows = await preview(current.did, agent, getLocale());
       return { accounts, current, rows, error: null, description };
     } catch (e) {
       console.error('import preview failed', e);
