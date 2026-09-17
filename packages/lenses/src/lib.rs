@@ -84,19 +84,90 @@ const SOURCES: &[LensSource] = &[
         document: include_str!("../lenses/sh.tangled.repo.json"),
         lexicon: include_str!("../lexicons/sh/tangled/repo.json"),
     },
+    LensSource {
+        nsid: "app.rocksky.song",
+        document: include_str!("../lenses/app.rocksky.song.json"),
+        lexicon: include_str!("../lexicons/app/rocksky/song.json"),
+    },
+    LensSource {
+        nsid: "app.rocksky.album",
+        document: include_str!("../lenses/app.rocksky.album.json"),
+        lexicon: include_str!("../lexicons/app/rocksky/album.json"),
+    },
+    LensSource {
+        nsid: "app.rocksky.artist",
+        document: include_str!("../lenses/app.rocksky.artist.json"),
+        lexicon: include_str!("../lexicons/app/rocksky/artist.json"),
+    },
 ];
+
+// panproto drops ref-typed properties from lens output (ISNOT-qvqp), and `identifiers`
+// is read straight from the untransformed source record rather than the lens view (see
+// `apply_lens`), so it can't come from a computed/renamed field either way.
+// `extensions["at.isnot"]["identifiers"]` names, per output key, where to find that
+// identifier on the source record: either a field already holding it as-is, or (for a
+// value embedded in a URL, e.g. a Spotify track/album link) the field plus which path
+// segment must precede the id.
+enum IdentifiersSpec {
+    /// Legacy form: a single field on the source record that already holds a flat
+    /// `{key: value, ...}` object of identifiers, used as-is.
+    Field(String),
+    /// `{outputKey: sourceField}` or `{outputKey: {field, urlSegmentAfter}}`.
+    Map(Vec<(String, IdentifierSource)>),
+}
+
+struct IdentifierSource {
+    field: String,
+    // When set, the value is the URL's last path segment (query string stripped), taken
+    // only if the segment immediately before it equals this — e.g. "track" for
+    // `.../track/<id>?si=...`. A link shaped some other way yields no identifier at all,
+    // rather than a wrong one (a lens must not derive a spotifyAlbumId from a track link).
+    url_segment_after: Option<String>,
+}
+
+// Some lenses need a title assembled from two source fields rather than a single one
+// (`"{title} ({artist})"`), which `apply_expr` can't do (it only sees the one field's own
+// value) and `extensions["at.isnot"]["title"]`'s dotted-path fallback doesn't either (it
+// tries each path independently, not combined). `titleTemplate` names `base` and `detail`
+// dotted paths on the source record; the title is `"{base} ({detail})"` when `detail` is
+// present and non-blank, else just `base`.
+struct TitleTemplate {
+    base: String,
+    detail: String,
+}
 
 struct Prepared {
     schema: Schema,
     lens: Lens,
-    // panproto drops ref-typed properties from lens output (ISNOT-qvqp), so a
-    // lens names its identifiers object in `extensions["at.isnot"]["identifiers"]`
-    // and we read it straight from the source record.
-    identifiers_field: Option<String>,
+    identifiers: Option<IdentifiersSpec>,
     // Titles nested inside ref/union-typed properties are out of a lens's reach for the
-    // same reason, so `extensions["at.isnot"]["title"]` lists dotted paths on the source
-    // record to try when the view has no title; `$rkey` means the uri's record key.
+    // same reason as identifiers, so `extensions["at.isnot"]["title"]` lists dotted paths on
+    // the source record to try when the view has no title; `$rkey` means the uri's record key.
     title_paths: Vec<String>,
+    title_template: Option<TitleTemplate>,
+}
+
+fn parse_identifier_source(spec: &Value) -> Option<IdentifierSource> {
+    match spec {
+        Value::String(field) => Some(IdentifierSource { field: field.clone(), url_segment_after: None }),
+        Value::Object(m) => Some(IdentifierSource {
+            field: m.get("field")?.as_str()?.to_owned(),
+            url_segment_after: m.get("urlSegmentAfter").and_then(Value::as_str).map(str::to_owned),
+        }),
+        _ => None,
+    }
+}
+
+fn parse_identifiers_spec(v: &Value) -> Option<IdentifiersSpec> {
+    if let Some(field) = v.as_str() {
+        return Some(IdentifiersSpec::Field(field.to_owned()));
+    }
+    let entries = v
+        .as_object()?
+        .iter()
+        .filter_map(|(key, spec)| Some((key.clone(), parse_identifier_source(spec)?)))
+        .collect();
+    Some(IdentifiersSpec::Map(entries))
 }
 
 fn prepare(src: &LensSource) -> Result<Prepared, String> {
@@ -104,25 +175,25 @@ fn prepare(src: &LensSource) -> Result<Prepared, String> {
     let lexicon: Value = serde_json::from_str(src.lexicon).map_err(|e| fail("lexicon", e.to_string()))?;
     let schema = atproto::parse_lexicon(&lexicon).map_err(|e| fail("lexicon", e.to_string()))?;
     let doc = panproto_lens_dsl::eval::eval_json(src.document).map_err(|e| fail("lens", e.to_string()))?;
-    let identifiers_field = doc
-        .extensions
-        .get("at.isnot")
-        .and_then(|v| v.get("identifiers"))
-        .and_then(Value::as_str)
-        .map(str::to_owned);
-    let title_paths = doc
-        .extensions
-        .get("at.isnot")
+    let at_isnot = doc.extensions.get("at.isnot");
+    let identifiers = at_isnot.and_then(|v| v.get("identifiers")).and_then(parse_identifiers_spec);
+    let title_paths = at_isnot
         .and_then(|v| v.get("title"))
         .and_then(Value::as_array)
         .map(|a| a.iter().filter_map(Value::as_str).map(str::to_owned).collect())
         .unwrap_or_default();
+    let title_template = at_isnot.and_then(|v| v.get("titleTemplate")).and_then(Value::as_object).and_then(|o| {
+        Some(TitleTemplate {
+            base: o.get("base")?.as_str()?.to_owned(),
+            detail: o.get("detail")?.as_str()?.to_owned(),
+        })
+    });
     let compiled = panproto_lens_dsl::compile(&doc, &format!("{}:body", src.nsid), &|_| None)
         .map_err(|e| fail("lens", e.to_string()))?;
     let lens = compiled
         .instantiate(&schema, &atproto::protocol())
         .map_err(|e| fail("lens", e.to_string()))?;
-    Ok(Prepared { schema, lens, identifiers_field, title_paths })
+    Ok(Prepared { schema, lens, identifiers, title_paths, title_template })
 }
 
 fn registry() -> Result<&'static HashMap<&'static str, Prepared>, String> {
@@ -184,23 +255,55 @@ fn apply_lens(p: &Prepared, uri: &str, nsid: &str, record: &Map<String, Value>) 
     let view = panproto_inst::to_json(&p.lens.tgt_schema, &view);
     // A view with no title is legal (e.g. popfeed's title is optional): fall back to the same
     // name-like fields `guess` uses, over the untransformed source record. `finalize` falls back
-    // to the uri if that also comes up empty.
-    let title = view
-        .get("title")
-        .and_then(Value::as_str)
-        .map(str::to_owned)
+    // to the uri if that also comes up empty. A `titleTemplate` (combining two source fields)
+    // takes priority over the view's own title, which is at most one source field's value.
+    let title = p
+        .title_template
+        .as_ref()
+        .and_then(|t| render_title_template(t, uri, record))
+        .or_else(|| view.get("title").and_then(Value::as_str).map(str::to_owned))
         .or_else(|| p.title_paths.iter().find_map(|path| title_at(uri, record, path)))
         .or_else(|| title_candidate(record))
         .unwrap_or_default();
     let kind = view.get("type").and_then(Value::as_str).unwrap_or("").to_owned();
-    let identifiers = p
-        .identifiers_field
-        .as_deref()
-        .and_then(|f| record.get(f))
-        .and_then(Value::as_object)
-        .map(string_entries)
-        .unwrap_or_default();
+    let identifiers = resolve_identifiers(p.identifiers.as_ref(), record);
     Ok((title, kind, identifiers))
+}
+
+fn render_title_template(t: &TitleTemplate, uri: &str, record: &Map<String, Value>) -> Option<String> {
+    let base = title_at(uri, record, &t.base)?;
+    match title_at(uri, record, &t.detail) {
+        Some(detail) if !detail.trim().is_empty() => Some(format!("{base} ({detail})")),
+        _ => Some(base),
+    }
+}
+
+fn resolve_identifiers(spec: Option<&IdentifiersSpec>, record: &Map<String, Value>) -> Vec<(String, String)> {
+    match spec {
+        None => Vec::new(),
+        Some(IdentifiersSpec::Field(f)) => record.get(f).and_then(Value::as_object).map(string_entries).unwrap_or_default(),
+        Some(IdentifiersSpec::Map(entries)) => entries
+            .iter()
+            .filter_map(|(key, source)| {
+                let raw = record.get(&source.field).and_then(Value::as_str)?;
+                let value = match &source.url_segment_after {
+                    Some(after) => url_segment_after(raw, after)?,
+                    None => raw.to_owned(),
+                };
+                Some((key.clone(), value))
+            })
+            .collect(),
+    }
+}
+
+/// The last path segment of `url` (query string stripped), if the segment before it is
+/// exactly `after` — e.g. `url_segment_after("https://x/track/9?si=1", "track")` is
+/// `Some("9")`, but `url_segment_after("https://x/album/9", "track")` is `None`.
+fn url_segment_after(url: &str, after: &str) -> Option<String> {
+    let path = url.split('?').next().unwrap_or(url);
+    let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+    let last = *segments.last()?;
+    (segments.len() >= 2 && segments[segments.len() - 2] == after).then(|| last.to_owned())
 }
 
 fn title_at(uri: &str, record: &Map<String, Value>, path: &str) -> Option<String> {

@@ -1,0 +1,25 @@
+{
+  "input": {
+    "uri": "at://did:plc:stzlgu7o4bka2nnkyxo4tloy/app.rocksky.album/3mvo2t2awzo2i",
+    "cid": "bafyreickph6a4ligl5i7rq2x4nzzedazkjrqiirs5v35to2y32qumqjmmm",
+    "record": {
+      "year": 2017,
+      "$type": "app.rocksky.album",
+      "title": "One Love Manchester",
+      "artist": "Various Artists",
+      "createdAt": "2017-06-06T20:38:53.000Z",
+      "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2734e3fb6be1438284544050447",
+      "releaseDate": "2017-06-04",
+      "spotifyLink": "https://open.spotify.com/track/6flZKF5PYWP0p6B8Wn9gr2"
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:stzlgu7o4bka2nnkyxo4tloy/app.rocksky.album/3mvo2t2awzo2i",
+      "cid": "bafyreickph6a4ligl5i7rq2x4nzzedazkjrqiirs5v35to2y32qumqjmmm",
+      "title": "One Love Manchester (Various Artists)",
+      "type": "album"
+    }
+  }
+}

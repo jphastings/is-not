@@ -1,0 +1,37 @@
+{
+  "input": {
+    "uri": "at://did:plc:stzlgu7o4bka2nnkyxo4tloy/app.rocksky.song/3mvo2qvuuhw2i",
+    "cid": "bafyreieoxd2inttzp334b4sk7ibai73r6dowuotitsdqtp2cspu75yrlrm",
+    "record": {
+      "isrc": "USE831552692",
+      "mbid": "e06593af-27be-4180-9952-c523921b544b",
+      "year": 2016,
+      "$type": "app.rocksky.song",
+      "album": "Forte Save My Soul",
+      "label": "Various Artists",
+      "title": "Why Try (feat. Kirstin Maldonado)",
+      "artist": "Forte A cappella, Kirstin Maldonado",
+      "duration": 219986,
+      "createdAt": "2017-05-20T11:32:41.000Z",
+      "discNumber": 1,
+      "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b27365632de748795972c021d123",
+      "albumArtist": "Various Artists",
+      "releaseDate": "2016-03-28",
+      "spotifyLink": "https://open.spotify.com/track/7Ix78E0kjoC1WwAq8Yd7nX",
+      "trackNumber": 7
+    }
+  },
+  "expected": {
+    "supported": true,
+    "subject": {
+      "uri": "at://did:plc:stzlgu7o4bka2nnkyxo4tloy/app.rocksky.song/3mvo2qvuuhw2i",
+      "cid": "bafyreieoxd2inttzp334b4sk7ibai73r6dowuotitsdqtp2cspu75yrlrm",
+      "title": "Why Try (feat. Kirstin Maldonado) (Forte A cappella, Kirstin Maldonado)",
+      "type": "music-track",
+      "identifiers": [
+        { "key": "mbid", "value": "e06593af-27be-4180-9952-c523921b544b" },
+        { "key": "spotifyTrackId", "value": "7Ix78E0kjoC1WwAq8Yd7nX" }
+      ]
+    }
+  }
+}

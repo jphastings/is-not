@@ -1,0 +1,16 @@
+{
+  "id": "at.isnot.lens.app-rocksky-album",
+  "description": "A rocksky album record names an album; the tag subject is that album.",
+  "source": "app.rocksky.album",
+  "target": "at.isnot.review#subject",
+  "extensions": {
+    "at.isnot": {
+      "titleTemplate": { "base": "title", "detail": "artist" },
+      "identifiers": {
+        "mbid": "mbid",
+        "spotifyAlbumId": { "field": "spotifyLink", "urlSegmentAfter": "album" }
+      }
+    }
+  },
+  "steps": [{ "add_field": { "name": "type", "kind": "string", "fallback": "album" } }]
+}
