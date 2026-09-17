@@ -1,4 +1,4 @@
-import type { Subject, Tag } from '@is-not/lenses';
+import type { Identifier, Subject, Tag } from '@is-not/lenses';
 
 export const RECORD_URI = /^at:\/\/([^/\s]+)\/([^/\s]+)\/([^/\s]+)$/;
 
@@ -38,11 +38,33 @@ const MAX_TAGS = 32;
 const MAX_ADJECTIVE_GRAPHEMES = 16;
 const MAX_ADJECTIVE_BYTES = 160;
 const MAX_TITLE_GRAPHEMES = 256;
+const MAX_IDENTIFIERS = 32;
+const MAX_IDENTIFIER_KEY_BYTES = 64;
+const MAX_IDENTIFIER_VALUE_BYTES = 512;
 
 const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 const graphemeCount = (s: string) => [...segmenter.segment(s)].length;
 const byteLength = (s: string) => new TextEncoder().encode(s).length;
 const isString = (v: unknown): v is string => typeof v === 'string';
+
+function validateIdentifiers(input: unknown): Identifier[] | null {
+  if (input === undefined) return [];
+  if (!Array.isArray(input) || input.length > MAX_IDENTIFIERS) return null;
+  const identifiers: Identifier[] = [];
+  for (const item of input) {
+    if (typeof item !== 'object' || item === null) return null;
+    const { key, value } = item as Record<string, unknown>;
+    if (!isString(key) || !isString(value)) return null;
+    if (
+      byteLength(key) > MAX_IDENTIFIER_KEY_BYTES ||
+      byteLength(value) > MAX_IDENTIFIER_VALUE_BYTES
+    ) {
+      return null;
+    }
+    identifiers.push({ key, value });
+  }
+  return identifiers;
+}
 
 function validateSubject(input: unknown): Validated<Subject> {
   if (typeof input !== 'object' || input === null) return { ok: false, error: 'subject' };
@@ -58,7 +80,18 @@ function validateSubject(input: unknown): Validated<Subject> {
   ) {
     return { ok: false, error: 'title' };
   }
-  return { ok: true, value: { uri: s.uri, cid: s.cid, title: s.title, type: s.type } };
+  const identifiers = validateIdentifiers(s.identifiers);
+  if (identifiers === null) return { ok: false, error: 'subject' };
+  return {
+    ok: true,
+    value: {
+      uri: s.uri,
+      cid: s.cid,
+      title: s.title,
+      type: s.type,
+      ...(identifiers.length ? { identifiers } : {}),
+    },
+  };
 }
 
 function validateTag(input: unknown): Validated<Tag> {

@@ -91,6 +91,33 @@ describe('validateReview', () => {
     const result = validateReview({ subject, tags: [{ adjective: 'loud', direction: 1 }] });
     expect(result).toEqual({ ok: false, error: 'subject_person' });
   });
+
+  it('keeps subject identifiers', () => {
+    const subject = { ...validSubject, identifiers: [{ key: 'mbid', value: 'abc-123' }] };
+    const result = validateReview({ subject, tags: [{ adjective: 'loud', direction: 1 }] });
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        subject,
+        tags: [{ adjective: 'loud', direction: 1 }],
+        prefilled: [],
+      },
+    });
+  });
+
+  it('omits the identifiers key when there are none', () => {
+    const result = validateReview({
+      subject: validSubject,
+      tags: [{ adjective: 'loud', direction: 1 }],
+    });
+    expect(result.ok && 'identifiers' in result.value.subject).toBe(false);
+  });
+
+  it('rejects malformed identifiers (a value that is not a string)', () => {
+    const subject = { ...validSubject, identifiers: [{ key: 'mbid', value: 123 }] };
+    const result = validateReview({ subject, tags: [{ adjective: 'loud', direction: 1 }] });
+    expect(result).toEqual({ ok: false, error: 'subject' });
+  });
 });
 
 describe('checkSubjectUri', () => {
