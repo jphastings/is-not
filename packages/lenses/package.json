@@ -1,6 +1,6 @@
 {
   "name": "@is-not/lenses",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Turn an atproto record into an at.isnot.tag subject, using panproto lenses compiled to WebAssembly",
   "license": "MIT",
   "repository": {
