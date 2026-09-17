@@ -12,7 +12,7 @@
   <ul class="links" aria-label={m.subject_links()}>
     {#each links as link (link.href)}
       <li>
-        <a href={link.href} rel="external" aria-label={m.open_on({ site: link.site })} title={m.open_on({ site: link.site })}>
+        <a href={link.href} target="_blank" rel="external noopener" aria-label={m.open_on({ site: link.site })} title={m.open_on({ site: link.site })}>
           <BrandIcon brand={link.brand} />
         </a>
       </li>
