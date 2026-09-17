@@ -1,5 +1,11 @@
 # @is-not/lenses
 
+## 0.8.0
+
+### Minor Changes
+
+- f7d60e1: Rocksky lenses name their MusicBrainz identifiers by what they address: `musicbrainzRecordingId`, `musicbrainzReleaseId`, `musicbrainzArtistId` instead of `mbid`.
+
 ## 0.7.0
 
 ### Minor Changes
