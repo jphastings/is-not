@@ -12,9 +12,7 @@ declare global {
       /** The page's meta and og description; the homepage's when unset. */
       description?: string;
     }
-    interface PageState {
-      filters?: { type: string | null; adjective: string | null };
-    }
+    // interface PageState {}
     // interface Platform {}
   }
 }

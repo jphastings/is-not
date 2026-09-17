@@ -177,8 +177,8 @@ describe('listReviews', () => {
 describe('subjectTypesFor', () => {
   it('returns the distinct subject types for the account', async () => {
     const { subjectTypesFor } = await import('./db');
-    expect(subjectTypesFor('did:plc:known')).toEqual(['post']);
-    expect(subjectTypesFor('did:plc:nobody')).toEqual([]);
+    expect(subjectTypesFor({ did: 'did:plc:known' })).toEqual(['post']);
+    expect(subjectTypesFor({ did: 'did:plc:nobody' })).toEqual([]);
   });
 });
 
