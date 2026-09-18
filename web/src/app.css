@@ -11,6 +11,11 @@
   /* A small lift off --moss-deep, for the reviewer-handle link in a sentence
      next to the subject link: still green, one step lighter than it. */
   --moss-handle: oklch(43% 0.1 145);
+  /* Moss's one counterpart, for the destructive and the doubtful (remove,
+     delete, a warning): the same lightness and chroma, turned to a soft red. */
+  --rust: oklch(52% 0.11 25);
+  --rust-deep: oklch(38% 0.1 25);
+  --rust-tint: oklch(92% 0.05 25);
   /* The direction word is the sentence's one green; subject and adjective are
      ink, underlined, so the parts read from weight of line rather than hue. */
   --subject-ink: var(--ink);
@@ -64,6 +69,9 @@
     --moss-deep: oklch(80% 0.12 145);
     --moss-tint: oklch(30% 0.035 145);
     --moss-handle: oklch(85% 0.12 145);
+    --rust: oklch(72% 0.14 25);
+    --rust-deep: oklch(80% 0.12 25);
+    --rust-tint: oklch(30% 0.035 25);
     --shadow: 0 10px 40px oklch(0% 0 0 / 0.55);
   }
 }
