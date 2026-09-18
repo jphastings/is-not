@@ -32,6 +32,17 @@
   let touched = $state(tag.adjective.trim() !== '');
   const complete = $derived(touched && tag.adjective.trim() !== '');
 
+  // Whitespace in an adjective usually means someone typed a whole phrase
+  // instead of one word; nudge them while they're still in the field, and
+  // keep the colour after they leave so the hint doesn't just vanish.
+  let focused = $state(false);
+  const hasSpace = $derived(/\s/.test(tag.adjective.trim()));
+  const uid = $props.id();
+  let notePopover = $state<HTMLDivElement>();
+  $effect(() => {
+    notePopover?.togglePopover(focused && hasSpace);
+  });
+
   // The fields are textareas so long adjectives wrap with the sentence, but a
   // review is one line: Enter submits rather than breaking it.
   function onkeydown(event: KeyboardEvent) {
@@ -56,19 +67,40 @@
       {/each}
     </select>
   </span>
-  <span class="autosize adjective" data-value={tag.adjective || m.adjective_placeholder()}>
+  <span
+    class="autosize adjective"
+    data-value={tag.adjective || m.adjective_placeholder()}
+    style:anchor-name={`--adjective-${uid}`}
+  >
     <textarea
       bind:value={tag.adjective}
       rows="1"
       {onkeydown}
-      onfocus={() => (touched = false)}
-      onblur={() => (touched = true)}
+      onfocus={() => {
+        touched = false;
+        focused = true;
+      }}
+      onblur={() => {
+        touched = true;
+        focused = false;
+      }}
+      class:space-warning={hasSpace}
       placeholder={m.adjective_placeholder()}
       aria-label={m.adjective_placeholder()}
+      autocapitalize="none"
     ></textarea>
     {#if complete && onRemove}
       <ClearButton label={m.remove()} onclick={onRemove} />
     {/if}
+    <div
+      bind:this={notePopover}
+      popover="manual"
+      role="note"
+      class="adjective-note"
+      style:position-anchor={`--adjective-${uid}`}
+    >
+      {m.adjective_space_note()}
+    </div>
   </span>{#if separator === 'comma'}<span class="comma">,</span>{' '}{/if}
   {#if separator === 'and'}{' '}<span class="conj">{m.and()}</span>{' '}{/if}
 </li>
@@ -150,6 +182,34 @@
     text-decoration: underline;
     text-decoration-thickness: 0.07em;
     text-underline-offset: 0.15em;
+  }
+
+  /* A multi-word adjective stays rust even after blur, so the nudge doesn't
+     just vanish once the popover does. */
+  .adjective textarea.space-warning {
+    color: var(--rust);
+  }
+
+  .adjective-note {
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    background: var(--paper);
+    border: 1px solid var(--rust-tint);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    font-family: var(--font-body);
+    font-size: var(--step--1);
+    color: var(--ink);
+    max-width: 16rem;
+  }
+
+  @supports (anchor-name: --a) {
+    .adjective-note {
+      position: absolute;
+      position-area: bottom;
+      position-try-fallbacks: flip-block;
+      margin-top: var(--space-2);
+    }
   }
 
   /* Keyboard focus needs its own visible indicator now nothing else marks the
