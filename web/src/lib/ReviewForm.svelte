@@ -6,7 +6,7 @@
   import type { Subject, Tag } from '@is-not/lenses';
   import { m } from '$lib/paraglide/messages.js';
   import { getLocale } from '$lib/paraglide/runtime.js';
-  import { validateReview } from '$lib/review';
+  import { mergeTags, validateReview } from '$lib/review';
   import TagRow from '$lib/TagRow.svelte';
   import SubjectField from '$lib/SubjectField.svelte';
 
@@ -46,19 +46,56 @@
     subject_person: () => m.error_subject_person(),
   };
 
-  let subjectText = $state('');
-  let subject = $state<Subject | null>(null);
-  let unsupported = $state(false);
-  let existing = $state(false);
-  let prefilled = $state<string[]>([]);
-  let tags = $state<Tag[]>([{ direction: 1, adjective: '' }]);
-  let clientError = $state<string | null>(null);
-  let sending = $state(false);
-  let tagsEl = $state<HTMLUListElement>();
+  type Draft = { subject: Subject | null; subjectText: string; tags: Tag[] };
+  const DRAFT_KEY = 'review-draft';
+
+  // Signing in is a full navigation (redirect to the PDS and back), which
+  // wipes every Svelte state; sessionStorage survives it. Every read/write
+  // is wrapped: private browsing can throw on any storage access.
+  function readDraft(): Draft | null {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      return raw ? (JSON.parse(raw) as Draft) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeDraft(draft: Draft) {
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      /* private mode, quota, etc: the draft just won't survive */
+    }
+  }
+
+  function clearDraft() {
+    try {
+      sessionStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
 
   // A subject shared as a link resolves the same way a typed or pasted one
   // does; only ever applied once, even if the field is cleared afterwards.
   const initialSubjectUri = page.url.searchParams.get('subject') ?? undefined;
+
+  // Never restored over a shared link, and never persisted from the demo on
+  // /docs (its own sandboxed sentence, not a real draft). `demo` doesn't
+  // change after mount, so only its initial value is needed here.
+  // svelte-ignore state_referenced_locally
+  const draft = !demo && !initialSubjectUri ? readDraft() : null;
+
+  let subjectText = $state(draft?.subjectText ?? '');
+  let subject = $state<Subject | null>(draft?.subject ?? null);
+  let unsupported = $state(false);
+  let existing = $state(false);
+  let prefilled = $state<string[]>([]);
+  let tags = $state<Tag[]>(draft?.tags ?? [{ direction: 1, adjective: '' }]);
+  let clientError = $state<string | null>(null);
+  let sending = $state(false);
+  let tagsEl = $state<HTMLUListElement>();
 
   const locale = getLocale();
 
@@ -68,6 +105,28 @@
       tags: tags.map((t) => ({ ...t })),
       locale,
     });
+  });
+
+  // Before sign-in this finds nothing (no session). Restoring a draft with a
+  // subject re-checks once a session exists, in case that subject already
+  // has a saved review to merge into.
+  $effect(() => {
+    if (draft?.subject) loadExisting(draft.subject.uri);
+  });
+
+  // Keeps the draft alive across the sign-in redirect; gone once it's either
+  // saved or back to genuinely blank (subject cleared, nothing typed).
+  $effect(() => {
+    if (demo) return;
+    const blank =
+      subject === null &&
+      subjectText.trim() === '' &&
+      tags.every((t) => !t.adjective.trim());
+    if (saved || blank) {
+      clearDraft();
+      return;
+    }
+    writeDraft({ subject, subjectText, tags });
   });
 
   const payload = $derived(
@@ -117,7 +176,12 @@
     if (subject?.uri !== uri || !review) return;
     existing = true;
     prefilled = review.tags.map((t) => t.adjective);
-    tags = review.tags.length > 0 ? sortTags(review.tags) : tags;
+    if (review.tags.length === 0) return;
+    // A restored draft's tags were never shown to the person as removable
+    // (prefilled), so they're offered into the merge, not dropped by it;
+    // an adjective the two share keeps the draft's spelling and direction.
+    const offered = tags.filter((t) => t.adjective.trim() !== '');
+    tags = sortTags(mergeTags(review.tags, offered, []));
   }
 </script>
 
