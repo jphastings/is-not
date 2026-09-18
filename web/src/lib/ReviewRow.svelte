@@ -35,6 +35,10 @@
   let tags = $state<Tag[]>(saved.map((t) => ({ ...t })));
   let sending = $state(false);
   let deleteForm = $state<HTMLFormElement>();
+  let confirmDialog = $state<HTMLDialogElement>();
+  // The DB only updates once jetstream ingests the delete: hide the row
+  // locally rather than let a subsequent invalidateAll bring it back.
+  let deleted = $state(false);
 
   const parts = $derived(
     reviewSentence(
@@ -71,13 +75,19 @@
   // one), so removing the only one deletes the record instead of a save.
   function removeTag(i: number) {
     if (tags.length === 1) {
-      if (confirm(m.confirm_delete())) deleteForm?.requestSubmit();
+      confirmDialog?.showModal();
       return;
     }
     tags = tags.filter((_, n) => n !== i);
   }
+
+  function confirmRemoval() {
+    confirmDialog?.close();
+    deleteForm?.requestSubmit();
+  }
 </script>
 
+{#if !deleted}
 <li
   class="review"
   class:adorned={adorned === `${review.did}/${review.rkey}`}
@@ -124,7 +134,18 @@
           <button class="pill small" disabled={sending}>{m.update()}</button>
         {/if}
       </form>
-      <form bind:this={deleteForm} method="POST" action="?/delete" use:enhance hidden>
+      <form
+        bind:this={deleteForm}
+        method="POST"
+        action="?/delete"
+        use:enhance={() => {
+          return async ({ result, update }) => {
+            if (result.type === 'success') deleted = true;
+            await update({ reset: false });
+          };
+        }}
+        hidden
+      >
         <input type="hidden" name="rkey" value={review.rkey} />
       </form>
     {:else}
@@ -149,8 +170,39 @@
         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
       </svg>
     </a>
+    {#if editable}
+      <button
+        type="button"
+        class="permalink bin"
+        aria-label={m.remove_pill()}
+        title={m.remove_pill()}
+        onclick={() => confirmDialog?.showModal()}
+      >
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 6h18" />
+          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          <path d="M10 11v6M14 11v6" />
+        </svg>
+      </button>
+    {/if}
   </span>
+  {#if editable}
+    <dialog bind:this={confirmDialog} class="confirm">
+      <p class="sentence"><Sentence {parts} animate={false} /></p>
+      <p class="note">{m.confirm_delete()}</p>
+      <div class="dialog-actions">
+        <button type="button" class="pill danger" onclick={confirmRemoval}>
+          {m.delete_review()}
+        </button>
+        <button type="button" class="pill secondary" onclick={() => confirmDialog?.close()}>
+          {m.cancel()}
+        </button>
+      </div>
+    </dialog>
+  {/if}
 </li>
+{/if}
 
 <style>
   .review {
@@ -225,6 +277,46 @@
     .permalink:hover {
       color: var(--moss-deep);
     }
+  }
+
+  .bin {
+    background: none;
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+  }
+
+  .confirm {
+    padding: var(--space-5);
+    background: var(--paper);
+    color: inherit;
+    border: 1px solid var(--moss-tint);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    font-family: var(--font-body);
+    max-width: min(28rem, 90vw);
+  }
+
+  .confirm::backdrop {
+    background: oklch(0% 0 0 / 0.4);
+  }
+
+  .confirm .sentence {
+    margin: 0;
+    font-size: var(--step-0);
+  }
+
+  .confirm .note {
+    margin: var(--space-3) 0 0;
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+  }
+
+  .dialog-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
   }
 
   .tags-form {

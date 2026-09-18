@@ -150,6 +150,17 @@ body {
   }
 }
 
+.pill.danger {
+  background: var(--rust);
+  color: var(--paper);
+}
+
+@media (hover: hover) {
+  .pill.danger:hover {
+    background: var(--rust-deep);
+  }
+}
+
 .pill:disabled {
   opacity: 0.45;
   cursor: not-allowed;
