@@ -43,7 +43,7 @@
   const parts = $derived(
     reviewSentence(
       { subject: review.subject, tags: review.tags, locale: review.locale },
-      who ? { who: { handle: review.handle || review.did, did: review.did, self: editable } } : {},
+      who ? { who: { handle: review.handle, did: review.did, self: editable } } : {},
     ),
   );
 

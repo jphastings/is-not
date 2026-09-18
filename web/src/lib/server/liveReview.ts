@@ -1,4 +1,4 @@
-import { resolveDidDoc, type DidDoc } from './accounts';
+import { docHandle, resolveDidDoc, type DidDoc } from './accounts';
 import { guardedFetchJson } from './canonical';
 import { validateReview } from '../review';
 import type { ListedReview } from './db';
@@ -67,5 +67,6 @@ export async function fetchLiveReview(did: string, rkey: string): Promise<Listed
 
   const body = await guardedFetchJson(url.toString(), signal);
   if (typeof body !== 'object' || body === null) return null;
-  return toListedReview(did, rkey, (body as { value?: unknown }).value);
+  const review = toListedReview(did, rkey, (body as { value?: unknown }).value);
+  return review && { ...review, handle: docHandle(doc) };
 }

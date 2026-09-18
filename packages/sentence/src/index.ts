@@ -23,6 +23,7 @@ export type Messages = {
   thinks: string;
   self: string;
   selfThinks: string;
+  somebody: string;
   directions: Record<'2' | '1' | '0' | '-1' | '-2', string>;
 };
 
@@ -68,7 +69,7 @@ export function reviewSentence(review: Review, options: SentenceOptions = {}): P
   if (options.who) {
     const { handle, did, self } = options.who;
     parts.push(
-      { kind: 'who', text: self ? m.self : `@${handle}`, did },
+      { kind: 'who', text: self ? m.self : handle ? `@${handle}` : m.somebody, did },
       { kind: 'text', text: ` ${self ? m.selfThinks : m.thinks} ` },
     );
   }

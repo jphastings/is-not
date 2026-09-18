@@ -1,5 +1,4 @@
-import { describe, expect, it } from 'vite-plus/test';
-import { toListedReview } from './liveReview.ts';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 const validRecord = {
   subject: {
@@ -13,8 +12,21 @@ const validRecord = {
   updatedAt: '2026-01-02T00:00:00.000Z',
 };
 
+vi.mock('./accounts.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./accounts.ts')>();
+  return {
+    ...actual,
+    resolveDidDoc: async () => ({
+      alsoKnownAs: ['at://jp.example'],
+      service: [{ id: '#atproto_pds', serviceEndpoint: 'https://pds.example' }],
+    }),
+  };
+});
+vi.mock('./canonical.ts', () => ({ guardedFetchJson: async () => ({ value: validRecord }) }));
+
 describe('toListedReview', () => {
-  it('builds a ListedReview from a valid PDS record', () => {
+  it('builds a ListedReview from a valid PDS record', async () => {
+    const { toListedReview } = await import('./liveReview.ts');
     expect(toListedReview('did:plc:x', 'abc', validRecord)).toEqual({
       did: 'did:plc:x',
       handle: '',
@@ -28,26 +40,38 @@ describe('toListedReview', () => {
     });
   });
 
-  it('rejects a record with an invalid tag direction', () => {
+  it('rejects a record with an invalid tag direction', async () => {
+    const { toListedReview } = await import('./liveReview.ts');
     const record = { ...validRecord, tags: [{ adjective: 'crunchy', direction: 9 }] };
     expect(toListedReview('did:plc:x', 'abc', record)).toBeNull();
   });
 
-  it('rejects a record with no tags', () => {
+  it('rejects a record with no tags', async () => {
+    const { toListedReview } = await import('./liveReview.ts');
     expect(toListedReview('did:plc:x', 'abc', { ...validRecord, tags: [] })).toBeNull();
   });
 
-  it('rejects a subject with a missing title', () => {
+  it('rejects a subject with a missing title', async () => {
+    const { toListedReview } = await import('./liveReview.ts');
     const record = { ...validRecord, subject: { ...validRecord.subject, title: undefined } };
     expect(toListedReview('did:plc:x', 'abc', record)).toBeNull();
   });
 
-  it('defaults created/updated to empty strings rather than rejecting the record', () => {
+  it('defaults created/updated to empty strings rather than rejecting the record', async () => {
+    const { toListedReview } = await import('./liveReview.ts');
     const record: Record<string, unknown> = { ...validRecord };
     delete record.createdAt;
     delete record.updatedAt;
     expect(toListedReview('did:plc:x', 'abc', record)).toEqual(
       expect.objectContaining({ createdAt: '', updatedAt: '' }),
     );
+  });
+});
+
+describe('fetchLiveReview', () => {
+  it('fills the handle from the DID document, without a second network request', async () => {
+    const { fetchLiveReview } = await import('./liveReview.ts');
+    const review = await fetchLiveReview('did:plc:x', 'abc');
+    expect(review?.handle).toBe('jp.example');
   });
 });

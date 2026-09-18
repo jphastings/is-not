@@ -30,9 +30,12 @@ export async function resolveDidDoc(did: string, signal?: AbortSignal): Promise<
   }
 }
 
-export async function didHandle(did: string): Promise<string> {
-  const doc = await resolveDidDoc(did);
+export function docHandle(doc: DidDoc | null): string {
   return doc?.alsoKnownAs?.find((a) => a.startsWith('at://'))?.slice(5) ?? '';
+}
+
+export async function didHandle(did: string): Promise<string> {
+  return docHandle(await resolveDidDoc(did));
 }
 
 /**

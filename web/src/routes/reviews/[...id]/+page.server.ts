@@ -106,13 +106,13 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
         id,
         single: true as const,
         review,
-        heading: review.handle ? `@${review.handle}` : review.did,
+        heading: review.handle ? `@${review.handle}` : m.somebody(),
         ogImage: `/og.png?${ogParams}`,
         description: m.meta_review({
           sentence: sentenceText(
             reviewSentence(
               { subject: review.subject, tags: review.tags, locale: review.locale },
-              { who: { handle: review.handle || review.did, did: review.did } },
+              { who: { handle: review.handle, did: review.did } },
             ),
           ),
         }),
@@ -159,7 +159,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
     if (resolved) redirect(302, `/reviews/${resolved}${url.search}`);
   }
 
-  const heading = `@${id.startsWith('did:') ? await didHandle(id) : id}`;
+  const resolvedHandle = id.startsWith('did:') ? await didHandle(id) : id;
+  const heading = resolvedHandle ? `@${resolvedHandle}` : m.somebody();
   const { reviews, nextCursor } = listReviewsPage({ did: id }, pageFilters(filters), cursor);
   return {
     id,
