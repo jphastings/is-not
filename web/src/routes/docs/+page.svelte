@@ -176,8 +176,8 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    min-height: 12rem;
-    padding-block: var(--space-6);
+    min-height: 9rem;
+    padding-block: var(--space-4);
   }
 
   /* Kept in normal flow (not `position: absolute`) rather than the usual
