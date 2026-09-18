@@ -1,5 +1,11 @@
 # @is-not/sentence
 
+## 0.5.1
+
+### Patch Changes
+
+- 000195a: A reviewer with no known handle reads as "Somebody" instead of "@" with nothing after it.
+
 ## 0.5.0
 
 ### Minor Changes
