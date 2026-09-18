@@ -267,6 +267,8 @@
           separator={i >= tags.length - 1 ? null : i === tags.length - 2 ? 'and' : 'comma'}
           onRemove={tags.length > 1 ? () => (tags = tags.filter((_, n) => n !== i)) : undefined}
           onnext={i === tags.length - 1 && canAdd ? addTagAndFocus : undefined}
+          sole={tags.length === 1}
+          nextEmpty={tags[i + 1]?.adjective.trim() === ''}
         />
       {/each}
     </ul>

@@ -8,6 +8,8 @@
     onRemove,
     separator = null,
     onnext,
+    sole = false,
+    nextEmpty = false,
   }: {
     tag: Tag;
     onRemove?: () => void;
@@ -15,6 +17,10 @@
     separator?: 'comma' | 'and' | null;
     /** Tab out of the last, filled-in adjective: adds another tag instead of leaving the sentence. */
     onnext?: () => void;
+    /** The only tag in the sentence: its direction word stays green, as if this were the only opinion. */
+    sole?: boolean;
+    /** The next tag's adjective is still empty: the "and" joining to it reads as part of that unfilled prompt too. */
+    nextEmpty?: boolean;
   } = $props();
 
   const directions = [
@@ -37,6 +43,7 @@
   // keep the colour after they leave so the hint doesn't just vanish.
   let focused = $state(false);
   const hasSpace = $derived(/\s/.test(tag.adjective.trim()));
+  const softDirection = $derived(!sole && tag.adjective.trim() === '');
   const uid = $props.id();
   let notePopover = $state<HTMLDivElement>();
   $effect(() => {
@@ -59,6 +66,7 @@
 <li>
   <span
     class="autosize direction"
+    class:unfilled={softDirection}
     data-value={directions.find((d) => d.value === tag.direction)?.label()}
   >
     <select bind:value={tag.direction} aria-label={m.dir_1()}>
@@ -102,7 +110,7 @@
       {m.adjective_space_note()}
     </div>
   </span>{#if separator === 'comma'}<span class="comma">,</span>{' '}{/if}
-  {#if separator === 'and'}{' '}<span class="conj">{m.and()}</span>{' '}{/if}
+  {#if separator === 'and'}{' '}<span class="conj" class:unfilled={nextEmpty}>{m.and()}</span>{' '}{/if}
 </li>
 
 <style>
@@ -168,13 +176,17 @@
 
   textarea::placeholder {
     color: var(--ink-soft);
-    opacity: 0.7;
   }
 
   select {
     appearance: none;
     cursor: pointer;
     color: var(--direction-ink);
+  }
+
+  /* Soft until an adjective gives the direction word something to modify. */
+  .direction.unfilled select {
+    color: var(--ink-soft);
   }
 
   .adjective textarea {
@@ -244,5 +256,11 @@
   .comma,
   .conj {
     font-style: italic;
+  }
+
+  /* The "and" joining into an empty tag reads as part of the same unfilled
+     prompt, not a finished piece of grammar. */
+  .conj.unfilled {
+    color: var(--ink-soft);
   }
 </style>
