@@ -17,7 +17,7 @@ paper neutral do the rest. "Is not" is expressed by the words and by an inverted
 treatment (ink on paper vs paper on green), never by a second signal colour.
 
 Every colour is a custom property (`--paper`, `--ink`, `--ink-soft`, `--moss`,
-`--moss-deep`, `--moss-tint`) in `web/src/app.css`, in `oklch()`. The system
+`--moss-deep`, `--moss-tint`, and their red counterparts `--rust`, `--rust-deep`, `--rust-tint` for removal and warnings) in `web/src/app.css`, in `oklch()`. The system
 `prefers-color-scheme` is the only switch — there is no in-app toggle — and it
 redefines only these tokens, so every surface built from them follows for
 free.
