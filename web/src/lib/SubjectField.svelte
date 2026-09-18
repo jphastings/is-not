@@ -524,7 +524,6 @@
 
   textarea::placeholder {
     color: var(--ink-soft);
-    opacity: 0.7;
   }
 
   /* Keyboard focus needs its own visible indicator now nothing else marks the

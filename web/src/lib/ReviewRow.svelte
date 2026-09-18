@@ -120,6 +120,7 @@
               {tag}
               separator={i >= tags.length - 1 ? null : i === tags.length - 2 ? 'and' : 'comma'}
               onRemove={() => removeTag(i)}
+              sole={tags.length === 1}
             />
           {/each}
         </ul>

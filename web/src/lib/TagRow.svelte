@@ -8,6 +8,7 @@
     onRemove,
     separator = null,
     onnext,
+    sole = false,
   }: {
     tag: Tag;
     onRemove?: () => void;
@@ -15,6 +16,8 @@
     separator?: 'comma' | 'and' | null;
     /** Tab out of the last, filled-in adjective: adds another tag instead of leaving the sentence. */
     onnext?: () => void;
+    /** The only tag in the sentence: its direction word stays green, as if this were the only opinion. */
+    sole?: boolean;
   } = $props();
 
   const directions = [
@@ -37,7 +40,7 @@
   // keep the colour after they leave so the hint doesn't just vanish.
   let focused = $state(false);
   const hasSpace = $derived(/\s/.test(tag.adjective.trim()));
-  const adjectiveEmpty = $derived(tag.adjective.trim() === '');
+  const softDirection = $derived(!sole && tag.adjective.trim() === '');
   const uid = $props.id();
   let notePopover = $state<HTMLDivElement>();
   $effect(() => {
@@ -60,7 +63,7 @@
 <li>
   <span
     class="autosize direction"
-    class:unfilled={adjectiveEmpty}
+    class:unfilled={softDirection}
     data-value={directions.find((d) => d.value === tag.direction)?.label()}
   >
     <select bind:value={tag.direction} aria-label={m.dir_1()}>
@@ -170,7 +173,6 @@
 
   textarea::placeholder {
     color: var(--ink-soft);
-    opacity: 0.7;
   }
 
   select {
