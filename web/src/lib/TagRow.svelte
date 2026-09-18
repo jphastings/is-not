@@ -37,6 +37,7 @@
   // keep the colour after they leave so the hint doesn't just vanish.
   let focused = $state(false);
   const hasSpace = $derived(/\s/.test(tag.adjective.trim()));
+  const adjectiveEmpty = $derived(tag.adjective.trim() === '');
   const uid = $props.id();
   let notePopover = $state<HTMLDivElement>();
   $effect(() => {
@@ -59,6 +60,7 @@
 <li>
   <span
     class="autosize direction"
+    class:unfilled={adjectiveEmpty}
     data-value={directions.find((d) => d.value === tag.direction)?.label()}
   >
     <select bind:value={tag.direction} aria-label={m.dir_1()}>
@@ -175,6 +177,11 @@
     appearance: none;
     cursor: pointer;
     color: var(--direction-ink);
+  }
+
+  /* Soft until an adjective gives the direction word something to modify. */
+  .direction.unfilled select {
+    color: var(--ink-soft);
   }
 
   .adjective textarea {
