@@ -6,7 +6,7 @@
   import type { Subject, Tag } from '@is-not/lenses';
   import { m } from '$lib/paraglide/messages.js';
   import { getLocale } from '$lib/paraglide/runtime.js';
-  import { validateReview } from '$lib/review';
+  import { mergeTags, validateReview } from '$lib/review';
   import TagRow from '$lib/TagRow.svelte';
   import SubjectField from '$lib/SubjectField.svelte';
 
@@ -46,6 +46,41 @@
     subject_person: () => m.error_subject_person(),
   };
 
+  type Draft = { subject: Subject | null; subjectText: string; tags: Tag[] };
+  const DRAFT_KEY = 'review-draft';
+
+  // Signing in is a full navigation (redirect to the PDS and back), which
+  // wipes every Svelte state; sessionStorage survives it. Every read/write
+  // is wrapped: private browsing can throw on any storage access.
+  function readDraft(): Draft | null {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      return raw ? (JSON.parse(raw) as Draft) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeDraft(draft: Draft) {
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      /* private mode, quota, etc: the draft just won't survive */
+    }
+  }
+
+  function clearDraft() {
+    try {
+      sessionStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // A subject shared as a link resolves the same way a typed or pasted one
+  // does; only ever applied once, even if the field is cleared afterwards.
+  const initialSubjectUri = page.url.searchParams.get('subject') ?? undefined;
+
   let subjectText = $state('');
   let subject = $state<Subject | null>(null);
   let unsupported = $state(false);
@@ -56,11 +91,31 @@
   let sending = $state(false);
   let tagsEl = $state<HTMLUListElement>();
 
-  // A subject shared as a link resolves the same way a typed or pasted one
-  // does; only ever applied once, even if the field is cleared afterwards.
-  const initialSubjectUri = page.url.searchParams.get('subject') ?? undefined;
-
   const locale = getLocale();
+
+  // $effect never runs during SSR, only after mount on the client: reading
+  // sessionStorage here (rather than at component init, which runs on the
+  // server too) means the server-rendered blank form and the client's first
+  // render match, and this restore is a normal reactive update afterwards
+  // rather than a hydration mismatch. `restored` gates the persist effect
+  // below so it can't see the pre-restore blank state and clear a draft
+  // that hasn't been read yet; declared first so it also runs first.
+  let restored = $state(false);
+  $effect(() => {
+    if (!demo && !initialSubjectUri) {
+      const draft = readDraft();
+      if (draft) {
+        subject = draft.subject;
+        subjectText = draft.subjectText;
+        tags = draft.tags;
+        // Before sign-in this finds nothing (no session); restoring re-checks
+        // once a session exists, in case that subject already has a saved
+        // review to merge into.
+        if (draft.subject) loadExisting(draft.subject.uri);
+      }
+    }
+    restored = true;
+  });
 
   $effect(() => {
     ondraft?.({
@@ -68,6 +123,21 @@
       tags: tags.map((t) => ({ ...t })),
       locale,
     });
+  });
+
+  // Keeps the draft alive across the sign-in redirect; gone once it's either
+  // saved or back to genuinely blank (subject cleared, nothing typed).
+  $effect(() => {
+    if (demo || !restored) return;
+    const blank =
+      subject === null &&
+      subjectText.trim() === '' &&
+      tags.every((t) => !t.adjective.trim());
+    if (saved || blank) {
+      clearDraft();
+      return;
+    }
+    writeDraft({ subject, subjectText, tags });
   });
 
   const payload = $derived(
@@ -117,7 +187,12 @@
     if (subject?.uri !== uri || !review) return;
     existing = true;
     prefilled = review.tags.map((t) => t.adjective);
-    tags = review.tags.length > 0 ? sortTags(review.tags) : tags;
+    if (review.tags.length === 0) return;
+    // A restored draft's tags were never shown to the person as removable
+    // (prefilled), so they're offered into the merge, not dropped by it;
+    // an adjective the two share keeps the draft's spelling and direction.
+    const offered = tags.filter((t) => t.adjective.trim() !== '');
+    tags = sortTags(mergeTags(review.tags, offered, []));
   }
 </script>
 
