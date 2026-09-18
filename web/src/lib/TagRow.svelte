@@ -9,6 +9,7 @@
     separator = null,
     onnext,
     sole = false,
+    nextEmpty = false,
   }: {
     tag: Tag;
     onRemove?: () => void;
@@ -18,6 +19,8 @@
     onnext?: () => void;
     /** The only tag in the sentence: its direction word stays green, as if this were the only opinion. */
     sole?: boolean;
+    /** The next tag's adjective is still empty: the "and" joining to it reads as part of that unfilled prompt too. */
+    nextEmpty?: boolean;
   } = $props();
 
   const directions = [
@@ -107,7 +110,7 @@
       {m.adjective_space_note()}
     </div>
   </span>{#if separator === 'comma'}<span class="comma">,</span>{' '}{/if}
-  {#if separator === 'and'}{' '}<span class="conj">{m.and()}</span>{' '}{/if}
+  {#if separator === 'and'}{' '}<span class="conj" class:unfilled={nextEmpty}>{m.and()}</span>{' '}{/if}
 </li>
 
 <style>
@@ -253,5 +256,11 @@
   .comma,
   .conj {
     font-style: italic;
+  }
+
+  /* The "and" joining into an empty tag reads as part of the same unfilled
+     prompt, not a finished piece of grammar. */
+  .conj.unfilled {
+    color: var(--ink-soft);
   }
 </style>
