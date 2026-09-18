@@ -22,7 +22,7 @@ async function reviewCard(uri: string, adjective: string | null): Promise<Uint8A
   if (!review) return undefined;
   const parts = reviewSentence(
     { subject: review.subject, tags: review.tags, locale: review.locale },
-    { who: { handle: review.handle || review.did, did: review.did } },
+    { who: { handle: review.handle, did: review.did } },
   );
   return phrasePng(parts);
 }

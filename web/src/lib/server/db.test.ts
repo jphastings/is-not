@@ -216,6 +216,14 @@ describe('listReviews', () => {
   });
 });
 
+describe('knownHandle', () => {
+  it('returns the handle for an account the ingester has seen, else empty', async () => {
+    const { knownHandle } = await import('./db');
+    expect(knownHandle('did:plc:known')).toBe('known.example');
+    expect(knownHandle('did:plc:nobody')).toBe('');
+  });
+});
+
 describe('subjectTypesFor', () => {
   it('returns the distinct subject types for the account', async () => {
     const { subjectTypesFor } = await import('./db');
