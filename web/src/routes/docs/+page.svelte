@@ -49,6 +49,7 @@
         current={data.current}
         serverError={null}
         saved={null}
+        removed={false}
         ondraft={(d) => (draft = d)}
       />
     </div>

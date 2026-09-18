@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { accountsFor } from '$lib/server/accounts';
+import { deleteReviewAction } from '$lib/server/deleteReview';
 import { saveReview } from '$lib/server/reviews';
 import { validateReview } from '$lib/review';
 
@@ -19,4 +20,5 @@ export const actions: Actions = {
     const result = await saveReview(did, parsed.value);
     return result.ok ? { uri: result.uri } : fail(result.status, { error: result.error });
   },
+  delete: deleteReviewAction,
 };

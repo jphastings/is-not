@@ -18,6 +18,7 @@
     current={data.current}
     serverError={form && 'error' in form ? String(form.error) : data.error}
     saved={form && 'uri' in form ? String(form.uri) : null}
+    removed={Boolean(form && 'deleted' in form)}
   />
 </main>
 

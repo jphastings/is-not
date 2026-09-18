@@ -18,6 +18,7 @@
     current,
     serverError,
     saved,
+    removed,
     demo = false,
     ondraft,
   }: {
@@ -25,6 +26,7 @@
     current: Account | null;
     serverError: string | null;
     saved: string | null;
+    removed: boolean;
     /** No `?/save` action exists off `/review`: hides the save button, error and saved link. */
     demo?: boolean;
     ondraft?: (draft: { subject: Subject | null; tags: Tag[]; locale: string }) => void;
@@ -85,6 +87,7 @@
   let subject = $state<Subject | null>(null);
   let unsupported = $state(false);
   let existing = $state(false);
+  let rkey = $state<string | null>(null);
   let prefilled = $state<string[]>([]);
   let tags = $state<Tag[]>([{ direction: 1, adjective: '' }]);
   let clientError = $state<string | null>(null);
@@ -155,11 +158,17 @@
   const saveable = $derived(
     current !== null && subject !== null && validateReview(JSON.parse(payload)).ok,
   );
+  // Every adjective emptied on an existing review: nothing left to save, so
+  // the pill offers to delete the record instead.
+  const removable = $derived(
+    existing && rkey !== null && tags.every((t) => t.adjective.trim() === ''),
+  );
 
   // Picking a subject (fresh or re-picked) starts a clean slate: any tags
   // shown belong to whatever was loaded for it, never the previous subject.
   function onSubjectChosen(uri: string) {
     existing = false;
+    rkey = null;
     prefilled = [];
     tags = [{ direction: 1, adjective: '' }];
     loadExisting(uri);
@@ -167,6 +176,7 @@
 
   function onSubjectCleared() {
     existing = false;
+    rkey = null;
     prefilled = [];
     tags = [{ direction: 1, adjective: '' }];
   }
@@ -186,6 +196,7 @@
     const review = (await res.json()) as ExistingReview | null;
     if (subject?.uri !== uri || !review) return;
     existing = true;
+    rkey = review.rkey;
     prefilled = review.tags.map((t) => t.adjective);
     if (review.tags.length === 0) return;
     // A restored draft's tags were never shown to the person as removable
@@ -199,22 +210,32 @@
 <form
   method="POST"
   action="?/save"
-  use:enhance={({ cancel }) => {
-    const parsed = validateReview(JSON.parse(payload));
-    if (!parsed.ok) {
-      clientError = parsed.error;
-      cancel();
-      return;
+  use:enhance={({ cancel, submitter }) => {
+    const removing = submitter?.getAttribute('formaction') === '?/delete';
+    if (!removing) {
+      const parsed = validateReview(JSON.parse(payload));
+      if (!parsed.ok) {
+        clientError = parsed.error;
+        cancel();
+        return;
+      }
+      clientError = null;
     }
-    clientError = null;
     sending = true;
-    return async ({ update }) => {
+    return async ({ update, result }) => {
       sending = false;
+      if (removing && result.type === 'success') {
+        existing = false;
+        rkey = null;
+        prefilled = [];
+        tags = [{ direction: 1, adjective: '' }];
+      }
       await update({ reset: false });
     };
   }}
 >
   <input type="hidden" name="review" value={payload} />
+  <input type="hidden" name="rkey" value={rkey ?? ''} />
 
   <div class="display sentence">
     {#if current}
@@ -261,15 +282,24 @@
 
   {#if !demo}
     <div class="actions">
-      <button class="pill" class:hidden={!saveable} disabled={sending || !saveable}>
-        {existing ? m.update() : m.save()}
-      </button>
+      {#if removable}
+        <button class="pill danger" formaction="?/delete" disabled={sending}>
+          {m.remove_pill()}
+        </button>
+      {:else}
+        <button class="pill" class:hidden={!saveable} disabled={sending || !saveable}>
+          {existing ? m.update() : m.save()}
+        </button>
+      {/if}
       {#if error}<p class="error" role="alert">{(errors[error] ?? (() => error))()}</p>{/if}
       {#if saved}
         <p class="saved">
           {m.saved()}
           <a href={`/reviews/${saved}`}>{m.view_record()}</a>
         </p>
+      {/if}
+      {#if removed}
+        <p class="saved">{m.removed()}</p>
       {/if}
     </div>
   {/if}

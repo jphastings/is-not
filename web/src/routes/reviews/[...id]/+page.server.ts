@@ -1,4 +1,4 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { reviewSentence, sentenceText, type Direction } from '@is-not/sentence';
 import type { Actions, PageServerLoad } from './$types';
 import { accountsFor, didHandle, handleDid } from '$lib/server/accounts';
@@ -10,7 +10,7 @@ import {
   subjectTypesFor,
   type ReviewFilters,
 } from '$lib/server/db';
-import { deleteReview } from '$lib/server/deleteReview';
+import { deleteReviewAction } from '$lib/server/deleteReview';
 import { COLLECTION, singleReview } from '$lib/server/reviews';
 import { subjectPhrase } from '$lib/server/og';
 import { RECORD_URI } from '$lib/review';
@@ -194,12 +194,5 @@ function subjectDescription(reviews: ReturnType<typeof listReviews>): string {
 }
 
 export const actions: Actions = {
-  delete: async ({ request, locals }) => {
-    const did = locals.browser?.current;
-    if (!did) return fail(401, { error: 'signin' });
-    const rkey = String((await request.formData()).get('rkey') ?? '');
-    if (!rkey) return fail(400, { error: 'rkey' });
-    const result = await deleteReview(did, rkey);
-    return result.ok ? { deleted: rkey } : fail(result.status, { error: result.error });
-  },
+  delete: deleteReviewAction,
 };
