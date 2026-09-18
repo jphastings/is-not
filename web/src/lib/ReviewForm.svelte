@@ -6,9 +6,10 @@
   import type { Subject, Tag } from '@is-not/lenses';
   import { m } from '$lib/paraglide/messages.js';
   import { getLocale } from '$lib/paraglide/runtime.js';
-  import { mergeTags, validateReview } from '$lib/review';
+  import { goodTagDirection, mergeTags, validateReview, withGoodTag } from '$lib/review';
   import TagRow from '$lib/TagRow.svelte';
   import SubjectField from '$lib/SubjectField.svelte';
+  import GoodRating from '$lib/GoodRating.svelte';
 
   type Account = { did: string; handle: string };
   type ExistingReview = { rkey: string; tags: Tag[]; locale?: string };
@@ -20,6 +21,8 @@
     saved,
     removed,
     demo = false,
+    view = 'adjectives',
+    initialSubject,
     ondraft,
   }: {
     accounts: Account[];
@@ -29,6 +32,10 @@
     removed: boolean;
     /** No `?/save` action exists off `/review`: hides the save button, error and saved link. */
     demo?: boolean;
+    /** The docs demo's tabs: everything else stays untouched, only the display differs. */
+    view?: 'adjectives' | 'thumbs' | 'stars';
+    /** Prefills the docs demo with a real subject, server-side, so it's in the SSR'd HTML. */
+    initialSubject?: Subject;
     ondraft?: (draft: { subject: Subject | null; tags: Tag[]; locale: string }) => void;
   } = $props();
 
@@ -83,8 +90,10 @@
   // does; only ever applied once, even if the field is cleared afterwards.
   const initialSubjectUri = page.url.searchParams.get('subject') ?? undefined;
 
-  let subjectText = $state('');
-  let subject = $state<Subject | null>(null);
+  // svelte-ignore state_referenced_locally
+  let subjectText = $state(initialSubject?.title ?? '');
+  // svelte-ignore state_referenced_locally
+  let subject = $state<Subject | null>(initialSubject ?? null);
   let unsupported = $state(false);
   let existing = $state(false);
   let rkey = $state<string | null>(null);
@@ -95,6 +104,15 @@
   let tagsEl = $state<HTMLUListElement>();
 
   const locale = getLocale();
+  const goodAdjective = m.good_adjective();
+  const goodDirection = $derived(goodTagDirection(tags, goodAdjective));
+
+  // Runs once, after mount: an existing review of the prefilled subject
+  // (rather than the subject itself, which is already in the SSR'd HTML)
+  // still needs a live check for whichever account is signed in.
+  $effect(() => {
+    if (initialSubject) loadExisting(initialSubject.uri);
+  });
 
   // $effect never runs during SSR, only after mount on the client: reading
   // sessionStorage here (rather than at component init, which runs on the
@@ -237,18 +255,7 @@
   <input type="hidden" name="review" value={payload} />
   <input type="hidden" name="rkey" value={rkey ?? ''} />
 
-  <div class="display sentence">
-    {#if current}
-      <button type="button" class="slot handle" popovertarget="accounts-popover">
-        @{current.handle || current.did}
-      </button>
-    {:else}
-      <button type="button" class="slot" popovertarget="login-popover">
-        {m.handle_placeholder()}
-      </button>
-    {/if}
-    <span class="text">{m.thinks()}</span>
-
+  {#snippet subjectField()}
     <SubjectField
       bind:subject
       bind:text={subjectText}
@@ -259,24 +266,50 @@
       onchosen={onSubjectChosen}
       onclear={onSubjectCleared}
     />
+  {/snippet}
 
-    <ul class="tags" bind:this={tagsEl}>
-      {#each tags as tag, i (i)}
-        <TagRow
-          {tag}
-          separator={i >= tags.length - 1 ? null : i === tags.length - 2 ? 'and' : 'comma'}
-          onRemove={tags.length > 1 ? () => (tags = tags.filter((_, n) => n !== i)) : undefined}
-          onnext={i === tags.length - 1 && canAdd ? addTagAndFocus : undefined}
-          sole={tags.length === 1}
-          nextEmpty={tags[i + 1]?.adjective.trim() === ''}
+  <div class="display sentence">
+    {#if view === 'adjectives'}
+      {#if current}
+        <button type="button" class="slot handle" popovertarget="accounts-popover">
+          @{current.handle || current.did}
+        </button>
+      {:else}
+        <button type="button" class="slot" popovertarget="login-popover">
+          {m.handle_placeholder()}
+        </button>
+      {/if}
+      <span class="text">{m.thinks()}</span>
+
+      {@render subjectField()}
+
+      <ul class="tags" bind:this={tagsEl}>
+        {#each tags as tag, i (i)}
+          <TagRow
+            {tag}
+            separator={i >= tags.length - 1 ? null : i === tags.length - 2 ? 'and' : 'comma'}
+            onRemove={tags.length > 1 ? () => (tags = tags.filter((_, n) => n !== i)) : undefined}
+            onnext={i === tags.length - 1 && canAdd ? addTagAndFocus : undefined}
+            sole={tags.length === 1}
+            nextEmpty={tags[i + 1]?.adjective.trim() === ''}
+          />
+        {/each}
+      </ul>
+
+      {#if canAdd}
+        <button type="button" class="plain and" onclick={addTag}>
+          {m.add_another()}
+        </button>
+      {/if}
+    {:else}
+      <div class="rating-view">
+        {@render subjectField()}
+        <GoodRating
+          direction={goodDirection}
+          mode={view}
+          onrate={(d) => (tags = withGoodTag(tags, d, goodAdjective))}
         />
-      {/each}
-    </ul>
-
-    {#if canAdd}
-      <button type="button" class="plain and" onclick={addTag}>
-        {m.add_another()}
-      </button>
+      </div>
     {/if}
   </div>
 
@@ -320,6 +353,15 @@
     list-style: none;
     margin: 0;
     padding: 0;
+  }
+
+  /* The thumbs/stars views drop the sentence's other parts: just the subject,
+     in the same font/size (so its × sits where the adjectives view leaves
+     it), then the rating control beneath it. */
+  .rating-view {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-5);
   }
 
   /* Keyboard focus needs its own visible indicator: an underline, not the

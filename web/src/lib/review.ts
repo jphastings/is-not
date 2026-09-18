@@ -1,4 +1,4 @@
-import type { Identifier, Subject, Tag } from '@is-not/lenses';
+import type { Direction, Identifier, Subject, Tag } from '@is-not/lenses';
 
 export const RECORD_URI = /^at:\/\/([^/\s]+)\/([^/\s]+)\/([^/\s]+)$/;
 
@@ -185,4 +185,36 @@ export function mergeTags(stored: Tag[], offered: Tag[], prefilled: string[]): T
   }
 
   return merged;
+}
+
+/** The direction of the tag matching `goodAdjective` (trimmed, case-insensitive), or
+    `null` when there isn't one — the docs demo's thumbs/stars views read the "good"
+    tag this way rather than showing the full tag list. */
+export function goodTagDirection(tags: Tag[], goodAdjective: string): Direction | null {
+  return tags.find((t) => fold(t.adjective) === fold(goodAdjective))?.direction ?? null;
+}
+
+/** Sets or clears the tag matching `goodAdjective`, preserving every other tag and
+    their order. `null` removes it, falling back to the blank placeholder tag if that
+    empties the list; a new tag replaces the lone blank placeholder rather than sitting
+    alongside it. */
+export function withGoodTag(
+  tags: Tag[],
+  direction: Direction | null,
+  goodAdjective: string,
+): Tag[] {
+  const key = fold(goodAdjective);
+  const index = tags.findIndex((t) => fold(t.adjective) === key);
+
+  if (direction === null) {
+    if (index === -1) return tags;
+    const rest = tags.filter((_, i) => i !== index);
+    return rest.length ? rest : [{ direction: 1, adjective: '' }];
+  }
+
+  if (index !== -1) return tags.map((t, i) => (i === index ? { ...t, direction } : t));
+  if (tags.length === 1 && tags[0].adjective.trim() === '') {
+    return [{ direction, adjective: goodAdjective }];
+  }
+  return [...tags, { direction, adjective: goodAdjective }];
 }
