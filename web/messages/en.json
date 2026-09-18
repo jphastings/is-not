@@ -15,6 +15,7 @@
   "thinks": "thinks",
   "subject_placeholder": "something?",
   "adjective_placeholder": "what?",
+  "adjective_space_note": "We recommend using single word adjectives",
   "resolving": "looking…",
   "unsupported_note": "We don't know this kind of thing yet, so check the title.",
   "dir_2": "is really",
