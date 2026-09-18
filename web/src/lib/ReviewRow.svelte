@@ -192,7 +192,6 @@
   {#if editable}
     <dialog bind:this={confirmDialog} class="confirm">
       <p class="sentence"><Sentence {parts} animate={false} /></p>
-      <p class="note">{m.confirm_delete()}</p>
       <div class="dialog-actions">
         <button type="button" class="pill danger" onclick={confirmRemoval}>
           {m.delete_review()}
@@ -299,7 +298,8 @@
     border: 1px solid var(--moss-tint);
     border-radius: 18px;
     box-shadow: var(--shadow);
-    font-family: var(--font-body);
+    font-family: var(--font-display);
+    text-align: center;
     max-width: min(28rem, 90vw);
   }
 
@@ -312,15 +312,9 @@
     font-size: var(--step-0);
   }
 
-  .confirm .note {
-    margin: var(--space-3) 0 0;
-    color: var(--ink-soft);
-    font-size: var(--step--1);
-  }
-
   .dialog-actions {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     gap: var(--space-3);
     margin-top: var(--space-4);
   }
