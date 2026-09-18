@@ -46,9 +46,15 @@
     <ul class="accounts">
       {#each accounts as account (account.did)}
         <li class:current={account.did === current.did}>
-          <button form="switch-form" name="did" value={account.did} class="account">
-            @{account.handle || account.did}
-          </button>
+          {#if account.did === current.did}
+            <a href={`/reviews/${account.did}`} class="account">
+              @{account.handle || account.did}
+            </a>
+          {:else}
+            <button form="switch-form" name="did" value={account.did} class="account">
+              @{account.handle || account.did}
+            </button>
+          {/if}
           <button
             form="logout-form"
             name="did"
@@ -174,7 +180,8 @@
     background: var(--moss-tint);
   }
 
-  .accounts button {
+  .accounts button,
+  .accounts a {
     font: inherit;
     letter-spacing: inherit;
     color: inherit;
@@ -182,6 +189,7 @@
     border: 0;
     padding: var(--space-2) var(--space-3);
     cursor: pointer;
+    text-decoration: none;
   }
 
   .accounts .account {
