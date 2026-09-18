@@ -299,6 +299,7 @@
     border-radius: 18px;
     box-shadow: var(--shadow);
     font-family: var(--font-display);
+    font-size: calc((var(--step-0) + var(--step-1)) / 2);
     text-align: center;
     max-width: min(28rem, 90vw);
   }
@@ -309,7 +310,11 @@
 
   .confirm .sentence {
     margin: 0;
-    font-size: var(--step-0);
+    font-size: inherit;
+  }
+
+  .confirm .pill {
+    font-size: inherit;
   }
 
   .dialog-actions {
