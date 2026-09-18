@@ -12,6 +12,7 @@
   const timestamp = new Date().toISOString();
 
   let draft = $state<{ subject: Subject | null; tags: Tag[]; locale: string } | null>(null);
+  let view = $state<'adjectives' | 'thumbs' | 'stars'>('adjectives');
 
   const record = $derived({
     $type: 'at.isnot.review',
@@ -43,15 +44,50 @@
 
   <section class="demo">
     <div class="form-wrap">
-      <ReviewForm
-        demo
-        accounts={data.accounts}
-        current={data.current}
-        serverError={null}
-        saved={null}
-        removed={false}
-        ondraft={(d) => (draft = d)}
-      />
+      <fieldset class="view-picker">
+        <legend class="visually-hidden">{m.demo_view_legend()}</legend>
+        <input
+          type="radio"
+          id="view-thumbs"
+          class="visually-hidden"
+          name="demo-view"
+          value="thumbs"
+          bind:group={view}
+        />
+        <label for="view-thumbs">{m.demo_view_thumbs()}</label>
+        <input
+          type="radio"
+          id="view-stars"
+          class="visually-hidden"
+          name="demo-view"
+          value="stars"
+          bind:group={view}
+        />
+        <label for="view-stars">{m.demo_view_stars()}</label>
+        <input
+          type="radio"
+          id="view-adjectives"
+          class="visually-hidden"
+          name="demo-view"
+          value="adjectives"
+          bind:group={view}
+        />
+        <label for="view-adjectives">{m.demo_view_adjectives()}</label>
+      </fieldset>
+
+      <div class="form-area">
+        <ReviewForm
+          demo
+          {view}
+          initialSubject={data.initialSubject}
+          accounts={data.accounts}
+          current={data.current}
+          serverError={null}
+          saved={null}
+          removed={false}
+          ondraft={(d) => (draft = d)}
+        />
+      </div>
     </div>
     <JsonPreview value={record} />
   </section>
@@ -115,13 +151,96 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
     gap: var(--space-5);
-    align-items: center;
+    /* Stretches the left pane to the JSON's own height (grid's default),
+       rather than centring a shorter pane against it, so the tab bar can
+       pin to the pane's top edge — flush with the JSON box's top edge —
+       and the form gets the rest of the height to centre in. */
+    align-items: stretch;
   }
 
-  /* Centred in its cell: beside the JSON when there is room, above it when not. */
+  /* Beside the JSON when there is room, above it when not; a column so the
+     tab bar sits at its top (flush with the JSON's top) and the form takes
+     the rest of the height, centred within it. */
   .form-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
+    gap: var(--space-6);
     --sentence-size: var(--step-1);
+  }
+
+  .form-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 12rem;
+    padding-block: var(--space-6);
+  }
+
+  /* Kept in normal flow (not `position: absolute`) rather than the usual
+     off-screen trick: on the radio inputs, that keeps each one's hit target
+     next to its own label instead of stacking all three wherever the
+     nearest positioned ancestor happens to put them. A fieldset excludes
+     its <legend> from layout as a flex/grid item either way. */
+  .visually-hidden {
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .view-picker {
+    display: inline-flex;
+    flex: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .view-picker label {
+    padding: var(--space-2) var(--space-4);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--step--1);
+    color: var(--moss-deep);
+    background: var(--moss-tint);
+    cursor: pointer;
+  }
+
+  .view-picker label:first-of-type {
+    border-start-start-radius: var(--radius-pill);
+    border-end-start-radius: var(--radius-pill);
+  }
+
+  .view-picker label:last-of-type {
+    border-start-end-radius: var(--radius-pill);
+    border-end-end-radius: var(--radius-pill);
+  }
+
+  .view-picker input:checked + label {
+    background: var(--moss);
+    color: var(--paper);
+  }
+
+  @media (hover: hover) {
+    .view-picker label:hover {
+      background: var(--moss);
+      color: var(--paper);
+    }
+  }
+
+  .view-picker input:focus-visible + label {
+    outline: 3px solid var(--moss);
+    outline-offset: 2px;
+    position: relative;
+    z-index: 1;
   }
 
   ul {

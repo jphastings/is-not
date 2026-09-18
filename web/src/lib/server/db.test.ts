@@ -224,6 +224,22 @@ describe('knownHandle', () => {
   });
 });
 
+describe('randomSubject', () => {
+  it('returns a subject with its identifiers', async () => {
+    const { randomSubject } = await import('./db');
+    expect(randomSubject()).toEqual({
+      uri: 'at://did:plc:x/app.bsky.feed.post/1',
+      cid: 'bafy1-newer',
+      title: 'A Sandwich',
+      type: 'meal',
+      identifiers: [
+        { key: 'goodreadsId', value: '42' },
+        { key: 'isbn13', value: '9780000000002' },
+      ],
+    });
+  });
+});
+
 describe('subjectTypesFor', () => {
   it('returns the distinct subject types for the account', async () => {
     const { subjectTypesFor } = await import('./db');

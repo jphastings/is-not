@@ -116,6 +116,21 @@ export function randomSentences(limit = 10): HomeReview[] {
   }));
 }
 
+/** One subject at random, for prefilling the docs demo. `null` when the database has
+    none yet (or isn't reachable), same as every other query here. */
+export function randomSubject(): Subject | null {
+  const conn = open();
+  if (!conn) return null;
+  const row = conn
+    .prepare('SELECT uri, cid, title, type FROM subjects ORDER BY RANDOM() LIMIT 1')
+    .get() as { uri: string; cid: string; title: string; type: string } | undefined;
+  if (!row) return null;
+  const identifiers = conn
+    .prepare('SELECT key, value FROM subject_identifiers WHERE uri = ? ORDER BY key, value')
+    .all(row.uri) as unknown as Subject['identifiers'];
+  return { ...row, ...(identifiers?.length ? { identifiers } : {}) };
+}
+
 export type ExistingReview = { rkey: string; createdAt: string; tags: Tag[]; locale?: string };
 
 export type ListedReview = {

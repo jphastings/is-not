@@ -1,6 +1,12 @@
 import type { Tag } from '@is-not/lenses';
 import { describe, expect, it } from 'vite-plus/test';
-import { checkSubjectUri, mergeTags, validateReview } from './review';
+import {
+  checkSubjectUri,
+  goodTagDirection,
+  mergeTags,
+  validateReview,
+  withGoodTag,
+} from './review';
 
 const validSubject = {
   uri: 'at://did:plc:x/app.bsky.feed.post/1',
@@ -163,5 +169,60 @@ describe('mergeTags', () => {
 
   it('never removes when the form was not prefilled', () => {
     expect(mergeTags(stored, [{ direction: 1, adjective: 'loud' }], [])).toEqual(stored);
+  });
+});
+
+describe('goodTagDirection', () => {
+  it('finds the tag by trimmed, case-insensitive adjective', () => {
+    expect(goodTagDirection([{ direction: 1, adjective: ' Good ' }], 'good')).toBe(1);
+  });
+
+  it('returns null when there is no good tag', () => {
+    expect(goodTagDirection([{ direction: 1, adjective: 'loud' }], 'good')).toBeNull();
+  });
+});
+
+describe('withGoodTag', () => {
+  it('replaces the lone blank placeholder tag when setting a direction', () => {
+    expect(withGoodTag([{ direction: 1, adjective: '' }], -1, 'good')).toEqual([
+      { direction: -1, adjective: 'good' },
+    ]);
+  });
+
+  it('appends the good tag alongside other tags', () => {
+    expect(withGoodTag([{ direction: 1, adjective: 'loud' }], 2, 'good')).toEqual([
+      { direction: 1, adjective: 'loud' },
+      { direction: 2, adjective: 'good' },
+    ]);
+  });
+
+  it('updates an existing good tag in place, preserving its position and spelling', () => {
+    const tags: Tag[] = [
+      { direction: 1, adjective: 'loud' },
+      { direction: -1, adjective: 'Good' },
+    ];
+    expect(withGoodTag(tags, 2, 'good')).toEqual([
+      { direction: 1, adjective: 'loud' },
+      { direction: 2, adjective: 'Good' },
+    ]);
+  });
+
+  it('removes the good tag, falling back to a blank placeholder if nothing is left', () => {
+    expect(withGoodTag([{ direction: 1, adjective: 'good' }], null, 'good')).toEqual([
+      { direction: 1, adjective: '' },
+    ]);
+  });
+
+  it('removes only the good tag, keeping the others', () => {
+    const tags: Tag[] = [
+      { direction: 1, adjective: 'loud' },
+      { direction: -1, adjective: 'good' },
+    ];
+    expect(withGoodTag(tags, null, 'good')).toEqual([{ direction: 1, adjective: 'loud' }]);
+  });
+
+  it('clearing when there is no good tag is a no-op', () => {
+    const tags: Tag[] = [{ direction: 1, adjective: 'loud' }];
+    expect(withGoodTag(tags, null, 'good')).toBe(tags);
   });
 });
