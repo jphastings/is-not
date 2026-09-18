@@ -81,23 +81,41 @@
   // does; only ever applied once, even if the field is cleared afterwards.
   const initialSubjectUri = page.url.searchParams.get('subject') ?? undefined;
 
-  // Never restored over a shared link, and never persisted from the demo on
-  // /docs (its own sandboxed sentence, not a real draft). `demo` doesn't
-  // change after mount, so only its initial value is needed here.
-  // svelte-ignore state_referenced_locally
-  const draft = !demo && !initialSubjectUri ? readDraft() : null;
-
-  let subjectText = $state(draft?.subjectText ?? '');
-  let subject = $state<Subject | null>(draft?.subject ?? null);
+  let subjectText = $state('');
+  let subject = $state<Subject | null>(null);
   let unsupported = $state(false);
   let existing = $state(false);
   let prefilled = $state<string[]>([]);
-  let tags = $state<Tag[]>(draft?.tags ?? [{ direction: 1, adjective: '' }]);
+  let tags = $state<Tag[]>([{ direction: 1, adjective: '' }]);
   let clientError = $state<string | null>(null);
   let sending = $state(false);
   let tagsEl = $state<HTMLUListElement>();
 
   const locale = getLocale();
+
+  // $effect never runs during SSR, only after mount on the client: reading
+  // sessionStorage here (rather than at component init, which runs on the
+  // server too) means the server-rendered blank form and the client's first
+  // render match, and this restore is a normal reactive update afterwards
+  // rather than a hydration mismatch. `restored` gates the persist effect
+  // below so it can't see the pre-restore blank state and clear a draft
+  // that hasn't been read yet; declared first so it also runs first.
+  let restored = $state(false);
+  $effect(() => {
+    if (!demo && !initialSubjectUri) {
+      const draft = readDraft();
+      if (draft) {
+        subject = draft.subject;
+        subjectText = draft.subjectText;
+        tags = draft.tags;
+        // Before sign-in this finds nothing (no session); restoring re-checks
+        // once a session exists, in case that subject already has a saved
+        // review to merge into.
+        if (draft.subject) loadExisting(draft.subject.uri);
+      }
+    }
+    restored = true;
+  });
 
   $effect(() => {
     ondraft?.({
@@ -107,17 +125,10 @@
     });
   });
 
-  // Before sign-in this finds nothing (no session). Restoring a draft with a
-  // subject re-checks once a session exists, in case that subject already
-  // has a saved review to merge into.
-  $effect(() => {
-    if (draft?.subject) loadExisting(draft.subject.uri);
-  });
-
   // Keeps the draft alive across the sign-in redirect; gone once it's either
   // saved or back to genuinely blank (subject cleared, nothing typed).
   $effect(() => {
-    if (demo) return;
+    if (demo || !restored) return;
     const blank =
       subject === null &&
       subjectText.trim() === '' &&
