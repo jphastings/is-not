@@ -1,7 +1,7 @@
 import { TID } from '@atproto/common-web';
 import type { Tag } from '@is-not/lenses';
 import { agentFor } from './accounts.ts';
-import { findReview, listReviews, type ListedReview } from './db.ts';
+import { findReview, knownHandle, listReviews, type ListedReview } from './db.ts';
 import { fetchLiveReview } from './liveReview.ts';
 import { mergeTags, type ReviewInput } from '$lib/review';
 
@@ -21,11 +21,17 @@ export async function singleReview(
   rkey: string,
   adjective?: string | null,
 ): Promise<ListedReview | null> {
-  const review =
-    listReviews({ did }).find((r) => r.rkey === rkey) ?? (await fetchLiveReview(did, rkey));
+  const review = listReviews({ did }).find((r) => r.rkey === rkey) ?? (await liveReview(did, rkey));
   if (!review || !adjective) return review;
   const matching = review.tags.filter((t) => t.adjective === adjective);
   return { ...review, tags: matching.length > 0 ? matching : [{ direction: 0, adjective }] };
+}
+
+/** The ingester's verified handle wins over the live fallback's DID-doc guess,
+    when it has one; the DID doc is still fetched regardless, for the PDS endpoint. */
+async function liveReview(did: string, rkey: string): Promise<ListedReview | null> {
+  const review = await fetchLiveReview(did, rkey);
+  return review && { ...review, handle: knownHandle(did) || review.handle };
 }
 
 /**

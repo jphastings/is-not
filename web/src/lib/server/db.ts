@@ -361,6 +361,16 @@ export function adjectiveCounts(scope: ReviewScope): AdjectiveCount[] {
     .all(...scoped.params) as unknown as AdjectiveCount[];
 }
 
+/** The ingester's verified handle for a DID, or '' when it has no `accounts` row yet. */
+export function knownHandle(did: string): string {
+  const conn = open();
+  if (!conn) return '';
+  const row = conn.prepare('SELECT handle FROM accounts WHERE did = ?').get(did) as
+    | { handle: string }
+    | undefined;
+  return row?.handle ?? '';
+}
+
 /** The reviewer's own review of a subject, if they have already reviewed it. */
 /** A person's review of a subject in one locale (`''` for a review with none):
     reviews of the same subject in different locales are separate reviews. */

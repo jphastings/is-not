@@ -5,6 +5,7 @@ import { accountsFor, didHandle, handleDid } from '$lib/server/accounts';
 import {
   adjectiveCounts,
   decodeCursor,
+  knownHandle,
   listReviews,
   listReviewsPage,
   subjectTypesFor,
@@ -159,7 +160,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
     if (resolved) redirect(302, `/reviews/${resolved}${url.search}`);
   }
 
-  const resolvedHandle = id.startsWith('did:') ? await didHandle(id) : id;
+  const resolvedHandle = id.startsWith('did:') ? knownHandle(id) || (await didHandle(id)) : id;
   const heading = resolvedHandle ? `@${resolvedHandle}` : m.somebody();
   const { reviews, nextCursor } = listReviewsPage({ did: id }, pageFilters(filters), cursor);
   return {
