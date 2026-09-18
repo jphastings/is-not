@@ -279,6 +279,10 @@
     .permalink:hover {
       color: var(--moss-deep);
     }
+
+    .bin:hover {
+      color: var(--rust);
+    }
   }
 
   .bin {
